@@ -277,7 +277,7 @@ class ThirdForm
                                 'aprobado'    => 'Aprobado',
                                 'condicional' => 'Condicional',
                                 'rechazado'   => 'Rechazado',
-                            ])->default('sin_evaluar'),
+                            ])->default('sin_evaluar')->required(),
 
                         DatePicker::make('fecha_evaluacion_crediticia')
                             ->label('Fecha de evaluación'),

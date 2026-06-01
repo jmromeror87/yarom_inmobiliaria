@@ -102,6 +102,10 @@ class Third extends Model
             $t->nombre_completo = $t->tipo_persona === 'juridica'
                 ? $t->razon_social
                 : trim("{$t->primer_nombre} {$t->segundo_nombre} {$t->primer_apellido} {$t->segundo_apellido}");
+
+            if (empty($t->estado_crediticio)) {
+                $t->estado_crediticio = 'sin_evaluar';
+            }
         });
     }
 
