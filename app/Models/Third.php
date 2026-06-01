@@ -43,6 +43,12 @@ class Third extends Model
 
     protected $table = 'thirds';
 
+    protected $attributes = [
+        'estado_crediticio' => 'sin_evaluar',
+        'nacionalidad'      => 'Colombiana',
+        'pais_id'           => 1,
+    ];
+
     protected $fillable = [
         'es_propietario','es_arrendatario','es_cliente_compra','es_fiador','es_proveedor',
         'tipo_persona','tipo_documento','numero_documento','digito_verificacion',
