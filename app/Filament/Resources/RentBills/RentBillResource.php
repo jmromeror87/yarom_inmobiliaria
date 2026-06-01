@@ -9,12 +9,16 @@ use App\Filament\Resources\RentBills\Pages\ListRentBills;
 use App\Filament\Resources\RentBills\Schemas\RentBillForm;
 use App\Filament\Resources\RentBills\Tables\RentBillsTable;
 use App\Models\RentBill;
+use App\Filament\Traits\HasResourcePermissions;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 
 class RentBillResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'facturas';
     protected static ?string $model = RentBill::class;
     protected static ?string $navigationLabel = 'Facturación';
     protected static ?string $modelLabel = 'Factura';
@@ -31,7 +35,7 @@ class RentBillResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Cobros';
+        return 'Cartera';
     }
 
     public static function form(Schema $schema): Schema

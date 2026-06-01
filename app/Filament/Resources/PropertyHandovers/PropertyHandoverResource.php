@@ -7,6 +7,7 @@ use App\Filament\Resources\PropertyHandovers\Pages\EditPropertyHandover; use App
 use App\Filament\Resources\PropertyHandovers\Pages\ListPropertyHandovers;
 use App\Filament\Resources\PropertyHandovers\Schemas\PropertyHandoverForm;
 use App\Filament\Resources\PropertyHandovers\Tables\PropertyHandoversTable;
+use App\Filament\Traits\HasResourcePermissions;
 use App\Models\PropertyHandover;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -14,6 +15,9 @@ use Filament\Tables\Table;
 
 class PropertyHandoverResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'actas';
     protected static ?string $model = PropertyHandover::class;
     protected static ?string $navigationLabel = 'Actas de Entrega';
     protected static ?string $modelLabel = 'Acta de Entrega';
@@ -29,7 +33,7 @@ class PropertyHandoverResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Operativo';
+        return 'Operaciones';
     }
 
     public static function form(Schema $schema): Schema

@@ -67,7 +67,7 @@ class PropertyHandoversTable
                 SelectFilter::make('estado')->label('Estado')
                     ->options(['borrador'=>'Borrador','firmada'=>'Firmada','cerrada'=>'Cerrada']),
             ])
-            ->actions([EditAction::make()->label('Editar')])
-            ->bulkActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->recordActions([EditAction::make()->label('Editar')])
+            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 }

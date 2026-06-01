@@ -2,104 +2,148 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Property;
-use App\Models\Third;
+use App\Filament\Resources\Properties\PropertyResource;
+use App\Filament\Resources\RentalContracts\RentalContractResource;
+use App\Filament\Resources\Requests\RequestResource;
+use App\Filament\Resources\Thirds\ThirdResource;
 use App\Models\AdministrationContract;
-use App\Models\Request as SolicitudEstudio;
+use App\Models\Property;
+use App\Models\RentalContract;
+use App\Models\Third;
+use App\Models\Request as Solicitud;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
-use Carbon\Carbon;
 
 class ResumenOperativoWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
-    protected int | string | array $columnSpan = 12;
-
-    // Recibe filtros del Dashboard
-    public ?array $filters = null;
+    protected int|string|array $columnSpan = 'full';
 
     protected function getStats(): array
     {
-        $inicio = isset($this->filters['startDate'])
-            ? Carbon::parse($this->filters['startDate'])
-            : now()->startOfMonth();
+        // ── Inmuebles ─────────────────────────────────────────────────────
+        $totalInm   = Property::count();
+        $arrendados = Property::where('estado', 'arrendado')->count();
+        $disponibles= Property::where('estado', 'disponible')->count();
+        $captacion  = Property::where('estado', 'en_captacion')->count();
+        $ocupacion  = $totalInm > 0 ? round($arrendados / $totalInm * 100, 1) : 0;
 
-        $fin = isset($this->filters['endDate'])
-            ? Carbon::parse($this->filters['endDate'])
-            : now()->endOfMonth();
+        // Ocupación mes anterior
+        $arrAnt = RentalContract::where('estado', 'activo')
+            ->where('fecha_inicio', '<=', now()->subMonth()->endOfMonth())
+            ->where(fn ($q) => $q->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', now()->subMonth()->startOfMonth()))
+            ->count();
+        $ocupAnt = $totalInm > 0 ? round($arrAnt / $totalInm * 100, 1) : 0;
+        [$ocupIcon, $ocupColor, $ocupDiff] = self::trend($ocupacion, $ocupAnt, true);
 
-        // ── PROPIEDADES ──────────────────────────────
-        $totalPropiedades   = Property::whereNull('deleted_at')->count();
-        $propArrendadas     = Property::whereNull('deleted_at')->where('estado', 'arrendado')->count();
-        $propDisponibles    = Property::whereNull('deleted_at')->where('estado', 'disponible')->count();
+        // ── Contratos ─────────────────────────────────────────────────────
+        $contrActivos = RentalContract::where('estado', 'activo')->count();
+        $contrAnt     = RentalContract::where('estado', 'activo')
+            ->where('fecha_inicio', '<=', now()->subMonth()->endOfMonth())->count();
+        [$cIcon, $cColor, $cDiff] = self::trend($contrActivos, $contrAnt, true);
 
-        // ── CONTRATOS ADMINISTRACIÓN ─────────────────
-        $contratosActivos   = AdministrationContract::whereNull('deleted_at')
-                                ->where('estado', 'activo')->count();
+        $porVencer30 = RentalContract::where('estado', 'activo')
+            ->whereBetween('fecha_fin', [now(), now()->addDays(30)])->count();
+        $porVencer60 = RentalContract::where('estado', 'activo')
+            ->whereBetween('fecha_fin', [now(), now()->addDays(60)])->count();
 
-        // Contratos que vencen en los próximos 30 días
-        $porVencer = AdministrationContract::whereNull('deleted_at')
-                        ->where('estado', 'activo')
-                        ->whereBetween('fecha_fin', [now(), now()->addDays(30)])
-                        ->count();
+        // ── Terceros ─────────────────────────────────────────────────────
+        $propietarios  = Third::where('es_propietario', true)->where('is_active', true)->count();
+        $arrendatarios = Third::where('es_arrendatario', true)->where('is_active', true)->count();
+        $tercAnt       = Third::where('is_active', true)->whereDate('created_at', '<=', now()->subMonth()->endOfMonth())->count();
+        $tercHoy       = Third::where('is_active', true)->count();
+        [$tIcon, $tColor, $tDiff] = self::trend($tercHoy, $tercAnt, true);
 
-        // ── TERCEROS ─────────────────────────────────
-        $totalTerceros      = Third::whereNull('deleted_at')->where('is_active', true)->count();
-        $propietarios       = Third::whereNull('deleted_at')->where('es_propietario', true)->count();
-        $arrendatarios      = Third::whereNull('deleted_at')->where('es_arrendatario', true)->count();
+        // ── Solicitudes ──────────────────────────────────────────────────
+        $solPend  = Solicitud::whereIn('estado', ['radicada', 'en_estudio'])->count();
+        $solMes   = Solicitud::whereIn('estado', ['radicada', 'en_estudio'])
+            ->whereMonth('created_at', now()->month)->count();
+        $solMesAnt= Solicitud::whereIn('estado', ['radicada', 'en_estudio'])
+            ->whereMonth('created_at', now()->subMonth()->month)->count();
+        [$sIcon, $sColor, $sDiff] = self::trend($solMes, $solMesAnt, true);
 
-        // ── SOLICITUDES (en el período) ──────────────
-        $solicitudesPeriodo = SolicitudEstudio::whereNull('deleted_at')
-                                ->whereBetween('created_at', [$inicio->startOfDay(), $fin->endOfDay()])
-                                ->count();
+        // ── Contratos adm activos ─────────────────────────────────────────
+        $admActivos = AdministrationContract::where('estado', 'activo')->count();
 
-        $solicitudesPendientes = SolicitudEstudio::whereNull('deleted_at')
-                                    ->whereIn('estado', ['radicada', 'en_estudio'])
-                                    ->count();
+        // Chart ocupación 6 meses
+        $chartOcup = collect(range(5, 0))->map(function ($i) use ($totalInm) {
+            $d = now()->subMonths($i);
+            $a = RentalContract::where('estado', 'activo')
+                ->where('fecha_inicio', '<=', $d->copy()->endOfMonth())
+                ->where(fn ($q) => $q->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', $d->copy()->startOfMonth()))
+                ->count();
+            return $totalInm > 0 ? round($a / $totalInm * 100, 0) : 0;
+        })->values()->toArray();
 
-        // ── CANON TOTAL ADMINISTRADO ─────────────────
-        $canonTotal = AdministrationContract::whereNull('deleted_at')
-                        ->where('estado', 'activo')
-                        ->sum('canon_pactado');
-
-        $canonFormatted = '$ ' . number_format($canonTotal, 0, ',', '.');
-
-        // Ocupación
-        $ocupacion = $totalPropiedades > 0
-            ? round(($propArrendadas / $totalPropiedades) * 100, 1)
-            : 0;
+        $baseContr = RentalContractResource::getUrl('index');
+        $baseProps = PropertyResource::getUrl('index');
+        $baseSol   = RequestResource::getUrl('index');
+        $baseTer   = ThirdResource::getUrl('index');
 
         return [
-            Stat::make('Propiedades Totales', $totalPropiedades)
-                ->description("{$propArrendadas} arrendadas · {$propDisponibles} disponibles")
+            Stat::make('Inmuebles en portafolio', $totalInm)
+                ->description("{$arrendados} arrendados · {$disponibles} disponibles · {$captacion} en captación")
                 ->descriptionIcon('heroicon-m-building-office-2')
-                ->color('info')
-                ->chart([
-                    $propDisponibles,
-                    $propArrendadas,
-                    Property::whereNull('deleted_at')->where('estado', 'en_captacion')->count(),
-                ]),
+                ->color('primary')
+                ->url($baseProps),
 
-            Stat::make('Ocupación', $ocupacion . '%')
-                ->description($porVencer > 0 ? "{$porVencer} contratos por vencer (30 días)" : 'Sin vencimientos próximos')
-                ->descriptionIcon($porVencer > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
-                ->color($porVencer > 0 ? 'warning' : 'success'),
+            Stat::make('Ocupación del portafolio', $ocupacion . '%')
+                ->description($ocupDiff)
+                ->descriptionIcon($ocupIcon)
+                ->color($ocupColor)
+                ->chart($chartOcup)
+                ->url($baseProps . '?tableFilters[estado][value]=arrendado'),
 
-            Stat::make('Canon Total Administrado', $canonFormatted)
-                ->description("{$contratosActivos} contratos activos")
-                ->descriptionIcon('heroicon-m-document-text')
-                ->color('success'),
+            Stat::make('Contratos arriendo activos', $contrActivos)
+                ->description($cDiff . ' · ' . $admActivos . ' adm. activos')
+                ->descriptionIcon($cIcon)
+                ->color($cColor)
+                ->url($baseContr . '?tableFilters[estado][value]=activo'),
 
-            Stat::make('Solicitudes Pendientes', $solicitudesPendientes)
-                ->description("{$solicitudesPeriodo} radicadas en el período")
-                ->descriptionIcon('heroicon-m-clipboard-document-list')
-                ->color($solicitudesPendientes > 0 ? 'warning' : 'gray'),
+            Stat::make('Por vencer (60 días)', $porVencer60)
+                ->description($porVencer30 > 0 ? "{$porVencer30} vencen en los próximos 30 días" : 'Sin vencimientos en 30 días')
+                ->descriptionIcon($porVencer60 > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-badge')
+                ->color($porVencer30 > 0 ? 'danger' : ($porVencer60 > 0 ? 'warning' : 'success'))
+                ->url($baseContr . '?tableFilters[estado][value]=activo'),
 
-            Stat::make('Propietarios', $propietarios)
-                ->description("{$arrendatarios} arrendatarios · {$totalTerceros} total terceros")
-                ->descriptionIcon('heroicon-m-users')
-                ->color('gray'),
+            Stat::make('Terceros activos', $tercHoy)
+                ->description($tDiff . ' · ' . $propietarios . ' prop. / ' . $arrendatarios . ' arrend.')
+                ->descriptionIcon($tIcon)
+                ->color($tColor)
+                ->url($baseTer),
+
+            Stat::make('Solicitudes en proceso', $solPend)
+                ->description($sDiff . ' radicadas este mes')
+                ->descriptionIcon($sIcon)
+                ->color($solPend > 0 ? 'warning' : 'gray')
+                ->url($baseSol . '?tableFilters[estado][value]=en_estudio'),
         ];
+    }
+
+    /**
+     * Calcula trend: [icon, color, descripción]
+     * $positive = true cuando subir es bueno (ocupación, recaudo)
+     * $positive = false cuando subir es malo (mora, cartera vencida)
+     */
+    private static function trend(float $actual, float $anterior, bool $positivoEsBueno): array
+    {
+        if ($anterior == 0) {
+            return ['heroicon-m-minus', 'gray', 'Sin datos del mes anterior'];
+        }
+        $diff = round(($actual - $anterior) / $anterior * 100, 1);
+        $sube = $diff > 0;
+        $igual = abs($diff) < 0.1;
+
+        if ($igual) {
+            return ['heroicon-m-minus', 'gray', 'Sin cambios vs mes anterior'];
+        }
+
+        $bueno = $positivoEsBueno ? $sube : !$sube;
+        $icon  = $sube ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down';
+        $color = $bueno ? 'success' : 'danger';
+        $signo = $sube ? '+' : '';
+        $desc  = "{$signo}{$diff}% vs mes anterior";
+
+        return [$icon, $color, $desc];
     }
 }

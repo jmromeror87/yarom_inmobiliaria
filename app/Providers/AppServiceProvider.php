@@ -17,6 +17,10 @@
 
 namespace App\Providers;
 
+use App\Models\OwnerLiquidation;
+use App\Models\RentBill;
+use App\Observers\OwnerLiquidationObserver;
+use App\Observers\RentBillObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -39,7 +43,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        RentBill::observe(RentBillObserver::class);
+        OwnerLiquidation::observe(OwnerLiquidationObserver::class);
     }
 }
 // en el método register():

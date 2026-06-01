@@ -67,7 +67,7 @@ class CompaniesTable
                 Tables\Columns\IconColumn::make('factura_electronica_activa')
                     ->label('Fact. elect.')->boolean(),
             ])
-            ->actions([
+            ->recordActions([
                 \Filament\Actions\EditAction::make()->label('Editar'),
             ]);
     }

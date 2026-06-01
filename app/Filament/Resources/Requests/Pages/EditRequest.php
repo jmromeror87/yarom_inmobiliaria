@@ -63,8 +63,9 @@ class EditRequest extends EditRecord
         $yaEnvioEmail = $record->suraStudies->where('canal_envio', 'email')->isNotEmpty();
         $hayRespuesta = $record->suraStudies->where('resultado_sura', '!=', 'pendiente')->isNotEmpty();
         $estado       = $record->estado;
-        $cerrada      = in_array($estado, ['aprobada', 'desistida']);
+        $cerrada      = in_array($estado, ['aprobada', 'aprobada_gerente', 'desistida']);
         $rechazada    = $estado === 'rechazada';
+        $esPropietario = $record->tipo === 'estudio_propietario';
 
         $acciones = [];
 
@@ -72,16 +73,18 @@ class EditRequest extends EditRecord
         if ($cerrada || $rechazada) {
             $acciones[] = Action::make('badge_estado')
                 ->label(match($estado) {
-                    'aprobada'  => '✅ APROBADA',
-                    'rechazada' => '❌ RECHAZADA',
-                    'desistida' => '🚫 DESISTIDA',
-                    default     => '🔒 Cerrada',
+                    'aprobada'         => '✅ APROBADA (SURA)',
+                    'aprobada_gerente' => '👔 APROBADA POR GERENTE',
+                    'rechazada'        => '❌ RECHAZADA',
+                    'desistida'        => '🚫 DESISTIDA',
+                    default            => '🔒 Cerrada',
                 })
                 ->color(match($estado) {
-                    'aprobada'  => 'success',
-                    'rechazada' => 'danger',
-                    'desistida' => 'gray',
-                    default     => 'gray',
+                    'aprobada'         => 'success',
+                    'aprobada_gerente' => 'success',
+                    'rechazada'        => 'danger',
+                    'desistida'        => 'gray',
+                    default            => 'gray',
                 })
                 ->disabled();
         }
@@ -110,7 +113,7 @@ class EditRequest extends EditRecord
         }
 
         // ── WhatsApp ──────────────────────────────────────────
-        if (!$yaEnvioWA && !$cerrada && !$rechazada) {
+        if (!$esPropietario && !$yaEnvioWA && !$cerrada && !$rechazada) {
             $acciones[] = Action::make('enviar_whatsapp_sura')
                 ->label('📱 WhatsApp Sura')
                 ->color('success')
@@ -154,7 +157,7 @@ class EditRequest extends EditRecord
         }
 
         // ── Email ─────────────────────────────────────────────
-        if (!$yaEnvioEmail && !$cerrada && !$rechazada) {
+        if (!$esPropietario && !$yaEnvioEmail && !$cerrada && !$rechazada) {
             $acciones[] = Action::make('enviar_email_sura')
                 ->label('📧 Correo Sura')
                 ->color('info')
@@ -262,6 +265,53 @@ class EditRequest extends EditRecord
                 ]))
                 ->modalSubmitAction(false)
                 ->modalCancelActionLabel('Cerrar');
+        }
+
+        // ── Aprobación directa del gerente ────────────────────
+        $puedeAprobarGerente = !$cerrada && !$rechazada
+            && !$esPropietario
+            && auth()->user()?->hasAnyRole(['super_admin', 'admin', 'gerente']);
+
+        if ($puedeAprobarGerente) {
+            $company = \App\Models\Company::first();
+            $tarifaDefault = $company?->tarifa_estudio_directo ?? 50000;
+
+            $acciones[] = Action::make('aprobar_gerente')
+                ->label('👔 Aprobar (gerente)')
+                ->color('success')
+                ->icon('heroicon-o-shield-check')
+                ->modalHeading('Aprobación directa del gerente')
+                ->modalDescription('Esta aprobación no pasa por SURA. Quedará registrado quién aprobó y la justificación.')
+                ->form([
+                    Textarea::make('justificacion_gerente')
+                        ->label('Justificación de aprobación')
+                        ->rows(3)->required()
+                        ->placeholder('Arrendatario conocido, referencias verificadas, etc.'),
+                    TextInput::make('tarifa_estudio_cobrada')
+                        ->label('Tarifa de estudio cobrada ($)')
+                        ->numeric()->prefix('$')
+                        ->default($tarifaDefault)
+                        ->helperText("Tarifa directa sin SURA. General: $" . number_format($tarifaDefault, 0, ',', '.')),
+                    TextInput::make('decidido_por')
+                        ->label('Aprobado por (nombre)')
+                        ->default(auth()->user()?->name)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $this->record->update([
+                        'estado'                 => 'aprobada_gerente',
+                        'tipo_aprobacion'        => 'gerente_directo',
+                        'aprobado_por_id'        => auth()->user()?->getKey(),
+                        'justificacion_gerente'  => $data['justificacion_gerente'],
+                        'tarifa_estudio_cobrada' => $data['tarifa_estudio_cobrada'] ?? null,
+                        'decidido_por'           => $data['decidido_por'],
+                        'fecha_decision'         => now()->toDateString(),
+                    ]);
+                    Notification::make()
+                        ->title('Solicitud aprobada directamente por gerencia')
+                        ->success()->send();
+                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                });
         }
 
         if (!$cerrada) {

@@ -18,6 +18,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -25,7 +27,21 @@ use Illuminate\Support\Facades\Auth;
 
 class AdministrationContract extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['numero_contrato', 'estado', 'canon_administracion', 'porcentaje_administracion', 'fecha_inicio', 'fecha_fin'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn (string $e) => match($e) {
+                'created' => 'Contrato administración creado',
+                'updated' => 'Contrato administración actualizado',
+                'deleted' => 'Contrato administración eliminado',
+                default   => $e,
+            });
+    }
 
     protected $table = 'administration_contracts';
 

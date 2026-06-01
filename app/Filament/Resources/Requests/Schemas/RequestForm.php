@@ -24,7 +24,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard;
@@ -50,16 +49,28 @@ class RequestForm
                         Select::make('tipo')
                             ->label('Tipo de solicitud')
                             ->options([
-                                'estudio_propietario'  => '🏠 Estudio propietario — Captación inmueble',
+                                'estudio_propietario'  => '🏠 Análisis a Propietario — Captación inmueble',
                                 'estudio_arrendatario' => '🔑 Estudio arrendatario — Candidato arriendo',
-                                'estudio_comprador'    => '🛒 Estudio comprador — Candidato compra',
+                                'estudio_comprador'    => '🛒 Análisis a Comprador — Candidato compra',
                             ])
                             ->default('estudio_arrendatario')
                             ->required()->live()
+                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                if ($state === 'estudio_propietario' && $get('property_id')) {
+                                    $p = Property::find($get('property_id'));
+                                    if ($p?->propietario_id) {
+                                        $set('thirds', [[
+                                            'third_id'            => $p->propietario_id,
+                                            'rol'                 => 'propietario',
+                                            'resultado_individual'=> 'pendiente',
+                                        ]]);
+                                    }
+                                }
+                            })
                             ->helperText(fn (Get $get) => match($get('tipo')) {
-                                'estudio_propietario'  => 'Si se aprueba → el inmueble pasa a DISPONIBLE automáticamente.',
-                                'estudio_arrendatario' => 'Si se aprueba → el inmueble pasa a ARRENDADO automáticamente.',
-                                'estudio_comprador'    => 'Si se aprueba → el inmueble pasa a EN VENTA automáticamente.',
+                                'estudio_propietario'  => 'Al aprobar → gerencia pacta contrato de administración. El inmueble pasa a DISPONIBLE cuando el contrato de administración se active.',
+                                'estudio_arrendatario' => 'Al aprobar → candidato habilitado para firmar contrato de arrendamiento. El inmueble pasa a ARRENDADO cuando el contrato de arrendamiento quede activo.',
+                                'estudio_comprador'    => 'Al aprobar → candidato habilitado para proceder con la compra. El estado del inmueble cambia cuando se formalice la negociación.',
                                 default => '',
                             }),
 
@@ -78,6 +89,13 @@ class RequestForm
                                     if ($p) {
                                         $set('canon_evaluar', $p->canon_arriendo);
                                         $set('precio_venta_evaluar', $p->precio_venta);
+                                        if ($get('tipo') === 'estudio_propietario' && $p->propietario_id) {
+                                            $set('thirds', [[
+                                                'third_id'            => $p->propietario_id,
+                                                'rol'                 => 'propietario',
+                                                'resultado_individual'=> 'pendiente',
+                                            ]]);
+                                        }
                                     }
                                 }
                             }),
@@ -126,13 +144,20 @@ class RequestForm
                     ->icon('heroicon-o-users')
                     ->schema([
                         \Filament\Forms\Components\Repeater::make('thirds')
-                            ->label('Terceros vinculados a la solicitud')
+                            ->label(fn (Get $get) => $get('tipo') === 'estudio_propietario'
+                                ? '🏠 Propietario del inmueble'
+                                : 'Terceros vinculados a la solicitud'
+                            )
                             ->relationship()
+                            ->addable(fn (Get $get) => $get('tipo') !== 'estudio_propietario')
+                            ->deletable(fn (Get $get) => $get('tipo') !== 'estudio_propietario')
                             ->schema([
                                 Select::make('third_id')
                                     ->label('Tercero')
                                     ->relationship('third', 'nombre_completo')
-                                    ->searchable()->preload()->required(),
+                                    ->searchable()->preload()->required()
+                                    ->disabled(fn (Get $get) => $get('../../tipo') === 'estudio_propietario')
+                                    ->dehydrated(),
 
                                 Select::make('rol')
                                     ->label('Rol en la solicitud')
@@ -142,23 +167,29 @@ class RequestForm
                                         'fiador'        => '🛡️ Fiador personal',
                                         'propietario'   => '🏠 Propietario',
                                         'representante' => '💼 Representante legal',
-                                    ])->default('titular')->required(),
+                                    ])->default('titular')->required()
+                                    ->disabled(fn (Get $get) => $get('../../tipo') === 'estudio_propietario')
+                                    ->dehydrated(),
 
                                 TextInput::make('ingresos_declarados')
                                     ->label('Ingresos declarados ($)')
-                                    ->numeric()->prefix('$'),
+                                    ->numeric()->prefix('$')
+                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
 
                                 TextInput::make('ingresos_verificados')
                                     ->label('Ingresos verificados ($)')
-                                    ->numeric()->prefix('$'),
+                                    ->numeric()->prefix('$')
+                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
 
                                 TextInput::make('score_datacredito')
                                     ->label('Score DataCrédito')
                                     ->numeric()
-                                    ->helperText('Puntaje de centrales de riesgo'),
+                                    ->helperText('Puntaje de centrales de riesgo')
+                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
 
                                 Toggle::make('reporte_negativo')
-                                    ->label('Reporte negativo en centrales'),
+                                    ->label('Reporte negativo en centrales')
+                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
 
                                 Select::make('resultado_individual')
                                     ->label('Resultado individual')
@@ -175,7 +206,7 @@ class RequestForm
                             ])
                             ->columns(3)
                             ->addActionLabel('+ Agregar tercero')
-                            ->defaultItems(1)
+                            ->defaultItems(fn (Get $get) => $get('tipo') === 'estudio_propietario' ? 0 : 1)
                             ->collapsible()
                             ->itemLabel(fn (array $state): ?string =>
                                 isset($state['rol']) ? match($state['rol']) {
@@ -198,6 +229,30 @@ class RequestForm
                         \Filament\Forms\Components\Repeater::make('documents')
                             ->label('Documentos del estudio')
                             ->relationship()
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): ?array {
+                                \Illuminate\Support\Facades\Log::debug('DOC_CREATE', [
+                                    'keys' => array_keys($data),
+                                    'request_third_id' => $data['request_third_id'] ?? 'KEY_MISSING',
+                                    'path_empty' => empty($data['path']),
+                                ]);
+                                if (empty($data['path'])) return null;
+                                if (!empty($data['request_third_id']) && !is_numeric($data['request_third_id'])) {
+                                    $data['request_third_id'] = null;
+                                }
+                                return $data;
+                            })
+                            ->mutateRelationshipDataBeforeSaveUsing(function (array $data): ?array {
+                                \Illuminate\Support\Facades\Log::debug('DOC_SAVE', [
+                                    'keys' => array_keys($data),
+                                    'request_third_id' => $data['request_third_id'] ?? 'KEY_MISSING',
+                                    'path_empty' => empty($data['path']),
+                                ]);
+                                if (empty($data['path'])) return null;
+                                if (!empty($data['request_third_id']) && !is_numeric($data['request_third_id'])) {
+                                    $data['request_third_id'] = null;
+                                }
+                                return $data;
+                            })
                             ->schema([
                                 Select::make('tipo_documento')
                                     ->label('Tipo de documento')
@@ -213,7 +268,7 @@ class RequestForm
                                         'referencia_personal'     => '👥 Referencia personal',
                                         'referencia_comercial'    => '🤝 Referencia comercial',
                                         'otro'                    => '📎 Otro documento',
-                                    ])->required(),
+                                    ])->required()->live(),
 
                                 Select::make('estado_documento')
                                     ->label('Estado')
@@ -222,7 +277,30 @@ class RequestForm
                                         'recibido'   => '📥 Recibido',
                                         'verificado' => '✅ Verificado',
                                         'rechazado'  => '❌ Rechazado',
-                                    ])->default('pendiente'),
+                                    ])->default('pendiente')->live(),
+
+                                Select::make('request_third_id')
+                                    ->label('Pertenece a')
+                                    ->placeholder('— Sin asignar —')
+                                    ->native(false)
+                                    ->options(function ($livewire) {
+                                        $record = $livewire->record ?? null;
+                                        if (!$record?->id) return [];
+                                        return \App\Models\RequestThird::with('third')
+                                            ->where('request_id', $record->id)
+                                            ->get()
+                                            ->mapWithKeys(function ($rt) {
+                                                $rol = match($rt->rol) {
+                                                    'titular'       => 'Titular',
+                                                    'codeudor'      => 'Codeudor',
+                                                    'fiador'        => 'Fiador',
+                                                    'propietario'   => 'Propietario',
+                                                    'representante' => 'Representante',
+                                                    default         => ucfirst($rt->rol),
+                                                };
+                                                return [$rt->id => ($rt->third->nombre_completo ?? '?') . ' — ' . $rol];
+                                            });
+                                    }),
 
                                 FileUpload::make('path')
                                     ->label('Archivo')
@@ -230,16 +308,48 @@ class RequestForm
                                     ->directory('solicitudes/documentos')
                                     ->acceptedFileTypes(['application/pdf','image/jpeg','image/png','image/jpg'])
                                     ->maxSize(10240)
+                                    ->required()
                                     ->downloadable()->openable()
                                     ->columnSpanFull(),
 
                                 Textarea::make('notas')
                                     ->label('Notas')->rows(2)->columnSpanFull(),
                             ])
-                            ->columns(2)
+                            ->columns(3)
                             ->addActionLabel('+ Agregar documento')
                             ->defaultItems(0)
                             ->collapsible()
+                            ->itemLabel(function (array $state): string {
+                                $tipos = [
+                                    'cedula'               => '🪪 Cédula',
+                                    'desprendible_nomina'  => '💰 Desprendible nómina',
+                                    'extracto_bancario'    => '🏦 Extracto bancario',
+                                    'certificado_ingresos' => '📄 Cert. ingresos',
+                                    'declaracion_renta'    => '📊 Declaración renta',
+                                    'carta_laboral'        => '✉️ Carta laboral',
+                                    'camara_comercio'      => '🏢 Cámara comercio',
+                                    'rut'                  => '📋 RUT',
+                                    'referencia_personal'  => '👥 Ref. personal',
+                                    'referencia_comercial' => '🤝 Ref. comercial',
+                                    'otro'                 => '📎 Otro',
+                                ];
+                                $estados = [
+                                    'pendiente'  => '⏳ Pendiente',
+                                    'recibido'   => '📥 Recibido',
+                                    'verificado' => '✅ Verificado',
+                                    'rechazado'  => '❌ Rechazado',
+                                ];
+                                $tipo   = $tipos[$state['tipo_documento'] ?? ''] ?? 'Documento';
+                                $estado = $estados[$state['estado_documento'] ?? ''] ?? '';
+                                $nombre = '';
+                                if (!empty($state['request_third_id']) && is_numeric($state['request_third_id'])) {
+                                    $rt = \App\Models\RequestThird::with('third')->find($state['request_third_id']);
+                                    $nombre = $rt?->third?->nombre_completo ?? '';
+                                }
+                                return $tipo
+                                    . ($estado ? '  —  ' . $estado : '')
+                                    . ($nombre ? '  —  ' . $nombre : '');
+                            })
                             ->columnSpanFull(),
                     ]),
 
@@ -258,7 +368,7 @@ class RequestForm
                                 'rechazada'   => '❌ Rechazada',
                                 'desistida'   => '🚫 Desistida',
                             ])->required()
-                            ->helperText('Al aprobar se actualizará el estado del inmueble automáticamente'),
+                            ->helperText('La aprobación habilita al candidato. El estado del inmueble cambia al activar el contrato correspondiente.'),
 
                         DatePicker::make('fecha_decision')
                             ->label('Fecha de decisión'),
@@ -279,39 +389,6 @@ class RequestForm
                             ->label('Notas adicionales')
                             ->rows(2)->columnSpanFull(),
 
-                        Section::make('Automatización de estado del inmueble')
-                            ->icon('heroicon-o-arrow-path')
-                            ->schema([
-                                Select::make('estado_inmueble_anterior')
-                                    ->label('Estado anterior del inmueble')
-                                    ->disabled()
-                                    ->options([
-                                        'en_captacion'          => 'En captación',
-                                        'documentos_pendientes' => 'Documentos pendientes',
-                                        'disponible'            => 'Disponible',
-                                        'arrendado'             => 'Arrendado',
-                                        'en_venta'              => 'En venta',
-                                        'vendido'               => 'Vendido',
-                                        'en_mantenimiento'      => 'En mantenimiento',
-                                        'inactivo'              => 'Inactivo',
-                                    ]),
-                                Select::make('estado_inmueble_nuevo')
-                                    ->label('Nuevo estado del inmueble')
-                                    ->disabled()
-                                    ->options([
-                                        'en_captacion'          => 'En captación',
-                                        'documentos_pendientes' => 'Documentos pendientes',
-                                        'disponible'            => 'Disponible',
-                                        'arrendado'             => 'Arrendado',
-                                        'en_venta'              => 'En venta',
-                                        'vendido'               => 'Vendido',
-                                        'en_mantenimiento'      => 'En mantenimiento',
-                                        'inactivo'              => 'Inactivo',
-                                    ]),
-                                Toggle::make('cambio_estado_aplicado')
-                                    ->label('Cambio de estado aplicado')
-                                    ->disabled(),
-                            ])->columns(3)->collapsible(),
                     ])->columns(2),
 
             ])->skippable()->columnSpanFull(),

@@ -20,10 +20,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 
 class Third extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['nombre_completo', 'razon_social', 'numero_documento', 'celular', 'email', 'estado'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn (string $e) => match($e) {
+                'created' => 'Tercero creado',
+                'updated' => 'Tercero actualizado',
+                'deleted' => 'Tercero eliminado',
+                default   => $e,
+            });
+    }
 
     protected $table = 'thirds';
 
@@ -44,6 +60,9 @@ class Third extends Model
         'comision_pactada','referencias_personales','documentos_adjuntos',
         'fuente_captacion','asesor_id','ultimo_contacto','notas_crm',
         'notas','is_active',
+        'requiere_iva','requiere_retefuente','quiere_factura_electronica',
+        'tarifa_iva_pactada','tarifa_retefuente_pactada',
+        'portal_token','portal_token_generado_at','portal_activo',
     ];
 
     protected $casts = [
@@ -54,6 +73,13 @@ class Third extends Model
         'es_proveedor'               => 'boolean',
         'reporte_negativo'           => 'boolean',
         'is_active'                  => 'boolean',
+        'requiere_iva'               => 'boolean',
+        'requiere_retefuente'        => 'boolean',
+        'quiere_factura_electronica' => 'boolean',
+        'tarifa_iva_pactada'          => 'decimal:2',
+        'tarifa_retefuente_pactada'   => 'decimal:2',
+        'portal_activo'               => 'boolean',
+        'portal_token_generado_at'    => 'datetime',
         'fecha_nacimiento'           => 'date',
         'fecha_evaluacion_crediticia'=> 'date',
         'ultimo_contacto'            => 'datetime',
@@ -78,6 +104,14 @@ class Third extends Model
     public function pais(): BelongsTo         { return $this->belongsTo(Pais::class); }
     public function asesor(): BelongsTo       { return $this->belongsTo(User::class, 'asesor_id'); }
 
+    // Relaciones financieras
+    public function rentBills()           { return $this->hasMany(RentBill::class, 'arrendatario_id'); }
+    public function ownerLiquidations()   { return $this->hasMany(OwnerLiquidation::class, 'propietario_id'); }
+    public function rentalContracts()     { return $this->hasMany(RentalContract::class, 'arrendatario_id'); }
+    public function properties()          { return $this->hasMany(Property::class, 'propietario_id'); }
+    public function requests()            { return $this->hasMany(Request::class, 'request_third_id'); }
+    public function accountingLines()     { return $this->hasMany(AccountingEntryLine::class, 'third_id'); }
+
     public function scopePropietarios($q)  { return $q->where('es_propietario', true); }
     public function scopeArrendatarios($q) { return $q->where('es_arrendatario', true); }
     public function scopeClientes($q)      { return $q->where('es_cliente_compra', true); }
@@ -96,5 +130,27 @@ class Third extends Model
     public function getRatioIngresoCanonAttribute(): float
     {
         return 0;
+    }
+
+    public function generarPortalToken(): string
+    {
+        $token = bin2hex(random_bytes(32)); // 64 chars hex
+        $this->update([
+            'portal_token'              => $token,
+            'portal_token_generado_at'  => now(),
+            'portal_activo'             => true,
+        ]);
+        return $token;
+    }
+
+    public function revocarPortalToken(): void
+    {
+        $this->update(['portal_activo' => false]);
+    }
+
+    public function getPortalUrlAttribute(): ?string
+    {
+        if (! $this->portal_token || ! $this->portal_activo) return null;
+        return route('portal.propietario', ['token' => $this->portal_token]);
     }
 }

@@ -12,8 +12,10 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use App\Forms\Components\MapboxAddressInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -221,10 +223,45 @@ class RentalContractForm
                             ->label('Canon mensual')->numeric()->prefix('$')->required(),
 
                         TextInput::make('deposito')
-                            ->label('Depósito en garantía')->numeric()->prefix('$')->default(0),
+                            ->label('Depósito en garantía')->numeric()->prefix('$')->default(0)
+                            ->live(onBlur: true),
+
+                        Select::make('estado_deposito')
+                            ->label('Estado del depósito')
+                            ->options([
+                                'pagado'     => '✅ Pagado al momento de firma',
+                                'en_cartera' => '📋 Queda en cartera (cuenta por cobrar)',
+                                'exonerado'  => '🚫 Exonerado (sin depósito)',
+                                'pendiente'  => '⏳ Pendiente de definir',
+                            ])
+                            ->default('pendiente')
+                            ->helperText('Si elige "En cartera", se creará automáticamente una cuenta por cobrar al guardar')
+                            ->live(),
+
+                        TextInput::make('deposito_pagado')
+                            ->label('Depósito ya recibido ($)')
+                            ->numeric()->prefix('$')->default(0)
+                            ->visible(fn (Get $get) => $get('estado_deposito') === 'en_cartera')
+                            ->helperText('Monto que el arrendatario ya entregó (el resto va a cartera)'),
 
                         TextInput::make('cuota_administracion')
                             ->label('Cuota de administración')->numeric()->prefix('$')->default(0),
+
+                        Select::make('admin_cobrada_por')
+                            ->label('¿Quién cobra la administración?')
+                            ->options([
+                                'inmobiliaria' => 'La inmobiliaria (incluida en esta factura)',
+                                'edificio'     => 'El edificio/copropiedad (factura separada)',
+                                'ninguna'      => 'No aplica administración',
+                            ])
+                            ->default('inmobiliaria')->live()
+                            ->helperText('Si la cobra el edificio, la mora aplica solo sobre el canon'),
+
+                        Toggle::make('mora_solo_sobre_canon')
+                            ->label('Mora solo sobre el canon (no sobre administración)')
+                            ->visible(fn (Get $get) => $get('admin_cobrada_por') === 'edificio')
+                            ->default(false)
+                            ->helperText('Activar cuando el edificio cobra la administración por separado'),
 
                         Select::make('tipo_incremento')
                             ->label('Tipo de incremento')
@@ -303,7 +340,7 @@ class RentalContractForm
                                     ])->default('deudor_solidario')->required(),
 
                                 TextInput::make('ciudad_expedicion_doc')->label('Ciudad expedición CC'),
-                                TextInput::make('direccion_notificacion')->label('Dirección'),
+                                MapboxAddressInput::make('direccion_notificacion')->label('Dirección'),
                                 TextInput::make('email_notificacion')->label('Correo')->email(),
                                 TextInput::make('celular_notificacion')->label('Celular'),
                             ])

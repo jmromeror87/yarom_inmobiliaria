@@ -22,6 +22,7 @@ use App\Filament\Resources\Properties\Pages\EditProperty; use App\Filament\Resou
 use App\Filament\Resources\Properties\Pages\ListProperties;
 use App\Filament\Resources\Properties\Schemas\PropertyForm;
 use App\Filament\Resources\Properties\Tables\PropertiesTable;
+use App\Filament\Traits\HasResourcePermissions;
 use App\Models\Property;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -29,6 +30,9 @@ use Filament\Tables\Table;
 
 class PropertyResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'inmuebles';
     protected static ?string $model = Property::class;
     protected static ?string $navigationLabel = 'Inmuebles';
     protected static ?string $modelLabel = 'Inmueble';
@@ -38,7 +42,7 @@ class PropertyResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-home-modern'; }
 
-    public static function getNavigationGroup(): ?string { return 'Operativo'; }
+    public static function getNavigationGroup(): ?string { return 'Portafolio'; }
 
     public static function form(Schema $schema): Schema
     {

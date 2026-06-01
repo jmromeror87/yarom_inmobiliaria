@@ -1,8 +1,10 @@
 <?php
 namespace App\Models;
 
+use App\Services\ContabilidadService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
 
 class RentPayment extends Model
 {
@@ -52,6 +54,14 @@ class RentPayment extends Model
             // Si pagada → generar liquidación al propietario
             if ($estado === 'pagada') {
                 OwnerLiquidation::generarDesdeFact($bill);
+            }
+
+            // Contabilización automática del pago
+            try {
+                $bill->refresh();
+                ContabilidadService::generarParaPagoFactura($bill);
+            } catch (\Throwable $e) {
+                Log::warning("Contabilidad pago factura {$bill->numero}: " . $e->getMessage());
             }
         });
     }

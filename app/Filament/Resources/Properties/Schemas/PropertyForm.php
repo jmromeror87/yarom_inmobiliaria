@@ -18,6 +18,8 @@ namespace App\Filament\Resources\Properties\Schemas;
 
 use App\Models\Departamento;
 use App\Models\Municipio;
+use App\Models\Third;
+use App\Forms\Components\MapboxAddressInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -50,8 +52,78 @@ class PropertyForm
 
                         Select::make('propietario_id')
                             ->label('Propietario')
-                            ->relationship('propietario', 'nombre_completo')
-                            ->searchable()->preload()->required(),
+                            ->getSearchResultsUsing(function (string $search) {
+                                return Third::propietarios()
+                                    ->where(function ($q) use ($search) {
+                                        $q->where('nombre_completo', 'like', "%{$search}%")
+                                          ->orWhere('numero_documento', 'like', "%{$search}%");
+                                    })
+                                    ->limit(50)
+                                    ->get()
+                                    ->mapWithKeys(fn($t) => [
+                                        $t->id => $t->nombre_completo . ($t->numero_documento ? '  —  ' . $t->numero_documento : ''),
+                                    ])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(fn($value) => Third::find($value)?->nombre_completo)
+                            ->searchable()
+                            ->required()
+                            ->createOptionForm([
+                                Select::make('tipo_persona')
+                                    ->label('Tipo de persona')
+                                    ->options(['natural' => '👤 Persona natural', 'juridica' => '🏢 Persona jurídica'])
+                                    ->default('natural')
+                                    ->required()
+                                    ->live(),
+
+                                Select::make('tipo_documento')
+                                    ->label('Tipo de documento')
+                                    ->options(['CC' => 'Cédula de ciudadanía', 'CE' => 'Cédula de extranjería', 'NIT' => 'NIT', 'PP' => 'Pasaporte'])
+                                    ->required(),
+
+                                TextInput::make('numero_documento')
+                                    ->label('Número de documento')
+                                    ->required(),
+
+                                TextInput::make('primer_nombre')
+                                    ->label('Primer nombre')
+                                    ->required()
+                                    ->visible(fn(Get $get) => $get('tipo_persona') !== 'juridica'),
+
+                                TextInput::make('segundo_nombre')
+                                    ->label('Segundo nombre')
+                                    ->visible(fn(Get $get) => $get('tipo_persona') !== 'juridica'),
+
+                                TextInput::make('primer_apellido')
+                                    ->label('Primer apellido')
+                                    ->required()
+                                    ->visible(fn(Get $get) => $get('tipo_persona') !== 'juridica'),
+
+                                TextInput::make('segundo_apellido')
+                                    ->label('Segundo apellido')
+                                    ->visible(fn(Get $get) => $get('tipo_persona') !== 'juridica'),
+
+                                TextInput::make('razon_social')
+                                    ->label('Razón social')
+                                    ->required()
+                                    ->visible(fn(Get $get) => $get('tipo_persona') === 'juridica'),
+
+                                TextInput::make('celular')
+                                    ->label('Celular')
+                                    ->tel(),
+
+                                TextInput::make('email')
+                                    ->label('Correo electrónico')
+                                    ->email(),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                $data['es_propietario'] = true;
+                                return Third::create($data)->id;
+                            })
+                            ->createOptionAction(fn($action) => $action
+                                ->modalHeading('Crear nuevo propietario')
+                                ->modalWidth('lg')
+                            ),
 
                         TextInput::make('codigo')
                             ->label('Código')
@@ -107,9 +179,11 @@ class PropertyForm
                                     ->orderBy('nombre')->pluck('nombre', 'id')
                             )->searchable(),
 
-                        TextInput::make('direccion')
-                            ->label('Dirección')->required()
-                            ->placeholder('Calle 123 # 45 - 67'),
+                        MapboxAddressInput::make('direccion')
+                            ->label('Dirección')
+                            ->required()
+                            ->placeholder('Ej: Calle 10 # 34-56, Ocaña')
+                            ->columnSpanFull(),
 
                         TextInput::make('barrio')->label('Barrio / Localidad'),
 
@@ -298,6 +372,12 @@ class PropertyForm
                         \Filament\Forms\Components\Repeater::make('images')
                             ->label('Fotos del inmueble')
                             ->relationship()
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): ?array {
+                                return empty($data['path']) ? null : $data;
+                            })
+                            ->mutateRelationshipDataBeforeSaveUsing(function (array $data): ?array {
+                                return empty($data['path']) ? null : $data;
+                            })
                             ->schema([
                                 FileUpload::make('path')
                                     ->label('Foto')
@@ -306,6 +386,7 @@ class PropertyForm
                                     ->directory('inmuebles/fotos')
                                     ->maxSize(8192)
                                     ->imagePreviewHeight('200')
+                                    ->required()
                                     ->columnSpanFull(),
                                 TextInput::make('titulo')
                                     ->label('Descripción de la foto')

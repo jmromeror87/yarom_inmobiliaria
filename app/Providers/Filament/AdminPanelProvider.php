@@ -1,11 +1,5 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| YarOM ERP v1.6 - limpio, un solo SIDEBAR_NAV_END
-|--------------------------------------------------------------------------
-*/
-
 namespace App\Providers\Filament;
 
 use Filament\Http\Middleware\Authenticate;
@@ -42,22 +36,23 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Operativo')->icon('heroicon-o-building-office-2'),
                 NavigationGroup::make('Financiero')->icon('heroicon-o-banknotes'),
                 NavigationGroup::make('CRM')->icon('heroicon-o-users'),
-                NavigationGroup::make('Configuración')->icon('heroicon-o-cog-6-tooth')->collapsed(true),
+                NavigationGroup::make('Configuración')->collapsed(true),
             ])
+            ->topbar(false)
             ->sidebarCollapsibleOnDesktop()
             ->brandLogo(fn () => new HtmlString('
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#0F172A,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px rgba(15,23,42,0.25);">
+                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#0F172A,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg viewBox="0 0 32 32" fill="none" width="20" height="20"><path d="M4 28V14l12-9 12 9v14H20v-7h-8v7H4z" fill="#fff"/></svg>
                     </div>
                     <div style="display:flex;flex-direction:column;line-height:1.15;">
-                        <span style="font-size:17px;font-weight:900;letter-spacing:-.04em;color:#0F172A;text-transform:uppercase;">YAROM <span style="color:#E11D48;">INMO</span>BILIARIA</span>
-                        <span style="font-size:11px;font-weight:600;letter-spacing:0.05em;color:#64748B;text-transform:uppercase;">Serviarrendar S.A.S</span>
+                        <span style="font-size:17px;font-weight:900;letter-spacing:-.04em;color:#fff;text-transform:uppercase;">YAROM <span style="color:#E11D48;">INMO</span>BILIARIA</span>
+                        <span style="font-size:11px;font-weight:600;letter-spacing:0.05em;color:rgba(255,255,255,0.5);text-transform:uppercase;">Serviarrendar S.A.S</span>
                     </div>
                 </div>
             '))
             ->colors([
-                'primary' => Color::hex('#0e01a3ff'),
+                'primary' => Color::hex('#E11D48'),
                 'info'    => Color::hex('#2563EB'),
                 'success' => Color::Emerald,
                 'warning' => Color::Amber,
@@ -68,30 +63,127 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::SIDEBAR_NAV_START,
                 fn (): string => '
                 <style>
-                    .fi-btn-color-primary{background:linear-gradient(135deg,#E11D48,#2563EB)!important;border:none!important;font-weight:800!important;border-radius:10px!important;color:#fff!important;}
-                    .fi-btn-color-primary:hover{opacity:.88!important;transform:translateY(-1px)!important;}
+                    :root{
+                        --color-primary-50:#fff1f2!important;--color-primary-100:#ffe4e6!important;
+                        --color-primary-200:#fecdd3!important;--color-primary-300:#fda4af!important;
+                        --color-primary-400:#fb7185!important;--color-primary-500:#f43f5e!important;
+                        --color-primary-600:#e11d48!important;--color-primary-700:#be123c!important;
+                        --color-primary-800:#9f1239!important;--color-primary-900:#881337!important;
+                        --color-primary-950:#4c0519!important;
+                    }
+                    .fi-sidebar{
+                        background:linear-gradient(180deg,#1e3a8a 0%,#0d1b4b 85%,#0A192F 100%)!important;
+                        border-right:none!important;
+                        box-shadow:4px 0 24px rgba(0,0,0,.25)!important;
+                    }
+                    .fi-sidebar-header{border-bottom:1px solid rgba(255,255,255,.08)!important;}
+                    .fi-sidebar-group-label{font-weight:800!important;text-transform:uppercase!important;letter-spacing:.1em!important;font-size:10px!important;color:#E11D48!important;}
+                    .fi-sidebar-group-button{font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#E11D48!important;}
+                    .fi-sidebar-group-button svg{display:none!important;}
+                    .fi-sidebar-group-button:hover{color:#fff!important;}
+                    .fi-sidebar-group-items{border-left:none!important;margin-left:0!important;padding-left:0!important;}
+                    .fi-sidebar-nav{padding-bottom:80px!important;}
+                    .fi-sidebar-item-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
+                    .fi-sidebar-item-btn .fi-icon{color:#E11D48!important;}
+                    .fi-sidebar-item-btn:hover{background:rgba(255,255,255,.08)!important;}
+                    .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:rgba(225,29,72,.2)!important;}
+                    .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#fff!important;font-weight:700!important;}
+                    .fi-sidebar-database-notifications-btn{color:#fff!important;width:100%!important;}
+                    .fi-sidebar-database-notifications-btn-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
+                    .fi-sidebar-database-notifications-btn svg{color:#fff!important;}
+                    .fi-user-menu{display:none!important;}
+                    #yr-collapsed-icon{display:none;align-items:center;justify-content:center;padding:8px;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-header-logo-ctn{display:none!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) #yr-collapsed-icon{display:flex!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-btn{justify-content:center!important;width:44px!important;margin:2px auto!important;padding:10px!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-label{display:none!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-label{display:none!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-button{display:none!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-database-notifications-btn-label{display:none!important;}
                     .fi-section,.fi-ta-ctn,.fi-card,.fi-wi-card{background:rgba(255,255,255,.7)!important;backdrop-filter:blur(12px);border-radius:20px!important;border:1px solid rgba(226,232,240,.8)!important;box-shadow:0 10px 30px -10px rgba(15,23,42,.05)!important;}
-                    .fi-sidebar-item-icon{color:#E11D48!important;transition:transform .2s ease,color .2s ease!important;}
-                    .fi-sidebar-item-button:hover .fi-sidebar-item-icon{transform:scale(1.1);color:#2563EB!important;}
-                    .fi-sidebar-group-label{font-weight:800!important;text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:#E11D48!important;display:flex;align-items:center;gap:6px;}
-                    .fi-sidebar-group-label svg,.fi-sidebar-group-label [data-icon]{color:#E11D48!important;width:14px!important;height:14px!important;}
-                    .fi-sidebar-group-items{border-left:2px solid rgba(225,29,72,.3)!important;margin-left:20px;padding-left:8px;}
+                    .fi-ta-cell,.fi-ta-header-cell{padding-top:14px!important;padding-bottom:14px!important;padding-left:16px!important;padding-right:16px!important;}
+                    .fi-main{max-width:100%!important;width:100%!important;}
+                    .fi-page{max-width:100%!important;width:100%!important;}
                 </style>
+
+                <div id="yr-collapsed-icon">
+                    <div style="width:36px;height:36px;background:linear-gradient(135deg,#0F172A,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <svg viewBox="0 0 32 32" fill="none" width="20" height="20"><path d="M4 28V14l12-9 12 9v14H20v-7h-8v7H4z" fill="#fff"/></svg>
+                    </div>
+                </div>
+
+                <script>
+                (function(){
+                    var _obs=null;
+                    function updateFooter(){
+                        var sidebar=document.querySelector(".fi-sidebar");
+                        var footer=document.getElementById("yr-footer");
+                        if(!sidebar||!footer) return;
+                        var w=sidebar.offsetWidth||0;
+                        footer.style.left=w+"px";
+                    }
+                    function update(){
+                        var sidebar=document.querySelector(".fi-sidebar");
+                        var icon=document.getElementById("yr-collapsed-icon");
+                        if(!sidebar||!icon) return;
+                        var isOpen=sidebar.classList.contains("fi-sidebar-open");
+                        var logo=document.querySelector(".fi-sidebar-header-logo-ctn");
+                        if(logo) logo.style.display=isOpen?"":"none";
+                        icon.style.display=isOpen?"none":"flex";
+                        updateFooter();
+                    }
+                    function moveIcon(){
+                        var icon=document.getElementById("yr-collapsed-icon");
+                        var header=document.querySelector(".fi-sidebar-header");
+                        if(icon&&header&&!header.contains(icon)) header.prepend(icon);
+                    }
+                    function moveUserBar(){
+                        var bar=document.getElementById("yr-user-bar");
+                        var sidebar=document.querySelector(".fi-sidebar");
+                        if(!bar||!sidebar) return;
+                        if(sidebar.lastElementChild!==bar) sidebar.appendChild(bar);
+                    }
+                    function init(){
+                        var sidebar=document.querySelector(".fi-sidebar");
+                        if(!sidebar){setTimeout(init,300);return;}
+                        moveIcon(); moveUserBar(); update();
+                        if(_obs) _obs.disconnect();
+                        _obs=new MutationObserver(function(){moveIcon();moveUserBar();update();});
+                        _obs.observe(sidebar,{attributes:true,childList:true,attributeFilter:["class"],subtree:false});
+                        var ro=new ResizeObserver(function(){updateFooter();});
+                        ro.observe(sidebar);
+                    }
+                    document.readyState==="loading"
+                        ?document.addEventListener("DOMContentLoaded",function(){setTimeout(init,200);})
+                        :setTimeout(init,200);
+                    document.addEventListener("livewire:navigated",function(){setTimeout(init,200);setTimeout(moveUserBar,400);});
+                    setInterval(function(){update();moveUserBar();},400);
+                })();
+                </script>
                 '
             )
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_END,
                 function (): string {
-                    $token = csrf_token();
+                    $token   = csrf_token();
+                    $user    = Auth::user();
+                    $name    = $user?->name ?? 'Admin';
+                    $initial = strtoupper(substr($name, 0, 1));
+                    $email   = $user?->email ?? '';
                     return <<<HTML
-                    <div id="yr-lw" style="display:none;justify-content:center;padding:16px;border-top:1px solid rgba(225,29,72,0.15);margin-top:auto;">
+                    <div id="yr-user-bar" style="padding:10px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
+                        <div style="width:34px;height:34px;min-width:34px;background:linear-gradient(135deg,#E11D48,#be123c);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;">{$initial}</div>
+                        <div id="yr-user-info" style="flex:1;overflow:hidden;">
+                            <div style="font-size:12px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{$name}</div>
+                            <div style="font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{$email}</div>
+                        </div>
                         <a href="#"
                            onclick="event.preventDefault();document.getElementById('yr-lf').submit();"
                            title="Cerrar sesión"
-                           style="width:42px;height:42px;background:#fef2f2;border:1px solid #fee2e2;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#E11D48;cursor:pointer;"
+                           style="width:32px;height:32px;min-width:32px;background:rgba(225,29,72,.15);border:1px solid rgba(225,29,72,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#E11D48;cursor:pointer;"
                            onmouseover="this.style.background='#E11D48';this.style.color='#fff';"
-                           onmouseout="this.style.background='#fef2f2';this.style.color='#E11D48';">
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20" height="20">
+                           onmouseout="this.style.background='rgba(225,29,72,.15)';this.style.color='#E11D48';">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="15" height="15">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                             </svg>
                         </a>
@@ -99,56 +191,32 @@ class AdminPanelProvider extends PanelProvider
                             <input type="hidden" name="_token" value="{$token}">
                         </form>
                     </div>
-                    <script>
-                    (function(){
-                        function chk(){
-                            var s=document.querySelector(".fi-sidebar"),b=document.getElementById("yr-lw");
-                            if(!s||!b)return;
-                            b.style.display=s.offsetWidth<150?"flex":"none";
-                        }
-                        var ob=new MutationObserver(function(){setTimeout(chk,200);});
-                        function init(){
-                            var s=document.querySelector(".fi-sidebar");
-                            if(s){ob.observe(s,{attributes:true,attributeFilter:["class","style"]});chk();}
-                            else{setTimeout(init,300);}
-                        }
-                        document.readyState==="loading"?document.addEventListener("DOMContentLoaded",init):init();
-                    })();
-                    </script>
 HTML;
                 }
             )
             ->renderHook(
-                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
-                fn (): string => '
-                <div style="display:flex;align-items:center;gap:12px;margin-right:16px;">
-                    <div style="background:#fff;border:1px solid #e2e8f0;padding:6px 14px;border-radius:14px;display:flex;flex-direction:column;align-items:center;">
-                        <span id="yr-clock" style="font-size:13px;font-weight:900;color:#0f172a;font-variant-numeric:tabular-nums;">' . now()->format('H:i:s') . '</span>
-                        <span style="font-size:9px;color:#64748B;font-weight:700;text-transform:uppercase;">' . now()->format('d/m/Y') . '</span>
-                    </div>
-                    <div style="background:#fff;border:1px solid #e2e8f0;padding:4px 14px 4px 6px;border-radius:14px;display:flex;align-items:center;gap:10px;">
-                        <div style="width:30px;height:30px;background:linear-gradient(135deg,#0f172a,#2563EB);color:white;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;">' . substr(Auth::user()?->name ?? 'A', 0, 1) . '</div>
-                        <div style="display:flex;flex-direction:column;line-height:1.1;">
-                            <span style="font-size:12px;font-weight:800;color:#0F172A;">' . (Auth::user()?->name ?? 'Admin') . '</span>
-                            <span style="font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;display:flex;align-items:center;gap:4px;"><span style="width:5px;height:5px;background:#22c55e;border-radius:50%;"></span> En línea</span>
-                        </div>
-                    </div>
-                </div>
-                <script>setInterval(function(){var c=document.getElementById("yr-clock");if(c)c.innerText=new Date().toLocaleTimeString("en-GB",{hour12:false});},1000);</script>
-                '
-            )
-            ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): string => '
-                <style>.fi-main-ctn{padding-bottom:60px!important;}</style>
-                <footer style="position:fixed;bottom:0;left:0;right:0;z-index:40;padding:12px 2.5rem;border-top:1px solid #112240;background:#0A192F;box-shadow:0 -10px 25px rgba(0,0,0,0.1);">
+                <style>
+                .fi-main-ctn{padding-bottom:60px!important;}
+                .fi-btn.fi-color-primary,.fi-btn-color-primary{background-color:#E11D48!important;color:#fff!important;border:none!important;font-weight:700!important;}
+                .fi-btn.fi-color-primary:hover{background-color:#be123c!important;}
+                .fi-toggle-input:checked~.fi-toggle-indicator,[role="switch"][aria-checked="true"]{background-color:#E11D48!important;}
+                .fi-sidebar:not(.fi-sidebar-open) #yr-user-info{display:none!important;}
+                .fi-sidebar-database-notifications-btn{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;padding:10px 12px!important;color:#fff!important;background:transparent!important;border:none!important;}
+                .fi-sidebar-database-notifications-btn:hover{background:rgba(255,255,255,.08)!important;}
+                .fi-sidebar-database-notifications-btn svg,.fi-sidebar-database-notifications-btn .fi-icon{color:#E11D48!important;}
+                .fi-sidebar-database-notifications-btn-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
+                .fi-sidebar-database-notifications-btn .fi-badge{background:#E11D48!important;color:#fff!important;}
+                </style>
+                <footer id="yr-footer" style="position:fixed;bottom:0;left:0;right:0;z-index:60;transition:left .3s ease;padding:12px 2.5rem;border-top:1px solid #112240;background:linear-gradient(135deg,#0F172A,#1e3a8a);">
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
-                        <div style="color:rgba(255,255,255,0.8);">© ' . date('Y') . ' <span style="color:#fff;">YarOM ERP</span> <span style="color:#2563EB;margin:0 8px;">|</span> <span style="color:#64748B;">Infraestructura Cloud Engine</span></div>
+                        <div style="color:rgba(255,255,255,0.8);">© ' . date('Y') . ' <span style="color:#fff;">YarOM ERP</span> <span style="color:#fff;margin:0 8px;">|</span> <span style="color:#fff;">Infraestructura Cloud Engine</span></div>
                         <div style="display:flex;align-items:center;gap:12px;">
-                            <span style="color:#475569;">Desarrollado por</span>
+                            <span style="color:#fff;">Desarrollado por</span>
                             <a href="https://linkedin.com/in/jmromeror87" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:6px;">
                                 <span style="color:#fff;font-weight:900;">ING. JHOAN ROMERO</span>
-                                <span style="font-size:8px;background:#2563EB;color:#fff;padding:2px 10px;border-radius:6px;">ARCHITECT</span>
+                                <span style="font-size:8px;background:#E11D48;color:#fff;padding:2px 10px;border-radius:6px;">ARCHITECT</span>
                             </a>
                         </div>
                     </div>
@@ -158,7 +226,7 @@ HTML;
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-            ->pages([\Filament\Pages\Dashboard::class])
+            ->pages([\App\Filament\Pages\Dashboard::class])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -170,6 +238,8 @@ HTML;
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->authMiddleware([Authenticate::class]);
+            ->authMiddleware([Authenticate::class])
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s');
     }
 }

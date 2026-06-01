@@ -74,10 +74,10 @@ class ContractTemplatesTable
                         'arrendamiento_comercial' => 'Arrend. Comercial',
                     ]),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make()->label('Editar'),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label('Eliminar'),
                 ]),

@@ -20,8 +20,10 @@ namespace App\Filament\Resources\Thirds;
 use App\Filament\Resources\Thirds\Pages\CreateThird;
 use App\Filament\Resources\Thirds\Pages\EditThird;
 use App\Filament\Resources\Thirds\Pages\ListThirds;
+use App\Filament\Resources\Thirds\Pages\ThirdExpediente;
 use App\Filament\Resources\Thirds\Schemas\ThirdForm;
 use App\Filament\Resources\Thirds\Tables\ThirdsTable;
+use App\Filament\Traits\HasResourcePermissions;
 use App\Models\Third;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -29,6 +31,9 @@ use Filament\Tables\Table;
 
 class ThirdResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'terceros';
     protected static ?string $model = Third::class;
     protected static ?string $navigationLabel = 'Terceros';
     protected static ?string $modelLabel = 'Tercero';
@@ -38,7 +43,7 @@ class ThirdResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-users'; }
 
-    public static function getNavigationGroup(): ?string { return 'Operativo'; }
+    public static function getNavigationGroup(): ?string { return 'Portafolio'; }
 
     public static function form(Schema $schema): Schema
     {
@@ -58,9 +63,10 @@ class ThirdResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListThirds::route('/'),
-            'create' => CreateThird::route('/create'),
-            'edit'   => EditThird::route('/{record}/edit'),
+            'index'      => ListThirds::route('/'),
+            'create'     => CreateThird::route('/create'),
+            'edit'       => EditThird::route('/{record}/edit'),
+            'expediente' => ThirdExpediente::route('/{record}/expediente'),
         ];
     }
 }

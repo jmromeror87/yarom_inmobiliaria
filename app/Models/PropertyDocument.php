@@ -24,7 +24,11 @@ class PropertyDocument extends Model
     protected $table = 'property_documents';
     protected $fillable = [
         'property_id','tipo','nombre_original',
-        'path','extension','tamanio_bytes','notas','subido_por',
+        'path','extension','tamanio_bytes','notas','subido_por','fecha_vencimiento',
+    ];
+
+    protected $casts = [
+        'fecha_vencimiento' => 'date',
     ];
 
     public function property(): BelongsTo { return $this->belongsTo(Property::class); }

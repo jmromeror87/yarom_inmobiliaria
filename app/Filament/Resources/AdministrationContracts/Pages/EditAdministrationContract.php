@@ -9,8 +9,10 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use App\Forms\Components\MapboxAddressInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -157,7 +159,7 @@ class EditAdministrationContract extends EditRecord
                     TextInput::make('notaria_nombre')
                         ->label('Notaría')->placeholder('Notaría Primera de Ocaña')->required(),
                     TextInput::make('notaria_ciudad')->label('Ciudad')->default('Ocaña'),
-                    TextInput::make('notaria_direccion')->label('Dirección notaría'),
+                    MapboxAddressInput::make('notaria_direccion')->label('Dirección notaría'),
                     TextInput::make('notaria_telefono')->label('Teléfono notaría'),
                     DatePicker::make('fecha_envio_notaria')->label('Fecha de envío')->default(now())->required(),
                     TextInput::make('enviado_por_nombre')->label('Llevado por')->default(Auth::user()?->name),
@@ -192,81 +194,78 @@ class EditAdministrationContract extends EditRecord
                 });
         }
 
-        // ── 4. Registrar autenticación notaría ────────────────
-        if ($estado === 'enviado_notaria') {
-            $acciones[] = Action::make('registrar_autenticacion')
-                ->label('🔏 Registrar autenticación')
-                ->color('warning')
-                ->icon('heroicon-o-check-badge')
-                ->form([
-                    DatePicker::make('fecha_autenticacion')->label('Fecha de autenticación')->default(now())->required(),
-                    TextInput::make('numero_escritura')->label('N° Escritura pública'),
-                    TextInput::make('valor_autenticacion')->label('Valor autenticación ($)')->numeric()->prefix('$'),
-                    Textarea::make('observaciones')->label('Observaciones')->rows(2),
-                ])
-                ->action(function (array $data) {
-                    $notaria = $this->record->notaryTracking;
-                    if ($notaria) {
-                        $notaria->update([
-                            'fecha_autenticacion' => $data['fecha_autenticacion'],
-                            'numero_escritura'    => $data['numero_escritura'] ?? null,
-                            'valor_autenticacion' => $data['valor_autenticacion'] ?? null,
-                            'observaciones'       => $data['observaciones'] ?? null,
-                        ]);
-                    }
-                    $this->record->update(['estado' => 'autenticado_notaria']);
-                    ContractStatusHistory::create([
-                        'administration_contract_id' => $this->record->id,
-                        'changed_by'      => Auth::id(),
-                        'estado_anterior' => 'enviado_notaria',
-                        'estado_nuevo'    => 'autenticado_notaria',
-                        'canal'           => 'presencial',
-                        'razon_cambio'    => 'Autenticado en notaría' . ($data['numero_escritura'] ? ' — Escritura ' . $data['numero_escritura'] : ''),
-                        'ip_address'      => request()->ip(),
-                        'cambiado_en'     => now(),
-                    ]);
-                    Notification::make()->title('🔏 Autenticado en notaría')->success()->send();
-                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
-                });
-        }
-
-        // ── 5. Registrar firma y activar ──────────────────────
-        if ($estado === 'autenticado_notaria') {
-            $acciones[] = Action::make('registrar_firma')
-                ->label('✍️ Registrar firma — Activar')
+        // ── 4+5. Registrar autenticación/firma y activar (unificado) ──
+        if (in_array($estado, ['enviado_notaria', 'autenticado_notaria'])) {
+            $acciones[] = Action::make('registrar_y_activar')
+                ->label('🔏 Registrar y activar contrato')
                 ->color('success')
                 ->icon('heroicon-o-check-badge')
-                ->requiresConfirmation()
-                ->modalHeading('¿Activar el contrato?')
-                ->modalDescription('Al activar, el contrato queda en solo lectura y el inmueble pasa a estado ARRENDADO automáticamente.')
-                ->modalSubmitActionLabel('Sí, activar contrato')
+                ->modalHeading('Registrar retorno de notaría y activar contrato')
+                ->modalDescription('Complete los datos del retorno. La autenticación es opcional: algunas notarías la incluyen y otras no.')
+                ->modalSubmitActionLabel('✅ Activar contrato')
                 ->form([
-                    DatePicker::make('fecha_firma')->label('Fecha de firma')->default(now())->required(),
-                    TextInput::make('firmado_por')->label('Firmado por')->default($this->record->propietario?->nombre_completo),
+                    Placeholder::make('_sep1')
+                        ->label('🔏 Autenticación notarial — opcional')
+                        ->content('Diligencie solo si la notaría entrega escritura o número de autenticación.'),
+                    DatePicker::make('fecha_autenticacion')
+                        ->label('Fecha de autenticación'),
+                    TextInput::make('numero_escritura')
+                        ->label('N° Escritura pública'),
+                    TextInput::make('valor_autenticacion')
+                        ->label('Valor autenticación ($)')->numeric()->prefix('$'),
+
+                    Placeholder::make('_sep2')
+                        ->label('✍️ Firma y recepción del contrato')
+                        ->content(''),
+                    DatePicker::make('fecha_firma')
+                        ->label('Fecha de firma')->default(now())->required(),
+                    TextInput::make('firmado_por')
+                        ->label('Firmado por')
+                        ->default($this->record->propietario?->nombre_completo),
+                    DatePicker::make('fecha_regreso')
+                        ->label('Fecha regreso de notaría')->default(now()),
+                    TextInput::make('recibido_por')
+                        ->label('Recibido de notaría por'),
                     FileUpload::make('path_contrato_firmado')
                         ->label('PDF contrato firmado y autenticado')
                         ->disk('public')->directory('contratos/firmados')
                         ->acceptedFileTypes(['application/pdf'])->maxSize(20480),
-                    TextInput::make('recibido_por')->label('Recibido de notaría por'),
-                    DatePicker::make('fecha_regreso')->label('Fecha regreso de notaría')->default(now()),
-                    Textarea::make('observaciones')->label('Observaciones')->rows(2),
+                    Textarea::make('observaciones')
+                        ->label('Observaciones')->rows(2),
                 ])
-                ->action(function (array $data) {
+                ->action(function (array $data) use ($estado) {
                     $notaria = $this->record->notaryTracking;
                     if ($notaria) {
                         $notaria->update([
-                            'fecha_regreso'          => $data['fecha_regreso'] ?? now(),
-                            'recibido_por'            => $data['recibido_por'] ?? null,
-                            'path_contrato_firmado'   => $data['path_contrato_firmado'] ?? null,
-                            'observaciones'           => $data['observaciones'] ?? null,
+                            'fecha_autenticacion'   => $data['fecha_autenticacion'] ?? null,
+                            'numero_escritura'      => $data['numero_escritura'] ?? null,
+                            'valor_autenticacion'   => $data['valor_autenticacion'] ?? null,
+                            'fecha_regreso'         => $data['fecha_regreso'] ?? now(),
+                            'recibido_por'          => $data['recibido_por'] ?? null,
+                            'path_contrato_firmado' => $data['path_contrato_firmado'] ?? null,
+                            'observaciones'         => $data['observaciones'] ?? null,
                         ]);
                     }
                     $this->record->update([
                         'estado'      => 'activo',
                         'fecha_firma' => $data['fecha_firma'],
-                        'firmado_por' => $data['firmado_por'],
+                        'firmado_por' => $data['firmado_por'] ?? null,
                     ]);
-                    Notification::make()->title('🟢 Contrato ACTIVO — Inmueble actualizado')->success()->send();
+                    $razonCambio = 'Contrato firmado y autenticado';
+                    if (!empty($data['numero_escritura'])) {
+                        $razonCambio .= ' — Escritura ' . $data['numero_escritura'];
+                    }
+                    ContractStatusHistory::create([
+                        'administration_contract_id' => $this->record->id,
+                        'changed_by'      => Auth::id(),
+                        'estado_anterior' => $estado,
+                        'estado_nuevo'    => 'activo',
+                        'canal'           => 'presencial',
+                        'razon_cambio'    => $razonCambio,
+                        'ip_address'      => request()->ip(),
+                        'cambiado_en'     => now(),
+                    ]);
+                    Notification::make()->title('🟢 Contrato ACTIVO — Inmueble disponible')->success()->send();
                     $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
                 });
         }

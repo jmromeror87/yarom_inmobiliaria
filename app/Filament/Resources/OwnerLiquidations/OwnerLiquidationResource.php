@@ -18,6 +18,7 @@ use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
+use App\Filament\Traits\HasResourcePermissions;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -27,11 +28,14 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OwnerLiquidationResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'liquidaciones';
     protected static ?string $model = OwnerLiquidation::class;
 
     public static function getNavigationIcon(): string { return 'heroicon-o-banknotes'; }
     public static function getNavigationLabel(): string { return 'Liquidaciones Propietarios'; }
-    public static function getNavigationGroup(): ?string { return 'Cobros'; }
+    public static function getNavigationGroup(): ?string { return 'Cartera'; }
     public static function getModelLabel(): string { return 'Liquidación Propietario'; }
     public static function getPluralModelLabel(): string { return 'Liquidaciones Propietarios'; }
     public static function getNavigationSort(): ?int { return 30; }
@@ -92,7 +96,7 @@ class OwnerLiquidationResource extends Resource
                     ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'])),
                 Tables\Filters\TrashedFilter::make(),
             ])
-            ->actions([
+            ->recordActions([
                 TableAction::make('aprobar')
                     ->label('Aprobar')->icon('heroicon-o-check-badge')->color('info')
                     ->requiresConfirmation()
@@ -105,7 +109,7 @@ class OwnerLiquidationResource extends Resource
                 TableAction::make('registrar_giro')
                     ->label('Registrar Giro')->icon('heroicon-o-banknotes')->color('success')
                     ->visible(fn(OwnerLiquidation $r) => $r->estado === 'aprobada')
-                    ->form([
+                    ->schema([
                         Forms\Components\DatePicker::make('fecha_giro')
                             ->label('Fecha de giro')->required()->default(now()),
                         Forms\Components\Select::make('forma_giro')
@@ -135,7 +139,7 @@ class OwnerLiquidationResource extends Resource
                     ->label('Anular')->icon('heroicon-o-x-circle')->color('danger')
                     ->requiresConfirmation()
                     ->visible(fn(OwnerLiquidation $r) => in_array($r->estado, ['pendiente','aprobada']))
-                    ->form([
+                    ->schema([
                         Forms\Components\Textarea::make('motivo_anulacion')
                             ->label('Motivo de anulación')->required()->rows(3),
                     ])
@@ -166,26 +170,10 @@ class OwnerLiquidationResource extends Resource
                 DeleteAction::make()->label('Eliminar'),
                 RestoreAction::make(),
             ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    BulkAction::make('aprobar_lote')
-                        ->label('Aprobar seleccionadas')->icon('heroicon-o-check-badge')->color('info')
-                        ->requiresConfirmation()
-                        ->action(function($records) {
-                            $records->each(function(OwnerLiquidation $r) {
-                                if ($r->estado === 'pendiente') $r->update(['estado' => 'aprobada']);
-                            });
-                            Notification::make()->title('Liquidaciones aprobadas')->success()->send();
-                        }),
-                    DeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                ]),
-            ])
-            ->headerActions([
+            ->toolbarActions([
                 TableAction::make('generar_mes')
                     ->label('Generar liquidaciones del mes')->icon('heroicon-o-bolt')->color('warning')
-                    ->form([
+                    ->schema([
                         Forms\Components\Select::make('mes')->label('Mes')
                             ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
                             ->required()->default(now()->month),
@@ -204,6 +192,20 @@ class OwnerLiquidationResource extends Resource
                         }
                         Notification::make()->title("{$n} liquidaciones generadas")->success()->send();
                     }),
+                BulkActionGroup::make([
+                    BulkAction::make('aprobar_lote')
+                        ->label('Aprobar seleccionadas')->icon('heroicon-o-check-badge')->color('info')
+                        ->requiresConfirmation()
+                        ->action(function($records) {
+                            $records->each(function(OwnerLiquidation $r) {
+                                if ($r->estado === 'pendiente') $r->update(['estado' => 'aprobada']);
+                            });
+                            Notification::make()->title('Liquidaciones aprobadas')->success()->send();
+                        }),
+                    DeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
+                ]),
             ]);
     }
 

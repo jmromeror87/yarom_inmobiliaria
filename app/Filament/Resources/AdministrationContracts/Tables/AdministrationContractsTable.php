@@ -60,25 +60,31 @@ class AdministrationContractsTable
 
                 TextColumn::make('estado')->label('Estado')->badge()
                     ->color(fn ($state) => match($state) {
-                        'activo'             => 'success',
-                        'firmado'            => 'primary',
-                        'aprobado'           => 'info',
-                        'borrador'           => 'gray',
-                        'en_revision'        => 'warning',
-                        'enviado_propietario'=> 'warning',
-                        'terminado'          => 'gray',
-                        'cancelado'          => 'danger',
+                        'activo'               => 'success',
+                        'firmado'              => 'primary',
+                        'aprobado_gerencia'    => 'info',
+                        'aprobado'             => 'info',
+                        'enviado_notaria'      => 'primary',
+                        'autenticado_notaria'  => 'primary',
+                        'borrador'             => 'gray',
+                        'en_revision'          => 'warning',
+                        'enviado_propietario'  => 'warning',
+                        'terminado'            => 'gray',
+                        'cancelado'            => 'danger',
+                        default                => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'borrador'            => 'Borrador', 'aprobado_gerencia' => 'Aprobado gerencia', 'enviado_notaria' => 'Enviado notaría', 'autenticado_notaria' => 'Autenticado notaría',
-                        'enviado_propietario'=> 'Enviado',
-                        'en_revision'        => 'En revisión',
-                        'aprobado'           => 'Aprobado',
-                        'firmado'            => 'Firmado',
-                        'activo'             => 'Activo',
-                        'terminado'          => 'Terminado',
-                        'cancelado'          => 'Cancelado',
-                        default              => $state,
+                        'borrador'             => 'Borrador',
+                        'enviado_propietario'  => 'Enviado propietario',
+                        'en_revision'          => 'En revisión',
+                        'aprobado_gerencia'    => 'Aprobado gerencia',
+                        'enviado_notaria'      => 'Enviado a notaría',
+                        'autenticado_notaria'  => 'Autenticado notaría',
+                        'firmado'              => 'Firmado',
+                        'activo'               => 'Activo',
+                        'terminado'            => 'Terminado',
+                        'cancelado'            => 'Cancelado',
+                        default                => $state,
                     }),
 
                 TextColumn::make('clauses_editadas')
@@ -104,10 +110,13 @@ class AdministrationContractsTable
                         'cancelado'          => 'Cancelado',
                     ]),
             ])
-            ->actions([
-                EditAction::make()->label('Editar')->hidden(fn ($record) => $record->isReadOnly()), \Filament\Actions\Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->color('gray')->url(fn ($record) => \App\Filament\Resources\AdministrationContracts\AdministrationContractResource::getUrl('edit', ['record' => $record]))->visible(fn ($record) => $record->isReadOnly()),
+            ->recordActions([
+                EditAction::make()->label('Editar')->hidden(fn ($record) => $record->isReadOnly()),
+                \Filament\Actions\Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->color('gray')
+                    ->url(fn ($record) => \App\Filament\Resources\AdministrationContracts\AdministrationContractResource::getUrl('edit', ['record' => $record]))
+                    ->visible(fn ($record) => $record->isReadOnly()),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label('Eliminar'),
                 ]),

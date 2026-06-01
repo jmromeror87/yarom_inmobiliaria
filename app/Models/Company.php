@@ -44,8 +44,12 @@ class Company extends Model
         'codigo_postal', 'telefono', 'telefono_alt', 'celular',
         'email', 'email_notificaciones', 'sitio_web',
         'logo_path', 'color_primario', 'color_secundario',
-        'comision_administracion', 'dia_corte_mensual',
+        'comision_administracion', 'comision_corretaje', 'comision_corretaje_vendedor',
+        'dia_corte_mensual',
         'dias_gracia_mora', 'tasa_mora_mensual',
+        'sura_tarifa_estudio', 'inmobiliaria_tarifa_estudio',
+        'tarifa_estudio_directo', 'nota_estudio_sura',
+        'banco', 'tipo_cuenta', 'numero_cuenta',
         'notas', 'is_active',
     ];
 

@@ -19,7 +19,9 @@ namespace App\Filament\Resources\Companies\Schemas;
 use App\Models\Company;
 use App\Models\Departamento;
 use App\Models\Municipio;
+use App\Forms\Components\MapboxAddressInput;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -228,9 +230,10 @@ class CompanyForm
                                     ->orderBy('nombre')->pluck('nombre', 'id')
                             )->searchable(),
 
-                        TextInput::make('direccion')
+                        MapboxAddressInput::make('direccion')
                             ->label('Dirección')
-                            ->placeholder('Calle 123 # 45 - 67'),
+                            ->placeholder('Calle 123 # 45 - 67')
+                            ->columnSpanFull(),
 
                         TextInput::make('barrio')
                             ->label('Barrio / Localidad'),
@@ -272,6 +275,16 @@ class CompanyForm
                             ->numeric()->suffix('%')->default(10)
                             ->helperText('Porcentaje que cobra la inmobiliaria sobre el canon mensual'),
 
+                        TextInput::make('comision_corretaje')
+                            ->label('Comisión corretaje comprador %')
+                            ->numeric()->suffix('%')->default(3)
+                            ->helperText('% sobre precio de venta que paga el comprador'),
+
+                        TextInput::make('comision_corretaje_vendedor')
+                            ->label('Comisión corretaje vendedor %')
+                            ->numeric()->suffix('%')->default(3)
+                            ->helperText('% sobre precio de venta que paga el vendedor'),
+
                         TextInput::make('dia_corte_mensual')
                             ->label('Día de pago mensual')
                             ->numeric()->default(5)->minValue(1)->maxValue(28)
@@ -285,6 +298,26 @@ class CompanyForm
                             ->label('Tasa de mora mensual %')
                             ->numeric()->suffix('%')->default(1.5441)
                             ->helperText('Tasa máxima legal vigente certificada por la Superfinanciera'),
+
+                        TextInput::make('sura_tarifa_estudio')
+                            ->label('Tarifa SURA por estudio ($)')
+                            ->numeric()->prefix('$')->default(35000)
+                            ->helperText('Valor que SURA cobra al arrendatario por el estudio socioeconómico'),
+
+                        TextInput::make('inmobiliaria_tarifa_estudio')
+                            ->label('Tarifa inmobiliaria por estudio ($)')
+                            ->numeric()->prefix('$')->default(60000)
+                            ->helperText('Valor que la inmobiliaria cobra al arrendatario. La diferencia con SURA es ingreso de la empresa'),
+
+                        TextInput::make('tarifa_estudio_directo')
+                            ->label('Tarifa estudio aprobación directa ($)')
+                            ->numeric()->prefix('$')->default(50000)
+                            ->helperText('Cuando el gerente aprueba directamente sin pasar por SURA'),
+
+                        Textarea::make('nota_estudio_sura')
+                            ->label('Nota informativa en cotización')
+                            ->rows(2)->columnSpanFull()
+                            ->placeholder('El valor del estudio socioeconómico SURA se descuenta del primer canon...'),
                     ])->columns(2),
 
             ])

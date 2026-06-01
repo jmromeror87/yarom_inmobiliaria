@@ -27,6 +27,16 @@ class Request extends Model
 
     protected $table = 'requests';
 
+    const ESTADOS = [
+        'radicada'          => 'Radicada',
+        'en_estudio'        => 'En estudio',
+        'aprobada'          => 'Aprobada (SURA)',
+        'aprobada_gerente'  => 'Aprobada por gerente',
+        'condicional'       => 'Condicional',
+        'rechazada'         => 'Rechazada',
+        'desistida'         => 'Desistida',
+    ];
+
     protected $fillable = [
         'numero','property_id','asesor_id','tipo','estado',
         'canon_evaluar','precio_venta_evaluar',
@@ -34,6 +44,8 @@ class Request extends Model
         'concepto_evaluacion','condiciones_especiales',
         'estado_inmueble_anterior','estado_inmueble_nuevo',
         'cambio_estado_aplicado','notas',
+        'tipo_aprobacion','aprobado_por_id',
+        'justificacion_gerente','tarifa_estudio_cobrada',
     ];
 
     protected $casts = [
@@ -58,29 +70,9 @@ class Request extends Model
             }
         });
 
-        // ── Automatizar estado del inmueble al aprobar ───────
+        // ── Registrar fecha de decisión al cerrar solicitud ─
         static::updating(function (Request $r) {
-            if ($r->isDirty('estado') && $r->estado === 'aprobada') {
-                $property = Property::find($r->property_id);
-                if ($property) {
-                    $r->estado_inmueble_anterior = $property->estado;
-
-                    $nuevoEstado = match($r->tipo) {
-                        'estudio_propietario'  => 'disponible',
-                        'estudio_arrendatario' => 'arrendado',
-                        'estudio_comprador'    => 'en_venta',
-                        default                => $property->estado,
-                    };
-
-                    $r->estado_inmueble_nuevo   = $nuevoEstado;
-                    $r->cambio_estado_aplicado  = true;
-                    $r->fecha_decision          = now()->toDateString();
-
-                    $property->update(['estado' => $nuevoEstado]);
-                }
-            }
-
-            if ($r->isDirty('estado') && in_array($r->estado, ['rechazada', 'desistida'])) {
+            if ($r->isDirty('estado') && in_array($r->estado, ['aprobada', 'aprobada_gerente', 'rechazada', 'desistida', 'condicional'])) {
                 $r->fecha_decision = now()->toDateString();
             }
         });

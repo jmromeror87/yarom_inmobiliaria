@@ -1,7 +1,7 @@
 <x-filament-panels::page>
 
 @php
-    $record  = $this->record->load(['property.tipo','property.municipio','thirds.third','suraStudies.enviadoPor','asesor']);
+    $record  = $this->record->load(['property.tipo','property.municipio','thirds.third','suraStudies.enviadoPor','asesor','documents.requestThird.third']);
     $estado  = $record->estado;
     $color   = match($estado) {
         'aprobada'  => ['bg'=>'#f0fdf4','border'=>'#16a34a','text'=>'#15803d','marca'=>'#16a34a'],
@@ -40,6 +40,7 @@
     .tercero-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:10px; }
     .badge { display:inline-block; padding:3px 10px; border-radius:99px; font-size:11px; font-weight:800; text-transform:uppercase; }
     .sura-card { background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:16px; margin-bottom:10px; }
+    .doc-card { background:#fafafa; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; margin-bottom:8px; }
     .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:#64748b; margin:20px 0 10px; }
 </style>
 
@@ -198,6 +199,76 @@
                style="font-size:12px;color:#2563eb;font-weight:700;">📄 Ver documento respuesta Sura</a>
         </div>
         @endif
+    </div>
+    @endforeach
+    @endif
+
+    {{-- Documentos del estudio --}}
+    @php
+        $tiposDoc = [
+            'cedula'               => '🪪 Cédula',
+            'desprendible_nomina'  => '💰 Desprendible nómina',
+            'extracto_bancario'    => '🏦 Extracto bancario',
+            'certificado_ingresos' => '📄 Cert. ingresos',
+            'declaracion_renta'    => '📊 Declaración renta',
+            'carta_laboral'        => '✉️ Carta laboral',
+            'camara_comercio'      => '🏢 Cámara comercio',
+            'rut'                  => '📋 RUT',
+            'referencia_personal'  => '👥 Ref. personal',
+            'referencia_comercial' => '🤝 Ref. comercial',
+            'promesa_compraventa'  => '📝 Promesa compraventa',
+            'otro'                 => '📎 Otro',
+        ];
+        $estadosDoc = [
+            'pendiente'  => ['label' => 'Pendiente',  'bg' => '#f8fafc', 'color' => '#64748b'],
+            'recibido'   => ['label' => 'Recibido',   'bg' => '#eff6ff', 'color' => '#1d4ed8'],
+            'verificado' => ['label' => 'Verificado', 'bg' => '#f0fdf4', 'color' => '#15803d'],
+            'rechazado'  => ['label' => 'Rechazado',  'bg' => '#fef2f2', 'color' => '#dc2626'],
+        ];
+    @endphp
+    @if($record->documents->isNotEmpty())
+    <div class="section-title">📂 Documentos del estudio</div>
+    @foreach($record->documents as $doc)
+    @php
+        $tipoLabel  = $tiposDoc[$doc->tipo_documento] ?? $doc->tipo_documento;
+        $estadoInfo = $estadosDoc[$doc->estado_documento] ?? ['label'=>$doc->estado_documento,'bg'=>'#f8fafc','color'=>'#64748b'];
+        $terceroNombre = null;
+        if ($doc->requestThird) {
+            $terceroNombre = $doc->requestThird->third?->nombre_completo;
+            $rolLabel = match($doc->requestThird->rol) {
+                'titular'       => 'Titular',
+                'codeudor'      => 'Codeudor',
+                'fiador'        => 'Fiador',
+                'propietario'   => 'Propietario',
+                'representante' => 'Representante',
+                default         => ucfirst($doc->requestThird->rol),
+            };
+        }
+    @endphp
+    <div class="doc-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-weight:800;font-size:14px;color:#0f172a;">{{ $tipoLabel }}</div>
+                @if($terceroNombre)
+                <div style="font-size:12px;color:#64748b;margin-top:3px;">
+                    👤 {{ $terceroNombre }}
+                    <span style="background:#e0f2fe;color:#0369a1;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:800;margin-left:4px;">{{ $rolLabel }}</span>
+                </div>
+                @else
+                <div style="font-size:12px;color:#94a3b8;margin-top:3px;">Sin tercero asignado</div>
+                @endif
+                @if($doc->notas)
+                <div style="font-size:12px;color:#374151;margin-top:6px;font-style:italic;">{{ $doc->notas }}</div>
+                @endif
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+                <span class="badge" style="background:{{ $estadoInfo['bg'] }};color:{{ $estadoInfo['color'] }};">{{ $estadoInfo['label'] }}</span>
+                @if($doc->path)
+                <a href="{{ asset('storage/' . $doc->path) }}" target="_blank"
+                   style="font-size:12px;color:#2563eb;font-weight:700;white-space:nowrap;">📄 Ver archivo</a>
+                @endif
+            </div>
+        </div>
     </div>
     @endforeach
     @endif

@@ -132,10 +132,89 @@ class ThirdsTable
                     ->label('Tipo persona')
                     ->options(['natural' => 'Natural', 'juridica' => 'Jurídica']),
             ])
-            ->actions([
+            ->recordActions([
+                \Filament\Actions\Action::make('expediente')
+                    ->label('Expediente')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('primary')
+                    ->url(fn($record) => \App\Filament\Resources\Thirds\ThirdResource::getUrl('expediente', ['record' => $record])),
+
+                \Filament\Actions\Action::make('portal_propietario')
+                    ->label(fn ($record) => $record->portal_activo ? 'Portal ✓' : 'Portal')
+                    ->icon('heroicon-o-link')
+                    ->color(fn ($record) => $record->portal_activo ? 'success' : 'gray')
+                    ->visible(fn ($record) => $record->es_propietario)
+                    ->modalHeading(fn ($record) => 'Portal — ' . $record->nombre_completo)
+                    ->modalWidth('lg')
+                    ->modalDescription(fn ($record) => $record->portal_activo
+                        ? 'El link está activo. Puede reenviarlo o revocarlo.'
+                        : 'Este propietario aún no tiene acceso al portal.')
+                    ->form(fn ($record) => $record->portal_activo ? [
+                        \Filament\Forms\Components\Placeholder::make('url_actual')
+                            ->label('Link activo')
+                            ->content(fn () => $record->portal_url),
+                        \Filament\Forms\Components\Textarea::make('mensaje_wap')
+                            ->label('Mensaje a enviar por WhatsApp')
+                            ->rows(4)
+                            ->default(fn () =>
+                                "Hola {$record->primer_nombre}, le compartimos su portal de propietario donde puede ver sus inmuebles, contratos y liquidaciones:\n\n"
+                                . $record->portal_url
+                                . "\n\nEste enlace es personal. Cualquier duda estamos a su disposición."),
+                    ] : [
+                        \Filament\Forms\Components\Placeholder::make('info')
+                            ->label('')
+                            ->content('Se generará un link único. Si el propietario tiene celular registrado, se enviará automáticamente por WhatsApp.'),
+                        \Filament\Forms\Components\Textarea::make('mensaje_wap')
+                            ->label('Mensaje de bienvenida (WhatsApp)')
+                            ->rows(4)
+                            ->default(fn () =>
+                                "Hola {$record->primer_nombre}, le damos la bienvenida a su portal de propietario. Pronto recibirá el link de acceso para consultar sus inmuebles, contratos y liquidaciones en línea. ¡Cualquier duda estamos disponibles!"),
+                    ])
+                    ->modalSubmitActionLabel(fn ($record) => $record->portal_activo ? '📱 Reenviar por WhatsApp' : '🔗 Generar y enviar link')
+                    ->action(function ($record, array $data): void {
+                        // Generar o regenerar token
+                        $token = $record->generarPortalToken();
+                        $url   = route('portal.propietario', ['token' => $token]);
+
+                        $enviado = false;
+                        if ($record->celular) {
+                            $wap     = app(\App\Services\WhatsAppService::class);
+                            $mensaje = $data['mensaje_wap']
+                                ?? "Hola {$record->primer_nombre}, su portal de propietario: {$url}";
+
+                            // Insertar URL real en el mensaje si no está ya
+                            if (! str_contains($mensaje, $url)) {
+                                $mensaje .= "\n\n🔗 {$url}";
+                            }
+
+                            $resultado = $wap->enviar($record->celular, $mensaje);
+                            $enviado   = $resultado['ok'] ?? false;
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title($enviado
+                                ? '✅ Link generado y enviado por WhatsApp'
+                                : '🔗 Link generado' . ($record->celular ? ' (WhatsApp no disponible — copie el link)' : ' — el propietario no tiene celular registrado'))
+                            ->body($url)
+                            ->success()
+                            ->send();
+                    })
+                    ->extraModalFooterActions(fn ($action) => $action->getRecord()?->portal_activo ? [
+                        \Filament\Actions\Action::make('revocar_portal')
+                            ->label('Revocar acceso')
+                            ->color('danger')
+                            ->requiresConfirmation()
+                            ->action(function () use ($action): void {
+                                $action->getRecord()->revocarPortalToken();
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Acceso al portal revocado')
+                                    ->warning()->send();
+                            }),
+                    ] : []),
+
                 EditAction::make()->label('Editar')->icon('heroicon-o-pencil'),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label('Eliminar'),
                 ]),

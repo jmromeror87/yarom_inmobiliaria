@@ -17,13 +17,19 @@
 
 namespace App\Filament\Resources\Requests\Tables;
 
+use App\Models\RequestSuraStudy;
+use App\Services\WhatsAppService;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class RequestsTable
 {
@@ -66,22 +72,24 @@ class RequestsTable
                 TextColumn::make('estado')
                     ->label('Estado')->badge()
                     ->color(fn ($state) => match($state) {
-                        'aprobada'    => 'success',
-                        'rechazada'   => 'danger',
-                        'condicional' => 'warning',
-                        'en_estudio'  => 'info',
-                        'radicada'    => 'gray',
-                        'desistida'   => 'gray',
-                        default       => 'gray',
+                        'aprobada'         => 'success',
+                        'aprobada_gerente' => 'success',
+                        'rechazada'        => 'danger',
+                        'condicional'      => 'warning',
+                        'en_estudio'       => 'info',
+                        'radicada'         => 'gray',
+                        'desistida'        => 'gray',
+                        default            => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'radicada'    => '📋 Radicada',
-                        'en_estudio'  => '🔍 En estudio',
-                        'aprobada'    => '✅ Aprobada',
-                        'condicional' => '⚠️ Condicional',
-                        'rechazada'   => '❌ Rechazada',
-                        'desistida'   => '🚫 Desistida',
-                        default       => $state,
+                        'radicada'         => '📋 Radicada',
+                        'en_estudio'       => '🔍 En estudio',
+                        'aprobada'         => '✅ Aprobada (SURA)',
+                        'aprobada_gerente' => '👔 Aprobada por gerente',
+                        'condicional'      => '⚠️ Condicional',
+                        'rechazada'        => '❌ Rechazada',
+                        'desistida'        => '🚫 Desistida',
+                        default            => $state,
                     }),
 
 
@@ -99,18 +107,78 @@ class RequestsTable
                     ]),
                 SelectFilter::make('estado')->label('Estado')
                     ->options([
-                        'radicada'    => 'Radicada',
-                        'en_estudio'  => 'En estudio',
-                        'aprobada'    => 'Aprobada',
-                        'condicional' => 'Condicional',
-                        'rechazada'   => 'Rechazada',
-                        'desistida'   => 'Desistida',
+                        'radicada'         => 'Radicada',
+                        'en_estudio'       => 'En estudio',
+                        'aprobada'         => 'Aprobada (SURA)',
+                        'aprobada_gerente' => 'Aprobada por gerente',
+                        'condicional'      => 'Condicional',
+                        'rechazada'        => 'Rechazada',
+                        'desistida'        => 'Desistida',
                     ]),
             ])
-            ->actions([
-                EditAction::make()->label('Editar')->hidden(fn ($record) => in_array($record->estado, ['aprobada','desistida'])), \Filament\Actions\Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->color('gray')->url(fn ($record) => \App\Filament\Resources\Requests\RequestResource::getUrl('edit', ['record' => $record]))->visible(fn ($record) => in_array($record->estado, ['aprobada','desistida'])),
+            ->recordActions([
+                Action::make('enviar_sudamericana')
+                    ->label('Enviar a Sura')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('info')
+                    ->visible(fn ($record) => in_array($record->estado, ['radicada', 'en_estudio']))
+                    ->form([
+                        TextInput::make('telefono_sura')
+                            ->label('WhatsApp del asesor de Sudamericana')
+                            ->placeholder('Ej: 3001234567')
+                            ->tel()
+                            ->required(),
+                        TextInput::make('contacto_sura')
+                            ->label('Nombre del contacto (opcional)')
+                            ->placeholder('Ej: Carlos Pérez'),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $study = RequestSuraStudy::create([
+                            'request_id'    => $record->id,
+                            'canal_envio'   => 'whatsapp',
+                            'fecha_envio'   => now(),
+                            'enviado_por'   => Auth::id(),
+                            'contacto_sura' => $data['contacto_sura'] ?? null,
+                            'telefono_sura' => $data['telefono_sura'],
+                            'resultado_sura'=> 'pendiente',
+                        ]);
+
+                        $token = $study->generateToken();
+                        $url   = route('estudio.show', $token);
+
+                        $inmueble = $record->property?->codigo . ' — ' . $record->property?->direccion;
+                        $canon    = '$' . number_format($record->canon_evaluar ?? 0, 0, ',', '.');
+                        $empresa  = \App\Models\Company::first()?->razon_social ?? 'Serviarrendar S.A.S';
+
+                        $msg = "📋 *Solicitud de Estudio de Crédito*\n\n"
+                            . ($data['contacto_sura'] ? "Estimad@ {$data['contacto_sura']},\n\n" : '')
+                            . "Le enviamos la solicitud *{$record->numero}* para evaluación.\n\n"
+                            . "🏠 Inmueble: {$inmueble}\n"
+                            . "💰 Canon: {$canon} COP\n"
+                            . "👥 Solicitantes: {$record->thirds()->count()} persona(s)\n\n"
+                            . "🔗 *Registrar respuesta aquí:*\n{$url}\n\n"
+                            . "El link permanecerá activo hasta que registre la decisión.\n"
+                            . "— {$empresa}";
+
+                        $study->update(['mensaje_enviado' => $msg]);
+                        $record->update(['estado' => 'en_estudio']);
+
+                        app(WhatsAppService::class)->enviar($data['telefono_sura'], $msg);
+
+                        Notification::make()
+                            ->title('Link enviado a Sudamericana')
+                            ->body("Enviado a {$data['telefono_sura']}")
+                            ->success()->send();
+                    }),
+
+                EditAction::make()->label('Editar')
+                    ->hidden(fn ($record) => in_array($record->estado, ['aprobada', 'aprobada_gerente', 'desistida'])),
+
+                Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->color('gray')
+                    ->url(fn ($record) => \App\Filament\Resources\Requests\RequestResource::getUrl('edit', ['record' => $record]))
+                    ->visible(fn ($record) => in_array($record->estado, ['aprobada', 'aprobada_gerente', 'desistida'])),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label('Eliminar'),
                 ]),

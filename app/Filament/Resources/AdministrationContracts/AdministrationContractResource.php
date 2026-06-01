@@ -22,6 +22,7 @@ use App\Filament\Resources\AdministrationContracts\Pages\EditAdministrationContr
 use App\Filament\Resources\AdministrationContracts\Pages\ListAdministrationContracts;
 use App\Filament\Resources\AdministrationContracts\Schemas\AdministrationContractForm;
 use App\Filament\Resources\AdministrationContracts\Tables\AdministrationContractsTable;
+use App\Filament\Traits\HasResourcePermissions;
 use App\Models\AdministrationContract;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -29,6 +30,9 @@ use Filament\Tables\Table;
 
 class AdministrationContractResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'contratos_administracion';
     protected static ?string $model = AdministrationContract::class;
     protected static ?string $navigationLabel = 'Contratos Administración';
     protected static ?string $modelLabel = 'Contrato';
@@ -38,7 +42,7 @@ class AdministrationContractResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-document-text'; }
 
-    public static function getNavigationGroup(): ?string { return 'Contratación'; }
+    public static function getNavigationGroup(): ?string { return 'Contratos'; }
 
     public static function form(Schema $schema): Schema
     {

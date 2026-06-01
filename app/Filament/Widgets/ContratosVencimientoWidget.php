@@ -6,13 +6,12 @@ use App\Models\AdministrationContract;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-use Carbon\Carbon;
 
 class ContratosVencimientoWidget extends BaseWidget
 {
     protected static ?string $heading = '⚠️ Contratos Próximos a Vencer (90 días)';
-    protected static ?int $sort = 4;
-    protected int | string | array $columnSpan = 8;
+    protected static ?int $sort = 5;
+    protected int|string|array $columnSpan = 'full';
     protected static ?int $defaultPaginationPageOption = 5;
 
     public function table(Table $table): Table

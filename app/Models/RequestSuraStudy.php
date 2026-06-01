@@ -27,11 +27,25 @@ class RequestSuraStudy extends Model
         'contacto_sura','telefono_sura','email_sura',
         'numero_solicitud_sura','fecha_respuesta','resultado_sura',
         'analista_sura','observaciones_sura','path_respuesta','notas',
+        'estudio_token','estudio_token_used_at',
     ];
     protected $casts = [
-        'fecha_envio'     => 'datetime',
-        'fecha_respuesta' => 'datetime',
+        'fecha_envio'          => 'datetime',
+        'fecha_respuesta'      => 'datetime',
+        'estudio_token_used_at'=> 'datetime',
     ];
+
+    public function generateToken(): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $this->update(['estudio_token' => $token]);
+        return $token;
+    }
+
+    public function tokenUsed(): bool
+    {
+        return $this->estudio_token_used_at !== null;
+    }
 
     public function request(): BelongsTo    { return $this->belongsTo(Request::class); }
     public function enviadoPor(): BelongsTo { return $this->belongsTo(User::class, 'enviado_por'); }

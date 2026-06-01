@@ -8,8 +8,8 @@ use Filament\Widgets\ChartWidget;
 class PropiedadesEstadoWidget extends ChartWidget
 {
     protected ?string $heading = 'Propiedades por Estado';
-    protected static ?int $sort = 2;
-    protected int | string | array $columnSpan = 4;
+    protected static ?int $sort = 3;
+    protected int|string|array $columnSpan = ['default' => 12, 'lg' => 6];
     protected ?string $maxHeight = '280px';
 
     protected function getData(): array

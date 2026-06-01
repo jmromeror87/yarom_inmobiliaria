@@ -1,14 +1,32 @@
 <?php
 namespace App\Models;
 
+use App\Services\ContabilidadService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 class RentBill extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['numero', 'estado', 'total_factura', 'total_pagado', 'saldo_pendiente', 'mora_acumulada'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn (string $e) => match($e) {
+                'created' => 'Factura generada',
+                'updated' => 'Factura actualizada',
+                'deleted' => 'Factura eliminada',
+                default   => $e,
+            });
+    }
 
     protected $table = 'rent_bills';
 
@@ -23,6 +41,7 @@ class RentBill extends Model
         'tipo_documento','cufe','numero_dian',
         'wap_enviado','wap_enviado_at','wap_mora_enviado','wap_mora_enviado_at',
         'owner_liquidation_id','notas',
+        'payment_token','payment_token_expires_at','wompi_transaction_id','wompi_reference',
     ];
 
     protected $casts = [
@@ -33,9 +52,10 @@ class RentBill extends Model
         'fecha_pago'         => 'date',
         'wap_enviado'        => 'boolean',
         'wap_enviado_at'     => 'datetime',
-        'wap_mora_enviado'   => 'boolean',
-        'wap_mora_enviado_at'=> 'datetime',
-        'canon_base'         => 'decimal:2',
+        'wap_mora_enviado'         => 'boolean',
+        'wap_mora_enviado_at'      => 'datetime',
+        'payment_token_expires_at' => 'datetime',
+        'canon_base'               => 'decimal:2',
         'total_factura'      => 'decimal:2',
         'mora_acumulada'     => 'decimal:2',
         'total_pagado'       => 'decimal:2',
@@ -52,6 +72,26 @@ class RentBill extends Model
                 $b->numero = 'FAC-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
             }
         });
+
+        // Contabilización automática al crear factura
+        static::created(function (RentBill $bill) {
+            try {
+                ContabilidadService::generarParaFactura($bill);
+            } catch (\Throwable $e) {
+                Log::warning("Contabilidad factura {$bill->numero}: " . $e->getMessage());
+            }
+        });
+    }
+
+    // ── Payment token ────────────────────────────────────
+    public function generatePaymentToken(): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $this->update([
+            'payment_token'            => $token,
+            'payment_token_expires_at' => $this->fecha_limite_pago->endOfDay(),
+        ]);
+        return $token;
     }
 
     // ── Helpers ──────────────────────────────────────────

@@ -109,10 +109,14 @@ class PropertiesTable
                     ->label('Tipo de inmueble')
                     ->relationship('tipo', 'nombre'),
             ])
-            ->actions([
-                EditAction::make()->label('Editar'), \Filament\Actions\Action::make('dashboard')->label('Expediente')->icon('heroicon-o-clipboard-document-list')->color('primary')->url(fn ($record) => \App\Filament\Resources\Properties\PropertyResource::getUrl('dashboard', ['record' => $record])), \Filament\Actions\Action::make('galeria')->label('Galería')->icon('heroicon-o-photo')->color('info')->url(fn ($record) => \App\Filament\Resources\Properties\PropertyResource::getUrl('gallery', ['record' => $record])),
+            ->recordActions([
+                EditAction::make()->label('Editar'),
+                \Filament\Actions\Action::make('dashboard')->label('Expediente')->icon('heroicon-o-clipboard-document-list')->color('primary')
+                    ->url(fn ($record) => \App\Filament\Resources\Properties\PropertyResource::getUrl('dashboard', ['record' => $record])),
+                \Filament\Actions\Action::make('galeria')->label('Galería')->icon('heroicon-o-photo')->color('info')
+                    ->url(fn ($record) => \App\Filament\Resources\Properties\PropertyResource::getUrl('gallery', ['record' => $record])),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->label('Eliminar'),
                 ]),

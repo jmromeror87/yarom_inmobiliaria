@@ -21,18 +21,20 @@ class ListOwnerLiquidations extends ListRecords
         return [
             'todas'     => Tab::make('Todas'),
             'pendiente' => Tab::make('Pendientes')
-                ->modifyQueryUsing(fn(Builder $q) => $q->where('estado','pendiente'))
+                ->modifyQueryUsing(fn(Builder $query) => $query->where('estado','pendiente'))
                 ->badge(fn() => \App\Models\OwnerLiquidation::where('estado','pendiente')->count())
                 ->badgeColor('warning'),
             'aprobada'  => Tab::make('Aprobadas')
-                ->modifyQueryUsing(fn(Builder $q) => $q->where('estado','aprobada'))
+                ->modifyQueryUsing(fn(Builder $query) => $query->where('estado','aprobada'))
                 ->badge(fn() => \App\Models\OwnerLiquidation::where('estado','aprobada')->count())
                 ->badgeColor('info'),
             'pagada'    => Tab::make('Pagadas')
-                ->modifyQueryUsing(fn(Builder $q) => $q->where('estado','pagada'))
+                ->modifyQueryUsing(fn(Builder $query) => $query->where('estado','pagada'))
+                ->badge(fn() => \App\Models\OwnerLiquidation::where('estado','pagada')->count())
                 ->badgeColor('success'),
             'anulada'   => Tab::make('Anuladas')
-                ->modifyQueryUsing(fn(Builder $q) => $q->where('estado','anulada'))
+                ->modifyQueryUsing(fn(Builder $query) => $query->where('estado','anulada'))
+                ->badge(fn() => \App\Models\OwnerLiquidation::where('estado','anulada')->count())
                 ->badgeColor('danger'),
         ];
     }

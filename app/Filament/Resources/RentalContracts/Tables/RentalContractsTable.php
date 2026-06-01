@@ -75,7 +75,7 @@ class RentalContractsTable
                         'firmado'=>'Firmado','terminado'=>'Terminado','cancelado'=>'Cancelado',
                     ]),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make()->label('Editar')
                     ->hidden(fn ($record) => $record->isReadOnly()),
                 \Filament\Actions\Action::make('ver')
@@ -83,7 +83,7 @@ class RentalContractsTable
                     ->url(fn ($record) => \App\Filament\Resources\RentalContracts\RentalContractResource::getUrl('edit', ['record' => $record]))
                     ->visible(fn ($record) => $record->isReadOnly()),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([DeleteBulkAction::make()->label('Eliminar')]),
             ]);
     }

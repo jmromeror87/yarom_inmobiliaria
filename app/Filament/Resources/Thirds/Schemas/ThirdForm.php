@@ -19,7 +19,9 @@ namespace App\Filament\Resources\Thirds\Schemas;
 
 use App\Models\Departamento;
 use App\Models\Municipio;
+use App\Forms\Components\MapboxAddressInput;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -176,9 +178,10 @@ class ThirdForm
                                     ->orderBy('nombre')->pluck('nombre', 'id')
                             )->searchable(),
 
-                        TextInput::make('direccion_residencia')
+                        MapboxAddressInput::make('direccion_residencia')
                             ->label('Dirección de residencia')
-                            ->placeholder('Calle 123 # 45 - 67'),
+                            ->placeholder('Calle 123 # 45 - 67')
+                            ->columnSpanFull(),
                         TextInput::make('barrio_residencia')->label('Barrio'),
                         TextInput::make('codigo_postal')->label('Código postal'),
                     ])->columns(2),
@@ -200,7 +203,7 @@ class ThirdForm
                         TextInput::make('empresa_donde_trabaja')->label('Empresa donde trabaja'),
                         TextInput::make('cargo')->label('Cargo'),
                         TextInput::make('telefono_empresa')->label('Teléfono empresa'),
-                        TextInput::make('direccion_empresa')->label('Dirección empresa'),
+                        MapboxAddressInput::make('direccion_empresa')->label('Dirección empresa'),
                         TextInput::make('meses_empleo_actual')
                             ->label('Meses en empleo actual')->numeric(),
                         TextInput::make('ingresos_mensuales')
@@ -226,6 +229,40 @@ class ThirdForm
                             ->label('Comisión pactada %')
                             ->numeric()->suffix('%')
                             ->helperText('Solo para propietarios — si difiere de la tarifa general'),
+                    ])->columns(2),
+
+                Step::make('Facturación e Impuestos')
+                    ->description('Parámetros tributarios del propietario/proveedor')
+                    ->icon('heroicon-o-receipt-percent')
+                    ->visible(fn (Get $get) => $get('es_propietario') || $get('es_proveedor'))
+                    ->schema([
+                        Toggle::make('requiere_iva')
+                            ->label('Requiere IVA en liquidación')
+                            ->helperText('Marcado si el propietario es responsable de IVA y debe cobrarse sobre la comisión')
+                            ->live(),
+
+                        Toggle::make('requiere_retefuente')
+                            ->label('Sujeto a retención en la fuente')
+                            ->helperText('Se aplicará retención al momento de generar la liquidación')
+                            ->live(),
+
+                        Toggle::make('quiere_factura_electronica')
+                            ->label('Solicita factura electrónica')
+                            ->helperText('El propietario exige comprobante de factura electrónica por la comisión'),
+
+                        TextInput::make('tarifa_iva_pactada')
+                            ->label('Tarifa IVA pactada %')
+                            ->numeric()->suffix('%')
+                            ->placeholder('19')
+                            ->visible(fn (Get $get) => $get('requiere_iva'))
+                            ->helperText('Dejar vacío para usar la tarifa global de la empresa'),
+
+                        TextInput::make('tarifa_retefuente_pactada')
+                            ->label('Tarifa retefuente pactada %')
+                            ->numeric()->suffix('%')
+                            ->placeholder('3.5')
+                            ->visible(fn (Get $get) => $get('requiere_retefuente'))
+                            ->helperText('Dejar vacío para usar la tarifa global de la empresa'),
                     ])->columns(2),
 
                 Step::make('Evaluación Crediticia')

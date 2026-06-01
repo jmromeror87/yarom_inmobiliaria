@@ -8,12 +8,16 @@ use App\Filament\Resources\RentalContracts\Pages\ListRentalContracts;
 use App\Filament\Resources\RentalContracts\Schemas\RentalContractForm;
 use App\Filament\Resources\RentalContracts\Tables\RentalContractsTable;
 use App\Models\RentalContract;
+use App\Filament\Traits\HasResourcePermissions;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 
 class RentalContractResource extends Resource
 {
+    use HasResourcePermissions;
+
+    protected static string $permissionPrefix = 'contratos_arriendo';
     protected static ?string $model = RentalContract::class;
     protected static ?string $navigationLabel = 'Contratos Arriendo';
     protected static ?string $modelLabel = 'Contrato de Arriendo';
@@ -24,7 +28,7 @@ class RentalContractResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-key'; }
 
-    public static function getNavigationGroup(): ?string { return 'Contratación'; }
+    public static function getNavigationGroup(): ?string { return 'Contratos'; }
 
     public static function form(Schema $schema): Schema
     {

@@ -18,10 +18,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 
 class Property extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['codigo', 'direccion', 'estado', 'canon_arriendo', 'propietario_id', 'is_active'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn (string $e) => match($e) {
+                'created' => 'Inmueble creado',
+                'updated' => 'Inmueble actualizado',
+                'deleted' => 'Inmueble eliminado',
+                default   => $e,
+            });
+    }
     protected $table = 'properties';
     protected $fillable = [
         'codigo','property_type_id','propietario_id',
@@ -82,7 +98,12 @@ class Property extends Model
     public function propietario(): BelongsTo { return $this->belongsTo(Third::class, 'propietario_id'); }
     public function municipio(): BelongsTo  { return $this->belongsTo(Municipio::class); }
     public function departamento(): BelongsTo { return $this->belongsTo(Departamento::class); }
-    public function images() { return $this->hasMany(PropertyImage::class)->orderBy('orden'); } public function administrationContracts() { return $this->hasMany(\App\Models\AdministrationContract::class); } public function portada() { return $this->hasOne(PropertyImage::class)->where('es_portada', true); } public function documents() { return $this->hasMany(PropertyDocument::class); } public function asesor(): BelongsTo     { return $this->belongsTo(User::class, 'asesor_id'); }
+    public function images() { return $this->hasMany(PropertyImage::class)->orderBy('orden'); }
+    public function administrationContracts() { return $this->hasMany(\App\Models\AdministrationContract::class); }
+    public function rentalContracts() { return $this->hasMany(\App\Models\RentalContract::class); }
+    public function portada() { return $this->hasOne(PropertyImage::class)->where('es_portada', true); }
+    public function documents() { return $this->hasMany(PropertyDocument::class); }
+    public function asesor(): BelongsTo { return $this->belongsTo(User::class, 'asesor_id'); }
 
     public function getDocumentosCompletosAttribute(): bool
     {

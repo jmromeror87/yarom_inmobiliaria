@@ -1,15 +1,33 @@
 <?php
 namespace App\Models;
 
+use App\Services\ContabilidadService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OwnerLiquidation extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['numero', 'estado', 'total_giro', 'fecha_giro', 'forma_giro'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges()
+            ->setDescriptionForEvent(fn (string $e) => match($e) {
+                'created' => 'Liquidación creada',
+                'updated' => 'Liquidación actualizada',
+                'deleted' => 'Liquidación eliminada',
+                default   => $e,
+            });
+    }
 
     protected $table = 'owner_liquidations';
 
@@ -58,6 +76,26 @@ class OwnerLiquidation extends Model
                     'ip'              => request()?->ip(),
                     'cambiado_en'     => now(),
                 ]);
+            }
+        });
+
+        // Contabilización automática al crear liquidación
+        static::created(function (OwnerLiquidation $liq) {
+            try {
+                ContabilidadService::generarParaLiquidacion($liq);
+            } catch (\Throwable $e) {
+                Log::warning("Contabilidad liquidación {$liq->numero}: " . $e->getMessage());
+            }
+        });
+
+        // Contabilización automática al registrar giro al propietario
+        static::updated(function (OwnerLiquidation $liq) {
+            if ($liq->wasChanged('estado') && $liq->estado === 'girada' && $liq->fecha_giro) {
+                try {
+                    ContabilidadService::generarParaGiro($liq);
+                } catch (\Throwable $e) {
+                    Log::warning("Contabilidad giro {$liq->numero}: " . $e->getMessage());
+                }
             }
         });
     }
