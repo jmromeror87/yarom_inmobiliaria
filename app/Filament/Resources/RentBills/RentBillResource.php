@@ -35,7 +35,7 @@ class RentBillResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Cartera';
+        return 'Cobros';
     }
 
     public static function form(Schema $schema): Schema

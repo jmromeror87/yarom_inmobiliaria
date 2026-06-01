@@ -23,7 +23,7 @@ class PropertyHandoverResource extends Resource
     protected static ?string $modelLabel = 'Acta de Entrega';
     protected static ?string $pluralModelLabel = 'Actas de Entrega';
     protected static ?string $slug = 'actas-entrega';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
     protected static ?string $recordTitleAttribute = 'numero';
 
     public static function getNavigationIcon(): string
@@ -33,7 +33,7 @@ class PropertyHandoverResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Operaciones';
+        return 'Contratación';
     }
 
     public static function form(Schema $schema): Schema

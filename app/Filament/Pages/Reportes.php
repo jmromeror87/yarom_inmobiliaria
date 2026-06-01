@@ -16,8 +16,8 @@ class Reportes extends Page
     public function getHeaderActions(): array { return []; }
     public function hasLogo(): bool { return false; }
     protected static ?string                 $navigationLabel = 'Reportes';
-    protected static string|\UnitEnum|null   $navigationGroup = 'Cartera';
-    protected static ?int                    $navigationSort  = 99;
+    protected static string|\UnitEnum|null   $navigationGroup = 'Cobros';
+    protected static ?int                    $navigationSort  = 4;
     protected static ?string                 $title           = 'Reportes Exportables';
     protected string                         $view            = 'filament.pages.reportes';
 

@@ -28,7 +28,7 @@ class RentalContractResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-key'; }
 
-    public static function getNavigationGroup(): ?string { return 'Contratos'; }
+    public static function getNavigationGroup(): ?string { return 'Contratación'; }
 
     public static function form(Schema $schema): Schema
     {

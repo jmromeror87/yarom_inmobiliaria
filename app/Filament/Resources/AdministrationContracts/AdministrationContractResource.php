@@ -42,7 +42,7 @@ class AdministrationContractResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-document-text'; }
 
-    public static function getNavigationGroup(): ?string { return 'Contratos'; }
+    public static function getNavigationGroup(): ?string { return 'Contratación'; }
 
     public static function form(Schema $schema): Schema
     {

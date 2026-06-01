@@ -12,7 +12,7 @@ class WhatsAppStatus extends Page
     protected string $view = 'filament.pages.whatsapp-status';
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 4;
 
     public static function getNavigationLabel(): string { return 'WhatsApp'; }
     public static function getNavigationGroup(): ?string { return 'Configuración'; }

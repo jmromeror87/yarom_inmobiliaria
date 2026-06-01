@@ -13,11 +13,11 @@ class SaleContractResource extends Resource
     protected static ?string $model = SaleContract::class;
 
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-home-modern';
-    protected static string|\UnitEnum|null  $navigationGroup = 'Contratos';
+    protected static string|\UnitEnum|null  $navigationGroup = 'Contratación';
     protected static ?string $navigationLabel  = 'Corretaje / Venta';
     protected static ?string $modelLabel       = 'Contrato de corretaje';
     protected static ?string $pluralModelLabel = 'Corretaje y ventas';
-    protected static ?int    $navigationSort   = 30;
+    protected static ?int    $navigationSort   = 5;
     protected static ?string $slug             = 'corretaje-ventas';
 
     public static function getPages(): array

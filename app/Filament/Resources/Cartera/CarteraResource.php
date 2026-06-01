@@ -13,8 +13,8 @@ class CarteraResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'Cartera';
-    protected static string|\UnitEnum|null  $navigationGroup = 'Finanzas';
-    protected static ?int    $navigationSort  = 40;
+    protected static string|\UnitEnum|null  $navigationGroup = 'Cobros';
+    protected static ?int    $navigationSort  = 3;
     protected static ?string $modelLabel      = 'Cuenta por cobrar';
     protected static ?string $pluralModelLabel = 'Cartera';
     protected static ?string $slug            = 'cartera';

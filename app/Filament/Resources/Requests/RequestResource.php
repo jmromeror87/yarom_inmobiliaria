@@ -37,12 +37,12 @@ class RequestResource extends Resource
     protected static ?string $navigationLabel = 'Solicitudes';
     protected static ?string $modelLabel = 'Solicitud';
     protected static ?string $pluralModelLabel = 'Solicitudes';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
     protected static ?string $recordTitleAttribute = 'numero';
 
     public static function getNavigationIcon(): string { return 'heroicon-o-clipboard-document-list'; }
 
-    public static function getNavigationGroup(): ?string { return 'Operaciones'; }
+    public static function getNavigationGroup(): ?string { return 'Contratación'; }
 
     public static function form(Schema $schema): Schema
     {

@@ -36,8 +36,8 @@ class ContractTemplateResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'nombre'; protected static ?string $navigationLabel = 'Plantillas de Contrato'; protected static ?string $modelLabel = 'Plantilla de Contrato'; protected static ?string $pluralModelLabel = 'Plantillas de Contrato'; protected static ?string $slug = 'plantillas-contrato';
 
-    protected static ?int $navigationSort = 1;
-    public static function getNavigationGroup(): ?string { return 'Contratos'; } public static function form(Schema $schema): Schema
+    protected static ?int $navigationSort = 6;
+    public static function getNavigationGroup(): ?string { return 'Contratación'; } public static function form(Schema $schema): Schema
     {
         return ContractTemplateForm::configure($schema);
     }

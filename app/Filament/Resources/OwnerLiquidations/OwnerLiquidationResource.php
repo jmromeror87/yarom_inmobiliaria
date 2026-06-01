@@ -35,10 +35,10 @@ class OwnerLiquidationResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-banknotes'; }
     public static function getNavigationLabel(): string { return 'Liquidaciones Propietarios'; }
-    public static function getNavigationGroup(): ?string { return 'Cartera'; }
+    public static function getNavigationGroup(): ?string { return 'Cobros'; }
+    public static function getNavigationSort(): ?int { return 2; }
     public static function getModelLabel(): string { return 'Liquidación Propietario'; }
     public static function getPluralModelLabel(): string { return 'Liquidaciones Propietarios'; }
-    public static function getNavigationSort(): ?int { return 30; }
 
     public static function form(Schema $schema): Schema
     {
