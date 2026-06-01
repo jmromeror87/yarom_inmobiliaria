@@ -12,7 +12,9 @@ class Reportes extends Page
         return auth()->user()?->can('ver_reportes') ?? false;
     }
 
-    protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-arrow-down-tray';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-down-tray';
+    public function getHeaderActions(): array { return []; }
+    public function hasLogo(): bool { return false; }
     protected static ?string                 $navigationLabel = 'Reportes';
     protected static string|\UnitEnum|null   $navigationGroup = 'Cartera';
     protected static ?int                    $navigationSort  = 99;
