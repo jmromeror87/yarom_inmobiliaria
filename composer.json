@@ -13,6 +13,7 @@
         "laravel/tinker": "^3.0",
         "livewire/livewire": "^3.5",
         "phpoffice/phpspreadsheet": "^5.7",
+        "resend/resend-laravel": "^1.4",
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-permission": "^7.4"
     },
