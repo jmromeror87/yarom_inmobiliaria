@@ -79,7 +79,7 @@ class EditAdministrationContract extends EditRecord
                         ->label('Mensaje')
                         ->default("Estimado(a) {$record->propietario?->nombre_completo},\n\nAdjunto encontrará el contrato de administración {$record->numero_contrato} para su revisión y aprobación.\n\nQuedamos atentos a sus comentarios.\n\nServiarrendar S.A.S")
                         ->rows(5)->required(),
-                    \Filament\Forms\Components\Placeholder::make('pdf_link')->label('PDF del contrato')->content(fn () => new \Illuminate\Support\HtmlString('<a href="' . route("contrato.pdf", $record) . '" target="_blank" style="color:#2563eb;font-weight:700;font-size:14px;">📄 Descargar PDF para adjuntar en WhatsApp</a>')), Textarea::make('razon_cambio')->label('Notas internas')->rows(2),
+                    Textarea::make('razon_cambio')->label('Notas internas')->rows(2),
                 ])
                 ->action(function (array $data) {
                     $this->record->update(['estado' => 'enviado_propietario']);
@@ -93,7 +93,44 @@ class EditAdministrationContract extends EditRecord
                         'ip_address'      => request()->ip(),
                         'cambiado_en'     => now(),
                     ]);
-                    Notification::make()->title('Contrato enviado al propietario')->success()->send();
+
+                    if ($data['canal'] === 'whatsapp') {
+                        $numero = preg_replace('/[^0-9]/', '', $data['telefono'] ?? '');
+                        if (!str_starts_with($numero, '57')) $numero = '57' . $numero;
+
+                        $pdfPath = $this->generarPdfTemporal();
+                        $wap     = app(\App\Services\WhatsAppService::class);
+                        $enviado = false;
+
+                        if ($pdfPath && $wap->isConnected()) {
+                            $res     = $wap->enviarConArchivo(
+                                $numero,
+                                $data['mensaje'],
+                                $pdfPath,
+                                'ContratoAdministracion-' . $this->record->numero_contrato . '.pdf'
+                            );
+                            $enviado = $res['ok'] ?? false;
+                            if (file_exists($pdfPath)) @unlink($pdfPath);
+                        }
+
+                        if (!$enviado) {
+                            Notification::make()->title('WhatsApp no disponible — use enlace manual')->warning()->send();
+                            $this->redirect("https://wa.me/{$numero}?text=" . urlencode($data['mensaje']));
+                            return;
+                        }
+
+                        Notification::make()->title('✅ Contrato enviado por WhatsApp con PDF adjunto')->success()->send();
+
+                    } elseif ($data['canal'] === 'email') {
+                        $asunto = urlencode('Contrato de Administración ' . $this->record->numero_contrato . ' — Serviarrendar S.A.S');
+                        $cuerpo = urlencode($data['mensaje']);
+                        Notification::make()->title('Abriendo cliente de correo')->success()->send();
+                        $this->redirect("mailto:{$data['email']}?subject={$asunto}&body={$cuerpo}");
+                        return;
+                    } else {
+                        Notification::make()->title('Entrega presencial registrada')->success()->send();
+                    }
+
                     $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
                 });
         }
@@ -149,34 +186,22 @@ class EditAdministrationContract extends EditRecord
                 });
         }
 
-        // ── 3. Enviar a notaría ───────────────────────────────
+        // ── 3. Enviar a notaría — solo cambia estado, sin formulario ──
         if ($estado === 'aprobado_gerencia') {
             $acciones[] = Action::make('enviar_notaria')
                 ->label('🏛️ Enviar a notaría')
                 ->color('primary')
                 ->icon('heroicon-o-building-library')
-                ->form([
-                    TextInput::make('notaria_nombre')
-                        ->label('Notaría')->placeholder('Notaría Primera de Ocaña')->required(),
-                    TextInput::make('notaria_ciudad')->label('Ciudad')->default('Ocaña'),
-                    MapboxAddressInput::make('notaria_direccion')->label('Dirección notaría'),
-                    TextInput::make('notaria_telefono')->label('Teléfono notaría'),
-                    DatePicker::make('fecha_envio_notaria')->label('Fecha de envío')->default(now())->required(),
-                    TextInput::make('enviado_por_nombre')->label('Llevado por')->default(Auth::user()?->name),
-                    TextInput::make('numero_radicado_notaria')->label('N° Radicado notaría'),
-                    Textarea::make('razon_cambio')->label('Notas')->rows(2),
-                ])
-                ->action(function (array $data) {
+                ->requiresConfirmation()
+                ->modalHeading('¿Confirmar envío a notaría?')
+                ->modalDescription('El propietario llevará el contrato a autenticar. El sistema registrará la fecha de salida. Podrá registrar los datos de la notaría cuando regrese.')
+                ->modalSubmitActionLabel('Sí, marcar como enviado')
+                ->action(function () {
                     ContractNotaryTracking::create([
                         'administration_contract_id' => $this->record->id,
-                        'gestionado_por'       => Auth::id(),
-                        'notaria_nombre'       => $data['notaria_nombre'],
-                        'notaria_ciudad'       => $data['notaria_ciudad'],
-                        'notaria_direccion'    => $data['notaria_direccion'] ?? null,
-                        'notaria_telefono'     => $data['notaria_telefono'] ?? null,
-                        'fecha_envio_notaria'  => $data['fecha_envio_notaria'],
-                        'enviado_por_nombre'   => $data['enviado_por_nombre'] ?? null,
-                        'numero_radicado_notaria' => $data['numero_radicado_notaria'] ?? null,
+                        'gestionado_por'      => Auth::id(),
+                        'fecha_envio_notaria' => now(),
+                        'enviado_por_nombre'  => Auth::user()?->name,
                     ]);
                     $this->record->update(['estado' => 'enviado_notaria']);
                     ContractStatusHistory::create([
@@ -185,87 +210,106 @@ class EditAdministrationContract extends EditRecord
                         'estado_anterior' => 'aprobado_gerencia',
                         'estado_nuevo'    => 'enviado_notaria',
                         'canal'           => 'presencial',
-                        'razon_cambio'    => $data['razon_cambio'] ?? 'Enviado a ' . $data['notaria_nombre'],
+                        'razon_cambio'    => 'Contrato entregado al propietario para autenticación',
                         'ip_address'      => request()->ip(),
                         'cambiado_en'     => now(),
                     ]);
-                    Notification::make()->title('📜 Enviado a notaría')->success()->send();
+                    Notification::make()->title('🏛️ Registrado — Pendiente retorno de notaría')->success()->send();
                     $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
                 });
         }
 
-        // ── 4+5. Registrar autenticación/firma y activar (unificado) ──
-        if (in_array($estado, ['enviado_notaria', 'autenticado_notaria'])) {
-            $acciones[] = Action::make('registrar_y_activar')
-                ->label('🔏 Registrar y activar contrato')
-                ->color('success')
-                ->icon('heroicon-o-check-badge')
-                ->modalHeading('Registrar retorno de notaría y activar contrato')
-                ->modalDescription('Complete los datos del retorno. La autenticación es opcional: algunas notarías la incluyen y otras no.')
-                ->modalSubmitActionLabel('✅ Activar contrato')
+        // ── 4. Registrar retorno autenticado — datos de notaría + PDF ──
+        if ($estado === 'enviado_notaria') {
+            $acciones[] = Action::make('registrar_autenticacion')
+                ->label('📋 Registrar autenticación')
+                ->color('warning')
+                ->icon('heroicon-o-document-check')
+                ->modalHeading('Registrar retorno de notaría')
+                ->modalDescription('El propietario regresó con el contrato autenticado. Complete los datos.')
+                ->modalSubmitActionLabel('Guardar autenticación')
                 ->form([
-                    Placeholder::make('_sep1')
-                        ->label('🔏 Autenticación notarial — opcional')
-                        ->content('Diligencie solo si la notaría entrega escritura o número de autenticación.'),
+                    TextInput::make('notaria_nombre')
+                        ->label('Notaría')->placeholder('Notaría Primera de Ocaña, Notaría 5 de Bucaramanga...')->required(),
+                    TextInput::make('notaria_ciudad')
+                        ->label('Ciudad donde autenticó')->default('Ocaña')->required(),
                     DatePicker::make('fecha_autenticacion')
-                        ->label('Fecha de autenticación'),
+                        ->label('Fecha de autenticación')->default(now())->required(),
+                    TextInput::make('numero_radicado_notaria')
+                        ->label('N° Radicado notaría'),
                     TextInput::make('numero_escritura')
-                        ->label('N° Escritura pública'),
+                        ->label('N° Escritura pública (si aplica)'),
                     TextInput::make('valor_autenticacion')
-                        ->label('Valor autenticación ($)')->numeric()->prefix('$'),
-
-                    Placeholder::make('_sep2')
-                        ->label('✍️ Firma y recepción del contrato')
-                        ->content(''),
-                    DatePicker::make('fecha_firma')
-                        ->label('Fecha de firma')->default(now())->required(),
-                    TextInput::make('firmado_por')
-                        ->label('Firmado por')
-                        ->default($this->record->propietario?->nombre_completo),
-                    DatePicker::make('fecha_regreso')
-                        ->label('Fecha regreso de notaría')->default(now()),
+                        ->label('Valor cobrado por autenticación ($)')->numeric()->prefix('$'),
                     TextInput::make('recibido_por')
-                        ->label('Recibido de notaría por'),
+                        ->label('Recibido en oficina por')->default(Auth::user()?->name),
                     FileUpload::make('path_contrato_firmado')
-                        ->label('PDF contrato firmado y autenticado')
+                        ->label('Subir contrato firmado y autenticado (PDF)')
                         ->disk('public')->directory('contratos/firmados')
-                        ->acceptedFileTypes(['application/pdf'])->maxSize(20480),
+                        ->acceptedFileTypes(['application/pdf'])->maxSize(20480)
+                        ->required(),
                     Textarea::make('observaciones')
                         ->label('Observaciones')->rows(2),
                 ])
-                ->action(function (array $data) use ($estado) {
+                ->action(function (array $data) {
                     $notaria = $this->record->notaryTracking;
                     if ($notaria) {
                         $notaria->update([
-                            'fecha_autenticacion'   => $data['fecha_autenticacion'] ?? null,
+                            'notaria_nombre'        => $data['notaria_nombre'],
+                            'notaria_ciudad'        => $data['notaria_ciudad'],
+                            'fecha_autenticacion'   => $data['fecha_autenticacion'],
+                            'numero_radicado_notaria' => $data['numero_radicado_notaria'] ?? null,
                             'numero_escritura'      => $data['numero_escritura'] ?? null,
                             'valor_autenticacion'   => $data['valor_autenticacion'] ?? null,
-                            'fecha_regreso'         => $data['fecha_regreso'] ?? now(),
                             'recibido_por'          => $data['recibido_por'] ?? null,
                             'path_contrato_firmado' => $data['path_contrato_firmado'] ?? null,
                             'observaciones'         => $data['observaciones'] ?? null,
+                            'fecha_regreso'         => now(),
                         ]);
                     }
                     $this->record->update([
-                        'estado'      => 'activo',
-                        'fecha_firma' => $data['fecha_firma'],
-                        'firmado_por' => $data['firmado_por'] ?? null,
+                        'estado'      => 'autenticado_notaria',
+                        'fecha_firma' => $data['fecha_autenticacion'],
+                        'firmado_por' => $this->record->propietario?->nombre_completo,
                     ]);
-                    $razonCambio = 'Contrato firmado y autenticado';
-                    if (!empty($data['numero_escritura'])) {
-                        $razonCambio .= ' — Escritura ' . $data['numero_escritura'];
-                    }
                     ContractStatusHistory::create([
                         'administration_contract_id' => $this->record->id,
                         'changed_by'      => Auth::id(),
-                        'estado_anterior' => $estado,
-                        'estado_nuevo'    => 'activo',
+                        'estado_anterior' => 'enviado_notaria',
+                        'estado_nuevo'    => 'autenticado_notaria',
                         'canal'           => 'presencial',
-                        'razon_cambio'    => $razonCambio,
+                        'razon_cambio'    => 'Autenticado en ' . $data['notaria_nombre'] . ', ' . $data['notaria_ciudad'],
                         'ip_address'      => request()->ip(),
                         'cambiado_en'     => now(),
                     ]);
-                    Notification::make()->title('🟢 Contrato ACTIVO — Inmueble disponible')->success()->send();
+                    Notification::make()->title('📋 Autenticación registrada — listo para activar')->success()->send();
+                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                });
+        }
+
+        // ── 5. Activar contrato — un solo clic ───────────────────
+        if ($estado === 'autenticado_notaria') {
+            $acciones[] = Action::make('activar_contrato')
+                ->label('🟢 Activar contrato')
+                ->color('success')
+                ->icon('heroicon-o-check-badge')
+                ->requiresConfirmation()
+                ->modalHeading('¿Activar contrato?')
+                ->modalDescription('El inmueble quedará disponible en el módulo de Solicitudes para recibir candidatos.')
+                ->modalSubmitActionLabel('Sí, activar')
+                ->action(function () {
+                    $this->record->update(['estado' => 'activo']);
+                    ContractStatusHistory::create([
+                        'administration_contract_id' => $this->record->id,
+                        'changed_by'      => Auth::id(),
+                        'estado_anterior' => 'autenticado_notaria',
+                        'estado_nuevo'    => 'activo',
+                        'canal'           => 'sistema',
+                        'razon_cambio'    => 'Contrato activado — inmueble disponible para arrendar',
+                        'ip_address'      => request()->ip(),
+                        'cambiado_en'     => now(),
+                    ]);
+                    Notification::make()->title('🟢 Contrato ACTIVO — Inmueble disponible en Solicitudes')->success()->send();
                     $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
                 });
         }
@@ -316,5 +360,46 @@ class EditAdministrationContract extends EditRecord
         }
 
         return $acciones;
+    }
+
+    protected function generarPdfTemporal(): ?string
+    {
+        try {
+            $contract = $this->record->load([
+                'property.tipo',
+                'property.municipio.departamento',
+                'propietario',
+                'asesor',
+                'clauses' => fn ($q) => $q->orderBy('orden'),
+                'template',
+            ]);
+
+            $company    = \App\Models\Company::with(['municipio', 'departamento'])->first();
+            $logoBase64 = null;
+
+            if ($company?->logo_path) {
+                $path = storage_path('app/public/' . $company->logo_path);
+                if (file_exists($path)) {
+                    $logoBase64 = 'data:' . mime_content_type($path) . ';base64,' . base64_encode(file_get_contents($path));
+                }
+            }
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.contrato-administracion', [
+                'contrato'   => $contract,
+                'contract'   => $contract,
+                'company'    => $company,
+                'logoBase64' => $logoBase64,
+            ])->setPaper('letter', 'portrait');
+
+            $tmpPath = storage_path('app/tmp/cad-' . $contract->numero_contrato . '-' . time() . '.pdf');
+            if (!is_dir(dirname($tmpPath))) mkdir(dirname($tmpPath), 0755, true);
+
+            file_put_contents($tmpPath, $pdf->output());
+            return $tmpPath;
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('CAD PDF temporal error', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 }

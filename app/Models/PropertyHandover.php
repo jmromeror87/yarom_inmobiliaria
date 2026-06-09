@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PropertyHandover extends Model
 {
@@ -14,18 +15,29 @@ class PropertyHandover extends Model
     protected $table = 'property_handovers';
 
     protected $fillable = [
-        'numero','rental_contract_id','property_id','arrendatario_id','asesor_id',
+        'numero','acta_token','acta_token_generado_at',
+        'acta_completada_asesor_at','acta_completada_inquilino_at',
+        'notificado_asesor','notificado_inquilino',
+        'rental_contract_id','property_id','arrendatario_id','asesor_id',
         'tipo','fecha_acta','hora_acta','lugar_acta',
         'lectura_agua','lectura_energia','lectura_gas',
         'llaves_entregadas','llaves_control_acceso','llaves_parqueadero','llaves_deposito','notas_llaves',
         'estado_general','observaciones_generales',
         'firmado_arrendatario','firmado_asesor','fecha_firma',
-        'path_acta_firmada','estado','firma_digital_arrendatario','firma_digital_asesor','whatsapp_enviado','fecha_whatsapp_enviado',
+        'path_acta_firmada','estado','firma_digital_arrendatario','firma_digital_asesor',
+        'whatsapp_enviado','fecha_whatsapp_enviado',
     ];
 
     protected $casts = [
-        'fecha_acta'  => 'date',
-        'fecha_firma' => 'date',
+        'fecha_acta'                   => 'date',
+        'fecha_firma'                  => 'date',
+        'fecha_whatsapp_enviado'       => 'datetime',
+        'acta_token_generado_at'       => 'datetime',
+        'acta_completada_asesor_at'    => 'datetime',
+        'acta_completada_inquilino_at' => 'datetime',
+        'whatsapp_enviado'             => 'boolean',
+        'notificado_asesor'            => 'boolean',
+        'notificado_inquilino'         => 'boolean',
     ];
 
     protected static function booted(): void
@@ -34,8 +46,10 @@ class PropertyHandover extends Model
             if (empty($h->numero)) {
                 $year  = now()->year;
                 $tipo  = $h->tipo === 'devolucion' ? 'DEV' : 'ACT';
-                $ultimo = static::whereYear('created_at', $year)->max('numero');
-                $count  = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
+                $count = \DB::table('property_handovers')
+                    ->whereYear('created_at', $year)
+                    ->lockForUpdate()
+                    ->count() + 1;
                 $h->numero = $tipo . '-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
             }
         });
@@ -65,10 +79,32 @@ class PropertyHandover extends Model
                     'cambiado_en'     => now(),
                 ]);
             }
-            if ($h->isDirty('estado') && $h->estado === 'cerrada' && $h->tipo === 'entrega') {
-                RentalContract::find($h->rental_contract_id)?->update(['estado' => 'activo']);
+            if ($h->isDirty('estado') && $h->estado === 'cerrada') {
+                // Invalidar token público — el enlace ya no debe funcionar
+                $h->acta_token            = null;
+                $h->acta_token_generado_at = null;
+
+                if ($h->tipo === 'entrega') {
+                    RentalContract::find($h->rental_contract_id)?->update(['estado' => 'activo']);
+                }
             }
         });
+    }
+
+    public function generarToken(): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $this->update([
+            'acta_token'              => $token,
+            'acta_token_generado_at'  => now(),
+        ]);
+        return $token;
+    }
+
+    public function getActaUrlAttribute(): ?string
+    {
+        if (!$this->acta_token) return null;
+        return route('acta.publica', ['token' => $this->acta_token]);
     }
 
     public function history(): HasMany { return $this->hasMany(PropertyHandoverHistory::class)->orderByDesc('cambiado_en'); }

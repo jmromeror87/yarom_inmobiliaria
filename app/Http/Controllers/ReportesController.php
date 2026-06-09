@@ -240,12 +240,12 @@ class ReportesController extends Controller
             $contrato = $p->rentalContracts->first();
             $sheet->setCellValue("A{$fila}", $p->codigo);
             $sheet->setCellValue("B{$fila}", $p->direccion);
-            $sheet->setCellValue("C{$fila}", $p->ciudad ?? '—');
-            $sheet->setCellValue("D{$fila}", $p->tipo ?? '—');
+            $sheet->setCellValue("C{$fila}", $p->municipio?->nombre ?? $p->direccion ?? '—');
+            $sheet->setCellValue("D{$fila}", $p->tipo?->nombre ?? '—');
             $sheet->setCellValue("E{$fila}", $p->propietario?->nombre_completo ?? $p->propietario?->razon_social ?? '—');
             $sheet->setCellValue("F{$fila}", $contrato ? 'ARRENDADO' : 'DISPONIBLE');
             $sheet->setCellValue("G{$fila}", $contrato?->arrendatario?->nombre_completo ?? $contrato?->arrendatario?->razon_social ?? '—');
-            $sheet->setCellValue("H{$fila}", $contrato ? (float) $contrato->canon : 0);
+            $sheet->setCellValue("H{$fila}", $contrato ? (float) $contrato->canon_mensual : 0);
             $sheet->setCellValue("I{$fila}", $contrato?->fecha_inicio?->format('d/m/Y') ?? '—');
             $sheet->setCellValue("J{$fila}", $contrato?->fecha_fin?->format('d/m/Y') ?? '—');
 

@@ -31,7 +31,13 @@ class AdministrationContractsTable
         return $table
             ->columns([
                 TextColumn::make('numero_contrato')
-                    ->label('Contrato')->searchable()->sortable()
+                    ->label('Contrato')
+                    ->description(fn ($record) => match($record->tipo_contrato) {
+                        'administracion_arriendo' => '🔑 Administración — Arriendo',
+                        'administracion_venta'    => '🏷️ Administración — Venta',
+                        default => $record->tipo_contrato,
+                    })
+                    ->searchable()->sortable()
                     ->weight('bold')->color('primary'),
 
                 TextColumn::make('property.codigo')
@@ -100,14 +106,21 @@ class AdministrationContractsTable
             ->filters([
                 SelectFilter::make('estado')->label('Estado')
                     ->options([
-                        'borrador'            => 'Borrador', 'aprobado_gerencia' => 'Aprobado gerencia', 'enviado_notaria' => 'Enviado notaría', 'autenticado_notaria' => 'Autenticado notaría',
-                        'enviado_propietario'=> 'Enviado al propietario',
-                        'en_revision'        => 'En revisión',
-                        'aprobado'           => 'Aprobado',
-                        'firmado'            => 'Firmado',
-                        'activo'             => 'Activo',
-                        'terminado'          => 'Terminado',
-                        'cancelado'          => 'Cancelado',
+                        'borrador'            => 'Borrador',
+                        'enviado_propietario' => 'Enviado al propietario',
+                        'en_revision'         => 'En revisión',
+                        'aprobado_gerencia'   => 'Aprobado gerencia',
+                        'enviado_notaria'     => 'Enviado a notaría',
+                        'autenticado_notaria' => 'Autenticado notaría',
+                        'firmado'             => 'Firmado',
+                        'activo'              => 'Activo',
+                        'terminado'           => 'Terminado',
+                        'cancelado'           => 'Cancelado',
+                    ]),
+                SelectFilter::make('tipo_contrato')->label('Tipo')
+                    ->options([
+                        'administracion_arriendo' => '🔑 Arriendo',
+                        'administracion_venta'    => '🏷️ Venta',
                     ]),
             ])
             ->recordActions([

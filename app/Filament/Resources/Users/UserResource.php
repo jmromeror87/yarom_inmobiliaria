@@ -33,6 +33,8 @@ class UserResource extends Resource
     protected static string|\UnitEnum|null $navigationGroup = 'Configuración';
     protected static ?int                 $navigationSort  = 1;
 
+    public static function getNavigationGroup(): ?string { return 'Configuración'; }
+
     public static function canAccess(): bool
     {
         return auth()->user()?->can('ver_usuarios') ?? false;

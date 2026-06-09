@@ -9,12 +9,13 @@ class OwnerLiquidationObserver
 {
     public function created(OwnerLiquidation $liq): void
     {
+        // Solo genera asiento si hay descuentos adicionales (comisión ya reconocida en factura)
         ContabilidadService::generarParaLiquidacion($liq);
     }
 
     public function updated(OwnerLiquidation $liq): void
     {
-        if ($liq->isDirty('estado') && $liq->estado === 'pagada') {
+        if ($liq->wasChanged('estado') && $liq->estado === 'pagada') {
             ContabilidadService::generarParaGiro($liq);
         }
     }

@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\RentBills\Tables;
 
 use App\Models\AccountingEntry;
+use App\Models\ElectronicInvoice;
 use App\Services\ContabilidadService;
+use App\Services\FacturacionElectronicaService;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Actions\Action;
@@ -84,6 +86,30 @@ class RentBillsTable
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray'),
+
+                TextColumn::make('fe_estado')
+                    ->label('FE DIAN')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->electronicInvoice?->estado ?? 'sin_fe')
+                    ->color(fn ($state) => match($state) {
+                        'aceptada', 'aceptada_con_notificacion' => 'success',
+                        'rechazada', 'error' => 'danger',
+                        'enviada'    => 'info',
+                        'anulada'    => 'warning',
+                        'pendiente'  => 'gray',
+                        default      => 'gray',
+                    })
+                    ->formatStateUsing(fn ($state) => match($state) {
+                        'aceptada'                   => '✅ Aceptada',
+                        'aceptada_con_notificacion'  => '✅ Aceptada*',
+                        'rechazada'                  => '❌ Rechazada',
+                        'error'                      => '⚠️ Error',
+                        'enviada'                    => '🕐 Enviada',
+                        'anulada'                    => '🚫 Anulada',
+                        'pendiente'                  => '⏳ Pendiente',
+                        default                      => '—',
+                    })
+                    ->visible(fn () => \App\Models\Company::first()?->factura_electronica_activa ?? false),
             ])
             ->defaultSort('created_at', 'desc')
             ->striped()
@@ -157,6 +183,38 @@ class RentBillsTable
                             }
                         } catch (\Throwable $e) {
                             Notification::make()->title('Error: ' . $e->getMessage())->danger()->send();
+                        }
+                    }),
+
+                Action::make('emitir_fe')
+                    ->label('Emitir FE')
+                    ->icon('heroicon-o-document-check')
+                    ->color('info')
+                    ->tooltip('Emitir factura electrónica ante la DIAN')
+                    ->visible(fn ($record) =>
+                        $record->tipo_documento === 'factura_electronica' &&
+                        (\App\Models\Company::first()?->factura_electronica_activa ?? false) &&
+                        !ElectronicInvoice::where('rent_bill_id', $record->id)
+                            ->whereIn('estado', ['aceptada', 'aceptada_con_notificacion', 'enviada'])
+                            ->exists()
+                    )
+                    ->requiresConfirmation()
+                    ->modalHeading('Emitir Factura Electrónica')
+                    ->modalDescription('Se enviará la factura al operador autorizado DIAN. ¿Desea continuar?')
+                    ->action(function ($record) {
+                        try {
+                            $fe = FacturacionElectronicaService::emitir($record);
+                            if (!$fe) {
+                                Notification::make()->title('FE no aplica o ya existe')->warning()->send();
+                                return;
+                            }
+                            if ($fe->es_aceptada) {
+                                Notification::make()->title('✅ Factura electrónica aceptada por la DIAN')->success()->send();
+                            } else {
+                                Notification::make()->title('FE procesada — estado: ' . $fe->estado_label)->warning()->send();
+                            }
+                        } catch (\Throwable $e) {
+                            Notification::make()->title('Error FE: ' . $e->getMessage())->danger()->send();
                         }
                     }),
 

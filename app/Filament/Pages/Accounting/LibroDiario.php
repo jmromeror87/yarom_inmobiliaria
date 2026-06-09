@@ -14,7 +14,7 @@ class LibroDiario extends Page
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-book-open';
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
     protected static ?string $navigationLabel = 'Libro Diario';
-    protected static ?int    $navigationSort  = 4;
+    protected static ?int    $navigationSort  = 5;
 
     public ?int $periodo_id = null;
 

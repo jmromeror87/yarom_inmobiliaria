@@ -17,11 +17,13 @@
 
 namespace App\Filament\Resources\Thirds\Tables;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -79,20 +81,22 @@ class ThirdsTable
                 TextColumn::make('estado_crediticio')
                     ->label('Crédito')
                     ->badge()
-                    ->color(fn ($state) => match($state) {
-                        'aprobado'    => 'success',
-                        'rechazado'   => 'danger',
-                        'condicional' => 'warning',
-                        'en_proceso'  => 'info',
-                        default       => 'gray',
+                    ->color(fn ($state, $record) => match(true) {
+                        $record->es_propietario && !$record->es_arrendatario => 'gray',
+                        $state === 'aprobado'    => 'success',
+                        $state === 'rechazado'   => 'danger',
+                        $state === 'condicional' => 'warning',
+                        $state === 'en_proceso'  => 'info',
+                        default                  => 'gray',
                     })
-                    ->formatStateUsing(fn ($state) => match($state) {
-                        'sin_evaluar' => 'Sin evaluar',
-                        'en_proceso'  => 'En proceso',
-                        'aprobado'    => '✓ Aprobado',
-                        'condicional' => '⚠ Condicional',
-                        'rechazado'   => '✕ Rechazado',
-                        default       => $state,
+                    ->formatStateUsing(fn ($state, $record) => match(true) {
+                        $record->es_propietario && !$record->es_arrendatario => '— No aplica',
+                        $state === 'sin_evaluar' => '⏳ Pendiente',
+                        $state === 'en_proceso'  => '🔍 En estudio',
+                        $state === 'aprobado'    => '✓ Aprobado',
+                        $state === 'condicional' => '⚠ Condicional',
+                        $state === 'rechazado'   => '✕ Rechazado',
+                        default                  => $state,
                     }),
 
                 // ── Tipo de persona ─────────────────────────────
@@ -101,6 +105,22 @@ class ThirdsTable
                     ->badge()
                     ->color(fn ($state) => $state === 'juridica' ? 'info' : 'gray')
                     ->formatStateUsing(fn ($state) => $state === 'juridica' ? 'Jurídica' : 'Natural'),
+
+                // ── Estado expediente (solo propietarios) ───────
+                TextColumn::make('estado_expediente')
+                    ->label('Expediente')
+                    ->badge()
+                    ->visible(fn ($record) => $record?->es_propietario ?? true)
+                    ->color(fn ($state) => match($state) {
+                        'completo'   => 'success',
+                        'bloqueado'  => 'danger',
+                        default      => 'warning',
+                    })
+                    ->formatStateUsing(fn ($state) => match($state) {
+                        'completo'   => '✓ Completo',
+                        'bloqueado'  => '🚫 Bloqueado',
+                        default      => '⏳ Incompleto',
+                    }),
 
                 // ── Activo ──────────────────────────────────────
                 IconColumn::make('is_active')
@@ -211,6 +231,17 @@ class ThirdsTable
                                     ->warning()->send();
                             }),
                     ] : []),
+
+                \Filament\Actions\Action::make('habeas_data_pdf')
+                    ->label('Habeas Data')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('info')
+                    ->action(function ($record) {
+                        $pdf  = Pdf::loadView('pdf.habeas-data', ['third' => $record])
+                                   ->setPaper('letter', 'portrait');
+                        $nombre = 'HabeasData_' . str_replace(' ', '_', $record->nombre_completo ?: 'tercero') . '.pdf';
+                        return response()->streamDownload(fn () => print($pdf->output()), $nombre);
+                    }),
 
                 EditAction::make()->label('Editar')->icon('heroicon-o-pencil'),
             ])

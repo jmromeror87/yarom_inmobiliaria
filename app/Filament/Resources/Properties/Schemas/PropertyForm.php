@@ -50,6 +50,19 @@ class PropertyForm
                             ->relationship('tipo', 'nombre')
                             ->searchable()->preload()->required(),
 
+                        Select::make('destinacion')
+                            ->label('Destinación')
+                            ->options([
+                                'vivienda_familiar' => '🏠 Vivienda familiar',
+                                'vivienda_estudiantil' => '🎓 Vivienda estudiantil',
+                                'comercial'         => '🏢 Local comercial',
+                                'oficina'           => '💼 Oficina',
+                                'bodega'            => '📦 Bodega / Industrial',
+                                'mixto'             => '🔀 Mixto (vivienda + comercio)',
+                            ])
+                            ->required()
+                            ->helperText('Define el uso permitido — determina el tipo de contrato aplicable (Ley 820 o comercial)'),
+
                         Select::make('propietario_id')
                             ->label('Propietario')
                             ->getSearchResultsUsing(function (string $search) {
@@ -209,11 +222,28 @@ class PropertyForm
                         TextInput::make('anio_construccion')
                             ->label('Año construcción')->numeric()->placeholder('2010'),
                         TextInput::make('area_construida_m2')
-                            ->label('Área construida m²')->numeric()->suffix('m²'),
+                            ->label('Área construida m²')
+                            ->numeric()->suffix('m²')->minValue(1)
+                            ->live(onBlur: true)
+                            ->helperText('Área total techada del inmueble.'),
+
                         TextInput::make('area_privada_m2')
-                            ->label('Área privada m²')->numeric()->suffix('m²'),
+                            ->label('Área privada m²')
+                            ->numeric()->suffix('m²')->minValue(0)
+                            ->helperText('Debe ser menor o igual al área construida.')
+                            ->rules([
+                                fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    $construida = (float) $get('area_construida_m2');
+                                    if ($construida > 0 && (float) $value > $construida) {
+                                        $fail('El área privada no puede ser mayor al área construida.');
+                                    }
+                                },
+                            ]),
+
                         TextInput::make('area_total_m2')
-                            ->label('Área total m²')->numeric()->suffix('m²'),
+                            ->label('Área total m²')
+                            ->numeric()->suffix('m²')->minValue(0)
+                            ->helperText('Incluye zonas comunes, patio, terraza, etc.'),
                         TextInput::make('habitaciones')
                             ->label('Habitaciones')->numeric()->default(0),
                         TextInput::make('banos')
@@ -226,10 +256,16 @@ class PropertyForm
                         TextInput::make('total_pisos')
                             ->label('Total pisos edificio')->numeric(),
                         TextInput::make('porcentaje_propiedad')
-                            ->label('% Propiedad')->numeric()->suffix('%')->default(100)
-                            ->helperText('50% si es copropiedad'),
+                            ->label('% Propiedad')
+                            ->numeric()->suffix('%')->default(100)
+                            ->minValue(0)->maxValue(100)
+                            ->helperText('50% si es copropiedad — máximo 100%'),
+
                         TextInput::make('coeficiente_copropiedad')
-                            ->label('Coeficiente copropiedad')->numeric()->suffix('%'),
+                            ->label('Coeficiente copropiedad')
+                            ->numeric()->suffix('%')
+                            ->minValue(0)->maxValue(100)
+                            ->helperText('Porcentaje sobre el total del edificio — máximo 100%'),
                         TextInput::make('escritura_ph_numero')
                             ->label('N° Escritura PH')->placeholder('562'),
                     ])->columns(3),
@@ -256,19 +292,24 @@ class PropertyForm
                         TextInput::make('canon_arriendo')
                             ->label('Canon mensual de arriendo')
                             ->numeric()->prefix('$')
-                            ->helperText('Valor mensual que paga el arrendatario')
+                            ->minValue(0)
+                            ->required(fn (Get $get) => (bool)$get('disponible_arriendo'))
+                            ->helperText('Obligatorio si el inmueble está disponible para arriendo.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
                         TextInput::make('cuota_administracion')
                             ->label('Cuota de administración')
                             ->numeric()->prefix('$')->default(0)
-                            ->helperText('Cuota mensual del conjunto/edificio')
+                            ->minValue(0)
+                            ->helperText('0 si no aplica conjunto/edificio.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
                         TextInput::make('precio_venta')
                             ->label('Precio de venta')
                             ->numeric()->prefix('$')
-                            ->helperText('Precio total de venta del inmueble')
+                            ->minValue(0)
+                            ->required(fn (Get $get) => (bool)$get('disponible_venta'))
+                            ->helperText('Obligatorio si el inmueble está en venta.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_venta')),
 
                         TextInput::make('avaluo_catastral')
@@ -297,17 +338,55 @@ class PropertyForm
                                     ->columnSpanFull(),
                             ])->columns(2),
 
-                        Section::make('Certificado de libertad y tradición')
+                        Section::make('Certificado de libertad y tradición (CTL)')
                             ->icon('heroicon-o-document-check')->collapsible()
+                            ->description('Emitido por ORIP Ocaña — vigencia máxima 30 días. Decreto 1250/1970.')
                             ->schema([
                                 Toggle::make('doc_certificado_libertad')
-                                    ->label('Documento recibido')->live(),
+                                    ->label('CTL recibido')
+                                    ->live(),
+
                                 DatePicker::make('doc_certificado_libertad_fecha')
-                                    ->label('Fecha del certificado')
-                                    ->helperText('Vigencia máxima 30 días')
+                                    ->label('Fecha de emisión del CTL')
+                                    ->helperText(function (Get $get) {
+                                        $fecha = $get('doc_certificado_libertad_fecha');
+                                        if (!$fecha) return 'Vigencia máxima recomendada: 30 días';
+                                        $dias = now()->diffInDays(\Carbon\Carbon::parse($fecha), false);
+                                        if ($dias < -30) return '🚫 CTL VENCIDO — han pasado ' . abs($dias) . ' días. Solicitar nuevo certificado.';
+                                        if ($dias < -15) return '⚠️ CTL próximo a vencer — ' . abs($dias) . ' días. Renovar pronto.';
+                                        return '✅ CTL vigente — ' . abs($dias) . ' días de antigüedad.';
+                                    })
+                                    ->live(onBlur: true)
                                     ->visible(fn (Get $get) => (bool)$get('doc_certificado_libertad')),
+
+                                // Limitación jurídica
+                                Toggle::make('ctl_tiene_limitacion')
+                                    ->label('⚠️ El CTL muestra hipoteca, embargo o medida cautelar')
+                                    ->helperText('Si está activo, el inmueble queda BLOQUEADO hasta solución jurídica.')
+                                    ->live()
+                                    ->visible(fn (Get $get) => (bool)$get('doc_certificado_libertad')),
+
+                                Select::make('ctl_tipo_limitacion')
+                                    ->label('Tipo de limitación')
+                                    ->options([
+                                        'hipoteca'         => '🏦 Hipoteca vigente',
+                                        'embargo'          => '⚖️ Embargo',
+                                        'medida_cautelar'  => '🔒 Medida cautelar',
+                                        'patrimonio_familia'=> '👨‍👩‍👧 Afectación patrimonio familiar',
+                                        'otro'             => '❓ Otro',
+                                    ])
+                                    ->visible(fn (Get $get) => (bool)$get('ctl_tiene_limitacion'))
+                                    ->required(fn (Get $get) => (bool)$get('ctl_tiene_limitacion')),
+
+                                \Filament\Forms\Components\Textarea::make('ctl_observacion_limitacion')
+                                    ->label('Descripción de la limitación')
+                                    ->helperText('El asesor NO puede avanzar a contrato hasta que el área jurídica autorice.')
+                                    ->rows(2)
+                                    ->visible(fn (Get $get) => (bool)$get('ctl_tiene_limitacion'))
+                                    ->columnSpanFull(),
+
                                 FileUpload::make('doc_certificado_libertad_path')
-                                    ->label('Subir certificado')
+                                    ->label('Subir CTL (PDF o imagen)')
                                     ->disk('public')->directory('inmuebles/documentos')
                                     ->acceptedFileTypes(['application/pdf','image/jpeg','image/png','image/jpg'])
                                     ->maxSize(10240)->downloadable()->openable()
@@ -352,8 +431,27 @@ class PropertyForm
 
                         Section::make('Recibo de servicios públicos')
                             ->icon('heroicon-o-bolt')->collapsible()
+                            ->description('Último período disponible — confirma dirección, estrato y que los servicios están activos.')
                             ->schema([
-                                Toggle::make('doc_recibo_servicios')->label('Documento recibido'),
+                                Toggle::make('doc_recibo_servicios')
+                                    ->label('Recibo recibido')
+                                    ->live(),
+
+                                Select::make('doc_recibo_tipo')
+                                    ->label('Tipo de servicio')
+                                    ->options([
+                                        'agua'    => '💧 Agua (ESPO u otro)',
+                                        'energia' => '⚡ Energía (CENS u otro)',
+                                        'gas'     => '🔥 Gas natural',
+                                    ])
+                                    ->visible(fn (Get $get) => (bool)$get('doc_recibo_servicios')),
+
+                                TextInput::make('doc_recibo_periodo')
+                                    ->label('Período del recibo')
+                                    ->placeholder('Ej: Mayo 2026')
+                                    ->helperText('Debe ser el último mes facturado.')
+                                    ->visible(fn (Get $get) => (bool)$get('doc_recibo_servicios')),
+
                                 FileUpload::make('doc_recibo_servicios_path')
                                     ->label('Subir recibo')
                                     ->disk('public')->directory('inmuebles/documentos')

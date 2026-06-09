@@ -49,53 +49,64 @@ class RequestForm
                         Select::make('tipo')
                             ->label('Tipo de solicitud')
                             ->options([
-                                'estudio_propietario'  => '🏠 Análisis a Propietario — Captación inmueble',
                                 'estudio_arrendatario' => '🔑 Estudio arrendatario — Candidato arriendo',
                                 'estudio_comprador'    => '🛒 Análisis a Comprador — Candidato compra',
                             ])
                             ->default('estudio_arrendatario')
                             ->required()->live()
-                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                if ($state === 'estudio_propietario' && $get('property_id')) {
-                                    $p = Property::find($get('property_id'));
-                                    if ($p?->propietario_id) {
-                                        $set('thirds', [[
-                                            'third_id'            => $p->propietario_id,
-                                            'rol'                 => 'propietario',
-                                            'resultado_individual'=> 'pendiente',
-                                        ]]);
-                                    }
-                                }
-                            })
                             ->helperText(fn (Get $get) => match($get('tipo')) {
-                                'estudio_propietario'  => 'Al aprobar → gerencia pacta contrato de administración. El inmueble pasa a DISPONIBLE cuando el contrato de administración se active.',
-                                'estudio_arrendatario' => 'Al aprobar → candidato habilitado para firmar contrato de arrendamiento. El inmueble pasa a ARRENDADO cuando el contrato de arrendamiento quede activo.',
-                                'estudio_comprador'    => 'Al aprobar → candidato habilitado para proceder con la compra. El estado del inmueble cambia cuando se formalice la negociación.',
+                                'estudio_arrendatario' => 'Al aprobar → candidato habilitado para firmar contrato de arrendamiento.',
+                                'estudio_comprador'    => 'Al aprobar → candidato habilitado para proceder con la compra.',
                                 default => '',
                             }),
 
+                        Select::make('tipo_aprobacion')
+                            ->label('¿Quién realiza el estudio?')
+                            ->options([
+                                'sura'    => '🏢 SURA — Aseguradora realiza el estudio',
+                                'directo' => '👤 Directo — Gerencia decide internamente',
+                            ])
+                            ->default('directo')
+                            ->required()->live()
+                            ->helperText(fn (Get $get) => match($get('tipo_aprobacion')) {
+                                'sura'    => 'Se enviará un paquete completo de documentos a SURA. Ellos responden con aprobación, rechazo o condicional.',
+                                'directo' => 'La gerencia revisa los documentos y toma la decisión internamente.',
+                                default   => '',
+                            }),
+
+                        TextInput::make('tarifa_estudio_cobrada')
+                            ->label('Tarifa del estudio ($)')
+                            ->numeric()->prefix('$')
+                            ->helperText('Valor cobrado al candidato por el estudio socioeconómico.')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'directo'),
+
                         Select::make('property_id')
                             ->label('Inmueble')
-                            ->options(fn () => Property::with('tipo')
+                            ->options(fn (Get $get) => Property::with(['tipo', 'administrationContracts'])
+                                ->whereHas('administrationContracts', fn ($q) =>
+                                    $q->whereIn('estado', ['activo', 'firmado'])
+                                )
+                                ->when($get('tipo') === 'estudio_arrendatario', fn ($q) =>
+                                    $q->where('disponible_arriendo', true)
+                                      ->whereIn('estado', ['disponible'])
+                                )
+                                ->when($get('tipo') === 'estudio_comprador', fn ($q) =>
+                                    $q->where('disponible_venta', true)
+                                      ->whereIn('estado', ['disponible', 'en_venta'])
+                                )
                                 ->get()
                                 ->mapWithKeys(fn ($p) => [
-                                    $p->id => $p->codigo . ' — ' . $p->direccion
+                                    $p->id => $p->codigo . ' — ' . $p->direccion . ' (' . ($p->tipo?->nombre ?? '') . ')'
                                 ])
                             )
+                            ->helperText('Solo aparecen inmuebles con contrato de administración activo y disponibles según el tipo de solicitud.')
                             ->searchable()->required()->live()
-                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            ->afterStateUpdated(function (Set $set, $state) {
                                 if ($state) {
                                     $p = Property::find($state);
                                     if ($p) {
                                         $set('canon_evaluar', $p->canon_arriendo);
                                         $set('precio_venta_evaluar', $p->precio_venta);
-                                        if ($get('tipo') === 'estudio_propietario' && $p->propietario_id) {
-                                            $set('thirds', [[
-                                                'third_id'            => $p->propietario_id,
-                                                'rol'                 => 'propietario',
-                                                'resultado_individual'=> 'pendiente',
-                                            ]]);
-                                        }
                                     }
                                 }
                             }),
@@ -144,64 +155,63 @@ class RequestForm
                     ->icon('heroicon-o-users')
                     ->schema([
                         \Filament\Forms\Components\Repeater::make('thirds')
-                            ->label(fn (Get $get) => $get('tipo') === 'estudio_propietario'
-                                ? '🏠 Propietario del inmueble'
-                                : 'Terceros vinculados a la solicitud'
-                            )
+                            ->label('Terceros vinculados a la solicitud')
                             ->relationship()
-                            ->addable(fn (Get $get) => $get('tipo') !== 'estudio_propietario')
-                            ->deletable(fn (Get $get) => $get('tipo') !== 'estudio_propietario')
+                            ->addable()
+                            ->deletable()
                             ->schema([
+                                // ── Siempre visibles ──────────────
                                 Select::make('third_id')
                                     ->label('Tercero')
                                     ->relationship('third', 'nombre_completo')
                                     ->searchable()->preload()->required()
-                                    ->disabled(fn (Get $get) => $get('../../tipo') === 'estudio_propietario')
-                                    ->dehydrated(),
+                                    ->dehydrated()
+                                    ->helperText('Busque por nombre o cédula.'),
 
                                 Select::make('rol')
-                                    ->label('Rol en la solicitud')
+                                    ->label('Rol')
                                     ->options([
                                         'titular'       => '👤 Titular principal',
                                         'codeudor'      => '🤝 Codeudor solidario',
                                         'fiador'        => '🛡️ Fiador personal',
-                                        'propietario'   => '🏠 Propietario',
                                         'representante' => '💼 Representante legal',
                                     ])->default('titular')->required()
-                                    ->disabled(fn (Get $get) => $get('../../tipo') === 'estudio_propietario')
                                     ->dehydrated(),
 
                                 TextInput::make('ingresos_declarados')
                                     ->label('Ingresos declarados ($)')
                                     ->numeric()->prefix('$')
-                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
+                                    ->helperText('Se incluye en el paquete enviado a SURA o en el análisis de gerencia.'),
 
+                                // ── Solo DIRECTO — gerencia los analiza ──
                                 TextInput::make('ingresos_verificados')
                                     ->label('Ingresos verificados ($)')
                                     ->numeric()->prefix('$')
-                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
+                                    ->helperText('Ingresos comprobados con documentos.')
+                                    ->visible(fn (Get $get) => $get('../../tipo_aprobacion') === 'directo'),
 
                                 TextInput::make('score_datacredito')
                                     ->label('Score DataCrédito')
                                     ->numeric()
-                                    ->helperText('Puntaje de centrales de riesgo')
-                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
+                                    ->helperText('Puntaje consultado en centrales de riesgo.')
+                                    ->visible(fn (Get $get) => $get('../../tipo_aprobacion') === 'directo'),
 
                                 Toggle::make('reporte_negativo')
                                     ->label('Reporte negativo en centrales')
-                                    ->hidden(fn (Get $get) => $get('../../tipo') === 'estudio_propietario'),
+                                    ->visible(fn (Get $get) => $get('../../tipo_aprobacion') === 'directo'),
 
+                                // ── Resultado individual ───────────
                                 Select::make('resultado_individual')
-                                    ->label('Resultado individual')
+                                    ->label('Resultado')
                                     ->options([
-                                        'pendiente'   => 'Pendiente',
+                                        'pendiente'   => '⏳ Pendiente',
                                         'aprobado'    => '✅ Aprobado',
                                         'condicional' => '⚠️ Condicional',
                                         'rechazado'   => '❌ Rechazado',
                                     ])->default('pendiente'),
 
                                 Textarea::make('notas_evaluacion')
-                                    ->label('Notas de evaluación')
+                                    ->label('Notas')
                                     ->rows(2)->columnSpanFull(),
                             ])
                             ->columns(3)
@@ -358,32 +368,78 @@ class RequestForm
                     ->description('Concepto y resultado final')
                     ->icon('heroicon-o-check-badge')
                     ->schema([
+
+                        // ── CAMPOS COMUNES ────────────────────────
                         Select::make('estado')
-                            ->label('Decisión final')
+                            ->label('Estado / Decisión')
                             ->options([
-                                'radicada'    => '📋 Radicada',
-                                'en_estudio'  => '🔍 En estudio',
-                                'aprobada'    => '✅ Aprobada',
-                                'condicional' => '⚠️ Condicional',
-                                'rechazada'   => '❌ Rechazada',
-                                'desistida'   => '🚫 Desistida',
-                            ])->required()
-                            ->helperText('La aprobación habilita al candidato. El estado del inmueble cambia al activar el contrato correspondiente.'),
+                                'radicada'       => '📋 Radicada',
+                                'en_estudio'     => '🔍 En estudio',
+                                'aprobada'       => '✅ Aprobada (SURA)',
+                                'aprobada_gerente'=> '✅ Aprobada (Gerencia)',
+                                'condicional'    => '⚠️ Condicional',
+                                'rechazada'      => '❌ Rechazada',
+                                'desistida'      => '🚫 Desistida',
+                            ])
+                            ->required()->live()
+                            ->helperText('La aprobación habilita al candidato para firmar contrato.'),
 
                         DatePicker::make('fecha_decision')
                             ->label('Fecha de decisión'),
 
+                        // ── DIRECTO — campos gerencia ─────────────
                         TextInput::make('decidido_por')
-                            ->label('Decidido por'),
+                            ->label('Gerente que decide')
+                            ->placeholder('Yaneth Pérez')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'directo'),
+
+                        Textarea::make('justificacion_gerente')
+                            ->label('Justificación del gerente')
+                            ->rows(3)->columnSpanFull()
+                            ->helperText('Análisis y argumentos que soportan la decisión.')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'directo'),
 
                         Textarea::make('concepto_evaluacion')
                             ->label('Concepto de evaluación')
-                            ->rows(4)->columnSpanFull(),
-
-                        Textarea::make('condiciones_especiales')
-                            ->label('Condiciones especiales (si aplica)')
                             ->rows(3)->columnSpanFull()
-                            ->helperText('Solo para solicitudes condicionales'),
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'directo'),
+
+                        // ── SURA — campos aseguradora ─────────────
+                        TextInput::make('numero_solicitud_sura')
+                            ->label('N° Solicitud SURA')
+                            ->placeholder('SURA-2026-XXXX')
+                            ->helperText('Número asignado por SURA al recibir el paquete.')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'sura'),
+
+                        TextInput::make('analista_sura')
+                            ->label('Analista SURA')
+                            ->placeholder('Nombre del analista que respondió')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'sura'),
+
+                        DatePicker::make('fecha_respuesta_sura')
+                            ->label('Fecha respuesta SURA')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'sura'),
+
+                        FileUpload::make('path_respuesta_sura')
+                            ->label('Respuesta SURA (PDF)')
+                            ->disk('public')->directory('solicitudes/sura')
+                            ->acceptedFileTypes(['application/pdf'])->maxSize(10240)
+                            ->downloadable()->openable()
+                            ->helperText('Subir el documento oficial de respuesta de SURA.')
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'sura')
+                            ->columnSpanFull(),
+
+                        Textarea::make('observaciones_sura')
+                            ->label('Observaciones SURA')
+                            ->rows(3)->columnSpanFull()
+                            ->visible(fn (Get $get) => $get('tipo_aprobacion') === 'sura'),
+
+                        // ── CONDICIONAL — aplica a ambos ──────────
+                        Textarea::make('condiciones_especiales')
+                            ->label('Condiciones especiales')
+                            ->rows(3)->columnSpanFull()
+                            ->helperText('Requisitos adicionales que debe cumplir el candidato.')
+                            ->visible(fn (Get $get) => $get('estado') === 'condicional'),
 
                         Textarea::make('notas')
                             ->label('Notas adicionales')

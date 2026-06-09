@@ -43,7 +43,7 @@ class PropertyHandoverForm
 
                         Select::make('rental_contract_id')
                             ->label('Contrato de arriendo')
-                            ->options(fn () =>
+                            ->options(fn (Get $get) =>
                                 RentalContract::whereIn('estado', ['activo','firmado'])
                                     ->with(['property','arrendatario'])
                                     ->get()
@@ -52,16 +52,52 @@ class PropertyHandoverForm
                                     ])
                             )
                             ->searchable()->required()->live()
+                            ->helperText('Seleccione el contrato del inmueble que va a entregar o recibir.')
                             ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                 if (!$state) return;
-                                $c = RentalContract::with(['property','arrendatario'])->find($state);
-                                if ($c) {
-                                    $set('property_id', $c->property_id);
-                                    $set('arrendatario_id', $c->arrendatario_id);
-                                    $set('asesor_id', $c->asesor_id);
-                                    $set('lugar_acta', $c->property?->direccion);
-                                    $set('firmado_arrendatario', $c->arrendatario?->nombre_completo);
+                                $c = RentalContract::with(['property.tipo','arrendatario'])->find($state);
+                                if (!$c) return;
+                                $set('property_id',          $c->property_id);
+                                $set('arrendatario_id',      $c->arrendatario_id);
+                                $set('asesor_id',            $c->asesor_id);
+                                $set('lugar_acta',           $c->property?->direccion);
+                                $set('firmado_arrendatario', $c->arrendatario?->nombre_completo);
+
+                                // Pre-poblar ítems de inventario según características del inmueble
+                                $p = $c->property;
+                                if (!$p) return;
+                                $items = [];
+                                $orden = 0;
+
+                                // Zonas según tipo
+                                $zonas = [
+                                    ['ambiente' => 'sala',     'elemento' => 'Sala — pisos, paredes, cielo raso, puertas, ventanas'],
+                                    ['ambiente' => 'comedor',  'elemento' => 'Comedor — pisos, paredes, cielo raso'],
+                                    ['ambiente' => 'cocina',   'elemento' => 'Cocina — mesón, poceta, paredes, grifería, enchapes'],
+                                ];
+
+                                for ($i = 1; $i <= ($p->habitaciones ?? 0); $i++) {
+                                    $amb = $i === 1 ? 'habitacion_principal' : 'habitacion_' . $i;
+                                    $zonas[] = ['ambiente' => $amb, 'elemento' => "Habitación {$i} — pisos, paredes, cielo raso, closet, puerta, ventana"];
                                 }
+                                for ($i = 1; $i <= ($p->banos ?? 0); $i++) {
+                                    $amb = $i === 1 ? 'bano_principal' : ($i === 2 ? 'bano_secundario' : 'bano_social');
+                                    $zonas[] = ['ambiente' => $amb, 'elemento' => "Baño {$i} — sanitario, lavamanos, ducha, grifería, enchapes, espejo"];
+                                }
+                                if ($p->garajes > 0) $zonas[] = ['ambiente' => 'garaje', 'elemento' => 'Garaje — piso, puerta, estado general'];
+                                $zonas[] = ['ambiente' => 'zona_lavanderia', 'elemento' => 'Zona lavandería / patio — pisos, paredes, grifería'];
+
+                                foreach ($zonas as $z) {
+                                    $items[] = [
+                                        'ambiente'    => $z['ambiente'],
+                                        'elemento'    => $z['elemento'],
+                                        'estado'      => 'bueno',
+                                        'descripcion' => '',
+                                        'foto_path'   => null,
+                                        'orden'       => $orden++,
+                                    ];
+                                }
+                                $set('items', $items);
                             }),
 
                         \Filament\Forms\Components\Hidden::make('property_id'),
@@ -93,45 +129,64 @@ class PropertyHandoverForm
 
                 // ── PASO 2: Medidores y llaves ───────────────────
                 Step::make('Medidores y Llaves')
-                    ->description('Lecturas y llaves entregadas')
+                    ->description('Lecturas actuales y llaves entregadas')
                     ->icon('heroicon-o-key')
                     ->schema([
-                        Section::make('Lecturas de medidores')
+                        Section::make('📊 Lecturas de medidores')
+                            ->description('Anote el número que aparece en el medidor al momento de la entrega. Si el servicio no existe en el inmueble, deje el campo en blanco.')
                             ->icon('heroicon-o-bolt')
                             ->columns(3)
                             ->schema([
                                 TextInput::make('lectura_agua')
-                                    ->label('💧 Agua (m³)')->placeholder('000000'),
+                                    ->label('💧 Agua (m³)')
+                                    ->placeholder('Ej: 001234')
+                                    ->helperText('Número del medidor de acueducto'),
                                 TextInput::make('lectura_energia')
-                                    ->label('⚡ Energía (kWh)')->placeholder('000000'),
+                                    ->label('⚡ Energía (kWh)')
+                                    ->placeholder('Ej: 005678')
+                                    ->helperText('Número del medidor eléctrico'),
                                 TextInput::make('lectura_gas')
-                                    ->label('🔥 Gas (m³)')->placeholder('000000'),
+                                    ->label('🔥 Gas (m³)')
+                                    ->placeholder('Ej: 000456')
+                                    ->helperText('Solo si tiene gas natural'),
                             ]),
 
-                        Section::make('Llaves entregadas')
+                        Section::make('🔑 Llaves entregadas')
+                            ->description('Cuente físicamente las llaves y anote la cantidad. Ponga 0 si no aplica.')
                             ->icon('heroicon-o-key')
                             ->columns(2)
                             ->schema([
                                 TextInput::make('llaves_entregadas')
-                                    ->label('🔑 Llaves inmueble')->numeric()->default(0),
+                                    ->label('🔑 Llaves del inmueble')
+                                    ->numeric()->default(1)->minValue(0)
+                                    ->helperText('Llaves de la puerta principal'),
                                 TextInput::make('llaves_control_acceso')
-                                    ->label('📟 Control de acceso')->numeric()->default(0),
+                                    ->label('📟 Control de acceso / portero')
+                                    ->numeric()->default(0)->minValue(0)
+                                    ->helperText('Solo si el edificio tiene control de acceso'),
                                 TextInput::make('llaves_parqueadero')
-                                    ->label('🚗 Parqueadero')->numeric()->default(0),
+                                    ->label('🚗 Llaves de parqueadero')
+                                    ->numeric()->default(0)->minValue(0)
+                                    ->helperText('0 si no tiene parqueadero'),
                                 TextInput::make('llaves_deposito')
-                                    ->label('📦 Depósito')->numeric()->default(0),
+                                    ->label('📦 Llaves de depósito')
+                                    ->numeric()->default(0)->minValue(0)
+                                    ->helperText('0 si no tiene depósito'),
                                 Textarea::make('notas_llaves')
-                                    ->label('Observaciones llaves')->rows(2)->columnSpanFull(),
+                                    ->label('Observaciones sobre las llaves')
+                                    ->placeholder('Ej: Se entregan 2 llaves originales y 1 copia. La llave del garaje es magnética.')
+                                    ->rows(2)->columnSpanFull(),
                             ]),
                     ]),
 
                 // ── PASO 3: Inventario por ambientes ─────────────
                 Step::make('Inventario')
-                    ->description('Estado de cada ambiente y elemento')
+                    ->description('Estado de cada ambiente — se precargaron los espacios del inmueble')
                     ->icon('heroicon-o-home')
                     ->schema([
                         \Filament\Forms\Components\Repeater::make('items')
                             ->label('Inventario de ambientes')
+                            ->helperText('Los ambientes se cargaron automáticamente según el inmueble. Revise el estado de cada uno, tome fotos y agregue observaciones si hay daños o novedades.')
                             ->relationship()
                             ->schema([
                                 Select::make('ambiente')
@@ -215,24 +270,30 @@ class PropertyHandoverForm
                             ->rows(4)->columnSpanFull(),
 
                         TextInput::make('firmado_arrendatario')
-                            ->label('Nombre arrendatario (firma)'),
+                            ->label('Nombre completo del arrendatario')
+                            ->helperText('Escriba el nombre tal como aparece en la cédula.')
+                            ->placeholder('Ej: JUAN CARLOS PÉREZ GÓMEZ'),
 
                         TextInput::make('firmado_asesor')
-                            ->label('Nombre asesor (firma)')
-                            ->default(fn () => auth()->user()?->name),
+                            ->label('Nombre del asesor que entrega')
+                            ->default(fn () => \Illuminate\Support\Facades\Auth::user()?->name)
+                            ->helperText('Su nombre como representante de la inmobiliaria.'),
 
                         DatePicker::make('fecha_firma')
-                            ->label('Fecha de firma')->default(now()),
+                            ->label('Fecha en que se firmó el acta')
+                            ->default(now())
+                            ->helperText('Fecha real de la firma física.'),
 
                         FileUpload::make('path_acta_firmada')
-                            ->label('📄 Acta firmada (PDF o imagen)')
+                            ->label('📄 Subir acta firmada (foto o PDF)')
                             ->disk('public')->directory('actas/firmadas')
-                            ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
+                            ->acceptedFileTypes(['application/pdf','image/jpeg','image/png','image/jpg'])
                             ->maxSize(20480)->downloadable()->openable()
+                            ->helperText('Tome una foto clara del acta con las firmas de ambas partes y súbala aquí.')
                             ->columnSpanFull(),
                     ])->columns(2),
 
-            ])->skippable()->columnSpanFull(),
+            ])->columnSpanFull(),
         ]);
     }
 }

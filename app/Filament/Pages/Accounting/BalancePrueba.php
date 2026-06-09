@@ -15,7 +15,7 @@ class BalancePrueba extends Page
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-scale';
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
     protected static ?string $navigationLabel = 'Balance de Prueba';
-    protected static ?int    $navigationSort  = 6;
+    protected static ?int    $navigationSort  = 7;
 
     public ?int  $periodo_id         = null;
     public bool  $solo_con_movimiento = true;

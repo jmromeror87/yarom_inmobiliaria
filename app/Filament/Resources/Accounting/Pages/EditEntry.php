@@ -33,6 +33,12 @@ class EditEntry extends EditRecord
         ];
     }
 
+    protected function afterSave(): void
+    {
+        // Recalcula totales después de que Filament guarda el Repeater de líneas
+        $this->record->recalcularTotales();
+    }
+
     protected function getRedirectUrl(): string
     {
         return AccountingEntryResource::getUrl('index');

@@ -67,15 +67,36 @@ class EditRentalContract extends EditRecord
                 ])
                 ->action(function (array $data) {
                     $this->record->update(['estado' => 'enviado_arrendatario']);
-                    $numero  = preg_replace('/[^0-9]/', '', $data['telefono']);
-                    $mensaje = urlencode($data['mensaje']);
-                    Notification::make()->title('Enviado — abriendo WhatsApp')->success()->send();
-                    $enviado = \App\Helpers\WhatsApp::enviar($data['telefono'] ?? $data['telefono_sura'] ?? '', $data['mensaje'] ?? $data['mensaje_enviado'] ?? '');
+
+                    $numero = preg_replace('/[^0-9]/', '', $data['telefono']);
+                    if (!str_starts_with($numero, '57')) $numero = '57' . $numero;
+
+                    // Generar PDF del contrato en storage temporal
+                    $pdfPath = $this->generarPdfTemporal();
+
+                    $wap     = app(\App\Services\WhatsAppService::class);
+                    $enviado = false;
+
+                    if ($pdfPath && $wap->isConnected()) {
+                        $res     = $wap->enviarConArchivo(
+                            $numero,
+                            $data['mensaje'],
+                            $pdfPath,
+                            'Contrato-' . $this->record->numero_contrato . '.pdf'
+                        );
+                        $enviado = $res['ok'] ?? false;
+                        // Limpiar temporal
+                        if (file_exists($pdfPath)) @unlink($pdfPath);
+                    }
+
                     if (!$enviado) {
-                        $numero  = preg_replace('/[^0-9]/', '', $data['telefono'] ?? $data['telefono_sura'] ?? '');
-                        if (!str_starts_with($numero, '57')) $numero = '57' . $numero;
-                        $this->redirect("https://wa.me/{$numero}?text=" . urlencode($data['mensaje'] ?? $data['mensaje_enviado'] ?? ''));
+                        // Fallback — abrir WhatsApp Web sin adjunto
+                        Notification::make()
+                            ->title('WhatsApp no disponible — use el enlace manual')
+                            ->warning()->send();
+                        $this->redirect("https://wa.me/{$numero}?text=" . urlencode($data['mensaje']));
                     } else {
+                        Notification::make()->title('✅ Contrato enviado por WhatsApp con PDF adjunto')->success()->send();
                         $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
                     }
                 });
@@ -242,8 +263,45 @@ class EditRentalContract extends EditRecord
         $msg .= "💰 Canon: $" . number_format($r->canon_mensual, 0, ',', '.') . " COP\n";
         $msg .= "📅 Inicio: {$r->fecha_inicio?->format('d/m/Y')} · Fin: {$r->fecha_fin?->format('d/m/Y')}\n";
         $msg .= "📄 Tipo: {$tipo}\n\n";
-        $msg .= "Por favor revise el contrato y contáctenos para proceder con la firma y autenticación en notaría.\n\n";
-        $msg .= "Serviarrendar S.A.S — Ocaña, Norte de Santander";
+        $msg .= "Adjunto encontrará el contrato en PDF para su revisión.\n";
+        $msg .= "Contáctenos para proceder con la firma y autenticación en notaría.\n\n";
+        $msg .= "Serviarrendar S.A.S\n";
+        $msg .= "📞 +57 318 693 4710 — Ocaña, Norte de Santander";
         return $msg;
+    }
+
+    protected function generarPdfTemporal(): ?string
+    {
+        try {
+            $contract = $this->record->load([
+                'property.tipo','property.municipio','property.departamento',
+                'arrendatario','thirds.third','clauses','asesor',
+            ]);
+
+            $company     = \App\Models\Company::with(['municipio'])->first();
+            $logoBase64  = null;
+
+            if ($company?->logo_path) {
+                $path = storage_path('app/public/' . $company->logo_path);
+                if (file_exists($path)) {
+                    $logoBase64 = 'data:' . mime_content_type($path) . ';base64,' . base64_encode(file_get_contents($path));
+                }
+            }
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+                'pdf.contrato-arriendo',
+                compact('contract', 'company', 'logoBase64')
+            )->setPaper('letter', 'portrait');
+
+            $tmpPath = storage_path('app/tmp/contrato-' . $contract->numero_contrato . '-' . time() . '.pdf');
+            if (!is_dir(dirname($tmpPath))) mkdir(dirname($tmpPath), 0755, true);
+
+            file_put_contents($tmpPath, $pdf->output());
+            return $tmpPath;
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('PDF temporal error', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 }

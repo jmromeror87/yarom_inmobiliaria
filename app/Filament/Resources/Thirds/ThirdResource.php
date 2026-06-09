@@ -43,7 +43,7 @@ class ThirdResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-users'; }
 
-    public static function getNavigationGroup(): ?string { return 'Portafolio'; }
+    public static function getNavigationGroup(): ?string { return 'CRM'; }
 
     public static function form(Schema $schema): Schema
     {

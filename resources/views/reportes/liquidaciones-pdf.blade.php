@@ -85,10 +85,14 @@
             <td class="r">${{ number_format($l->otros_descuentos, 0, ',', '.') }}</td>
             <td class="r"><strong>${{ number_format($l->total_giro, 0, ',', '.') }}</strong></td>
             <td class="c">
-                @if($l->estado === 'girada')
+                @if($l->estado === 'pagada')
                     <span class="badge-girada">GIRADA</span>
+                @elseif($l->estado === 'aprobada')
+                    <span style="background:#dbeafe;color:#1e40af;padding:1pt 5pt;border-radius:3pt;font-size:7pt;font-weight:bold;">APROBADA</span>
+                @elseif($l->estado === 'anulada')
+                    <span style="background:#fee2e2;color:#991b1b;padding:1pt 5pt;border-radius:3pt;font-size:7pt;font-weight:bold;">ANULADA</span>
                 @else
-                    <span class="badge-pend">{{ strtoupper($l->estado) }}</span>
+                    <span class="badge-pend">PENDIENTE</span>
                 @endif
             </td>
         </tr>

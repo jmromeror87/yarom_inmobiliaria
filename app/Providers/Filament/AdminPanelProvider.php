@@ -12,7 +12,7 @@ use Filament\View\PanelsRenderHook;
 use Filament\Navigation\NavigationGroup;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
@@ -31,12 +31,13 @@ class AdminPanelProvider extends PanelProvider
             ->login(\App\Filament\Pages\Auth\Login::class)
             ->font('Plus Jakarta Sans')
             ->navigationGroups([
-                NavigationGroup::make('Contratación')->icon('heroicon-o-scale'),
-                NavigationGroup::make('Cobros')->icon('heroicon-o-banknotes'),
-                NavigationGroup::make('Operativo')->icon('heroicon-o-building-office-2'),
-                NavigationGroup::make('Financiero')->icon('heroicon-o-banknotes'),
-                NavigationGroup::make('CRM')->icon('heroicon-o-users'),
+                NavigationGroup::make('CRM'),
+                NavigationGroup::make('Operativo'),
+                NavigationGroup::make('Contratación'),
+                NavigationGroup::make('Cobros'),
+                NavigationGroup::make('Contabilidad'),
                 NavigationGroup::make('Configuración')->collapsed(true),
+                NavigationGroup::make('Sistema')->collapsed(true),
             ])
             ->topbar(false)
             ->sidebarCollapsibleOnDesktop()
@@ -46,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
                         <svg viewBox="0 0 32 32" fill="none" width="20" height="20"><path d="M4 28V14l12-9 12 9v14H20v-7h-8v7H4z" fill="#fff"/></svg>
                     </div>
                     <div style="display:flex;flex-direction:column;line-height:1.15;">
-                        <span style="font-size:17px;font-weight:900;letter-spacing:-.04em;color:#fff;text-transform:uppercase;">YAROM <span style="color:#E11D48;">INMO</span>BILIARIA</span>
+                        <span style="font-size:17px;font-weight:900;letter-spacing:-.04em;color:#fff;text-transform:uppercase;">YAROM <span style="color:#E11D48;">INMO</span><span style="color:#60a5fa;">BILIARIA</span></span>
                         <span style="font-size:11px;font-weight:600;letter-spacing:0.05em;color:rgba(255,255,255,0.5);text-transform:uppercase;">Serviarrendar S.A.S</span>
                     </div>
                 </div>
@@ -81,13 +82,54 @@ class AdminPanelProvider extends PanelProvider
                     .fi-sidebar-group-button{font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#E11D48!important;}
                     .fi-sidebar-group-button svg{display:none!important;}
                     .fi-sidebar-group-button:hover{color:#fff!important;}
-                    .fi-sidebar-group-items{border-left:none!important;margin-left:0!important;padding-left:0!important;}
+                    /* SIN LINEAS — ICONOS + TEXTO */
+                    .fi-sidebar-nav .fi-sidebar-group-items{
+                        border:none!important;
+                        border-left:none!important;
+                        outline:none!important;
+                        margin-left:0!important;
+                        padding-left:0!important;
+                    }
+                    .fi-sidebar-nav .fi-sidebar-item-btn::before,
+                    .fi-sidebar-nav .fi-sidebar-item-btn::after{
+                        display:none!important;
+                        content:none!important;
+                    }
                     .fi-sidebar-nav{padding-bottom:80px!important;}
-                    .fi-sidebar-item-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
-                    .fi-sidebar-item-btn .fi-icon{color:#E11D48!important;}
-                    .fi-sidebar-item-btn:hover{background:rgba(255,255,255,.08)!important;}
-                    .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:rgba(225,29,72,.2)!important;}
-                    .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#fff!important;font-weight:700!important;}
+
+                    .fi-sidebar-nav .fi-sidebar-item-btn{
+                        display:flex!important;
+                        align-items:center!important;
+                        gap:10px!important;
+                        margin:1px 8px!important;
+                        padding:9px 12px!important;
+                        border-radius:8px!important;
+                        background:transparent!important;
+                        border:none!important;
+                        box-shadow:none!important;
+                        transition:background .15s!important;
+                    }
+                    .fi-sidebar-nav .fi-sidebar-item-btn .fi-icon{
+                        display:flex!important;
+                        color:rgba(255,255,255,.4)!important;
+                        width:17px!important;
+                        height:17px!important;
+                        flex-shrink:0!important;
+                        transition:color .15s!important;
+                    }
+                    .fi-sidebar-nav .fi-sidebar-item-label{
+                        color:rgba(255,255,255,.6)!important;
+                        font-size:13px!important;
+                        font-weight:500!important;
+                        transition:color .15s!important;
+                    }
+                    .fi-sidebar-nav .fi-sidebar-item-btn:hover{background:rgba(255,255,255,.07)!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn:hover .fi-icon{color:#E11D48!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn:hover .fi-sidebar-item-label{color:#fff!important;}
+
+                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:rgba(225,29,72,.13)!important;}
+                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-icon{color:#E11D48!important;}
+                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#fff!important;font-weight:700!important;}
                     .fi-sidebar-database-notifications-btn{color:#fff!important;width:100%!important;}
                     .fi-sidebar-database-notifications-btn-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
                     .fi-sidebar-database-notifications-btn svg{color:#fff!important;}
@@ -95,7 +137,9 @@ class AdminPanelProvider extends PanelProvider
                     #yr-collapsed-icon{display:none;align-items:center;justify-content:center;padding:8px;}
                     .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-header-logo-ctn{display:none!important;}
                     .fi-sidebar:not(.fi-sidebar-open) #yr-collapsed-icon{display:flex!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-btn{justify-content:center!important;width:44px!important;margin:2px auto!important;padding:10px!important;}
+                    /* ── Colapsado ── */
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-items{margin-left:0!important;}
+                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-btn{justify-content:center!important;width:40px!important;margin:2px auto!important;padding:8px!important;}
                     .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-label{display:none!important;}
                     .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-label{display:none!important;}
                     .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-button{display:none!important;}
@@ -114,6 +158,26 @@ class AdminPanelProvider extends PanelProvider
 
                 <script>
                 (function(){
+                    /* ── Inyectar estilos menú al HEAD — gana a Tailwind JIT ── */
+                    var s=document.createElement("style");
+                    s.id="yr-menu-style";
+                    s.textContent=`
+                        .fi-sidebar-group-items{border:0!important;border-left:0!important;margin-left:0!important;padding-left:0!important;}
+                        .fi-sidebar-item-btn{display:flex!important;align-items:center!important;gap:10px!important;margin:1px 8px!important;padding:9px 12px!important;border-radius:8px!important;background:transparent!important;border:0!important;box-shadow:none!important;transition:background .15s!important;}
+                        .fi-sidebar-item-btn::before,.fi-sidebar-item-btn::after{display:none!important;content:none!important;}
+                        .fi-sidebar-item-btn .fi-icon{display:flex!important;color:rgba(255,255,255,.45)!important;width:17px!important;height:17px!important;flex-shrink:0!important;transition:color .15s!important;}
+                        .fi-sidebar-item-label{color:rgba(255,255,255,.65)!important;font-size:13px!important;font-weight:500!important;transition:color .15s!important;}
+                        .fi-sidebar-item-btn:hover{background:rgba(255,255,255,.07)!important;}
+                        .fi-sidebar-item-btn:hover .fi-icon{color:#E11D48!important;}
+                        .fi-sidebar-item-btn:hover .fi-sidebar-item-label{color:#fff!important;}
+                        .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:rgba(225,29,72,.13)!important;}
+                        .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-icon{color:#E11D48!important;}
+                        .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#fff!important;font-weight:700!important;}
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-items{margin-left:0!important;}
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-btn{justify-content:center!important;width:40px!important;margin:2px auto!important;padding:8px!important;}
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-label{display:none!important;}
+                    `;
+                    if(!document.getElementById("yr-menu-style")) document.head.appendChild(s);
                     var _obs=null;
                     function updateFooter(){
                         var sidebar=document.querySelector(".fi-sidebar");
@@ -198,7 +262,10 @@ HTML;
                 PanelsRenderHook::BODY_END,
                 fn (): string => '
                 <style>
-                .fi-main-ctn{padding-bottom:60px!important;}
+                .fi-main-ctn{padding-bottom:60px!important;background:#F7F8FA!important;}
+                .fi-main{background:#F7F8FA!important;}
+                body{background:#F7F8FA!important;}
+
                 .fi-btn.fi-color-primary,.fi-btn-color-primary{background-color:#E11D48!important;color:#fff!important;border:none!important;font-weight:700!important;}
                 .fi-btn.fi-color-primary:hover{background-color:#be123c!important;}
                 .fi-toggle-input:checked~.fi-toggle-indicator,[role="switch"][aria-checked="true"]{background-color:#E11D48!important;}
@@ -211,9 +278,15 @@ HTML;
                 </style>
                 <footer id="yr-footer" style="position:fixed;bottom:0;left:0;right:0;z-index:60;transition:left .3s ease;padding:12px 2.5rem;border-top:1px solid #112240;background:linear-gradient(135deg,#0F172A,#1e3a8a);">
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
-                        <div style="color:rgba(255,255,255,0.8);">© ' . date('Y') . ' <span style="color:#fff;">YarOM ERP</span> <span style="color:#fff;margin:0 8px;">|</span> <span style="color:#fff;">Infraestructura Cloud Engine</span></div>
+                        <div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.8);">
+                            <span>© ' . date('Y') . ' <span style="color:#fff;">YarOM ERP</span></span>
+                            <span style="color:rgba(255,255,255,0.3);">|</span>
+                            <span style="color:#60a5fa;">Infraestructura Cloud Engine</span>
+                            <span style="color:rgba(255,255,255,0.3);">|</span>
+                            <span style="background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.3);color:#60a5fa;padding:2px 10px;border-radius:20px;font-size:10px;letter-spacing:0.1em;">v' . config('app.version') . '</span>
+                        </div>
                         <div style="display:flex;align-items:center;gap:12px;">
-                            <span style="color:#fff;">Desarrollado por</span>
+                            <span style="color:rgba(255,255,255,0.6);">Desarrollado por</span>
                             <a href="https://linkedin.com/in/jmromeror87" target="_blank" style="text-decoration:none;display:flex;align-items:center;gap:6px;">
                                 <span style="color:#fff;font-weight:900;">ING. JHOAN ROMERO</span>
                                 <span style="font-size:8px;background:#E11D48;color:#fff;padding:2px 10px;border-radius:6px;">ARCHITECT</span>
@@ -233,7 +306,7 @@ HTML;
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
+                PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,

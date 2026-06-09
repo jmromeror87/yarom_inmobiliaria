@@ -9,14 +9,18 @@ class WompiService
     public function checkoutUrl(RentBill $bill): string
     {
         $amountCents  = (int) round($bill->saldo_pendiente * 100);
-        $reference    = $bill->wompi_reference ?? ($bill->numero . '-' . substr($bill->payment_token, 0, 8));
+        if (!$bill->wompi_reference) {
+            $bill->update(['wompi_reference' => $bill->numero . '-' . substr($bill->payment_token, 0, 8)]);
+            $bill->refresh();
+        }
+        $reference = $bill->wompi_reference;
         $currency     = 'COP';
         $integrity    = config('wompi.integrity_secret');
         $signature    = hash('sha256', $reference . $amountCents . $currency . $integrity);
         $redirectUrl  = route('payment.resultado');
         $base         = config('wompi.env') === 'production'
             ? 'https://checkout.wompi.co/p/'
-            : 'https://checkout.wompi.co/p/';
+            : 'https://checkout.wompi.co/p/?';
 
         return $base . '?' . http_build_query([
             'public-key'          => config('wompi.public_key'),

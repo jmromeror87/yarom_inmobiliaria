@@ -1,134 +1,149 @@
 <x-filament-panels::page>
-    @php
-        $record   = $this->record;
-        $abonos   = $record->abonos()->with('registradoPor')->orderByDesc('fecha_abono')->get();
-        $pct      = $record->porcentajePagado();
-        $colorBar = $pct >= 100 ? '#22c55e' : ($pct > 0 ? '#3b82f6' : '#ef4444');
-        $estadoColor = match($record->estado) {
-            'pagado'    => '#22c55e',
-            'parcial'   => '#3b82f6',
-            'castigada' => '#6b7280',
-            default     => '#f59e0b',
-        };
-        $estadoLabel = match($record->estado) {
-            'pagado'    => 'Pagado',
-            'parcial'   => 'Pago parcial',
-            'castigada' => 'Castigada',
-            default     => 'Pendiente',
-        };
-    @endphp
 
-    {{-- Encabezado con resumen --}}
-    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; text-align:center;">
-            <p style="font-size:11px; color:#9ca3af; margin:0 0 6px; text-transform:uppercase; letter-spacing:.05em;">Valor original</p>
-            <p style="font-size:22px; font-weight:700; color:#111827; margin:0;">${{ number_format($record->valor_original, 0, ',', '.') }}</p>
-        </div>
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; text-align:center;">
-            <p style="font-size:11px; color:#9ca3af; margin:0 0 6px; text-transform:uppercase; letter-spacing:.05em;">Pagado</p>
-            <p style="font-size:22px; font-weight:700; color:#22c55e; margin:0;">${{ number_format($record->valor_pagado, 0, ',', '.') }}</p>
-        </div>
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; text-align:center;">
-            <p style="font-size:11px; color:#9ca3af; margin:0 0 6px; text-transform:uppercase; letter-spacing:.05em;">Saldo pendiente</p>
-            <p style="font-size:22px; font-weight:700; color:#ef4444; margin:0;">${{ number_format($record->saldo, 0, ',', '.') }}</p>
-        </div>
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; text-align:center;">
-            <p style="font-size:11px; color:#9ca3af; margin:0 0 6px; text-transform:uppercase; letter-spacing:.05em;">Estado</p>
-            <span style="display:inline-block; padding:4px 14px; border-radius:999px; font-size:13px; font-weight:600; background:{{ $estadoColor }}20; color:{{ $estadoColor }};">
-                {{ $estadoLabel }}
-            </span>
-        </div>
+@php
+    $cpc     = $this->record;
+    $abonos  = $cpc->abonos()->with('registradoPor')->orderByDesc('fecha_abono')->get();
+    $pct     = $cpc->porcentajePagado();
+    $vencida = $cpc->fecha_vencimiento?->isPast() && $cpc->estado !== 'pagado';
+    $diasMora= $cpc->fecha_vencimiento ? max(0, (int) now()->diffInDays($cpc->fecha_vencimiento, false) * -1) : 0;
+    $fmt     = fn($v) => '$' . number_format((float)$v, 0, ',', '.');
+    $tipoLabel = match($cpc->tipo) {
+        'deposito_arriendo' => 'Depósito en garantía',
+        'mora'              => 'Intereses de mora',
+        'dano'              => 'Daño en inmueble',
+        'otro'              => 'Otro concepto',
+        default             => ucfirst($cpc->tipo ?? '—'),
+    };
+    $estadoColor = match($cpc->estado) {
+        'pagado'    => ['bg'=>'#f0fdf4','bd'=>'#86efac','txt'=>'#15803d','lbl'=>'Pagado'],
+        'parcial'   => ['bg'=>'#eff6ff','bd'=>'#93c5fd','txt'=>'#1d4ed8','lbl'=>'Pago parcial'],
+        'castigada' => ['bg'=>'#f8fafc','bd'=>'#94a3b8','txt'=>'#475569','lbl'=>'Castigada'],
+        default     => ['bg'=>'#fef9c3','bd'=>'#fde047','txt'=>'#854d0e','lbl'=>'Pendiente'],
+    };
+@endphp
+
+<style>
+.cpc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.cpc-kpi{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px 20px}
+.cpc-kpi-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:4px}
+.cpc-kpi-val{font-size:22px;font-weight:900;font-family:monospace}
+.cpc-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:20px 24px;margin-bottom:16px}
+.cpc-card h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 14px}
+.cpc-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.cpc-row:last-child{border-bottom:none}
+.cpc-bar-wrap{background:#f1f5f9;border-radius:99px;height:10px;margin:10px 0 4px;overflow:hidden}
+.cpc-bar-fill{height:10px;border-radius:99px}
+.abono-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f1f5f9}
+.abono-row:last-child{border-bottom:none}
+.abono-dot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex-shrink:0}
+@media(max-width:768px){.cpc-grid{grid-template-columns:1fr 1fr}}
+</style>
+
+{{-- HEADER --}}
+<div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:4px">{{ $tipoLabel }}</div>
+        <div style="font-size:26px;font-weight:900;color:#fff;font-family:monospace">{{ $cpc->numero }}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px">{{ $cpc->concepto }}</div>
     </div>
-
-    {{-- Barra de progreso --}}
-    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin-bottom:24px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <span style="font-size:13px; font-weight:600; color:#374151;">Progreso de pago</span>
-            <span style="font-size:13px; font-weight:700; color:{{ $colorBar }};">{{ $pct }}%</span>
-        </div>
-        <div style="background:#f3f4f6; border-radius:999px; height:10px; overflow:hidden;">
-            <div style="height:10px; border-radius:999px; background:{{ $colorBar }}; width:{{ $pct }}%; transition:width .4s ease;"></div>
-        </div>
-    </div>
-
-    {{-- Datos del registro --}}
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px;">
-            <h3 style="font-size:14px; font-weight:700; color:#374151; margin:0 0 14px;">Información general</h3>
-            <table style="width:100%; font-size:13px; border-collapse:collapse;">
-                <tr><td style="color:#9ca3af; padding:4px 0; width:140px;">N° cuenta:</td><td style="font-weight:600;">{{ $record->numero }}</td></tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Tipo:</td><td>{{ match($record->tipo){ 'deposito_arriendo'=>'Depósito arriendo','mora'=>'Mora','dano'=>'Daño inmueble',default=>ucfirst($record->tipo)} }}</td></tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Concepto:</td><td>{{ $record->concepto }}</td></tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Deudor:</td><td>{{ $record->third?->nombre_completo ?? '—' }}</td></tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Inmueble:</td><td>{{ $record->property?->direccion ?? '—' }}</td></tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Contrato:</td><td>{{ $record->rentalContract?->numero_contrato ?? '—' }}</td></tr>
-            </table>
-        </div>
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px;">
-            <h3 style="font-size:14px; font-weight:700; color:#374151; margin:0 0 14px;">Fechas</h3>
-            <table style="width:100%; font-size:13px; border-collapse:collapse;">
-                <tr><td style="color:#9ca3af; padding:4px 0; width:140px;">Origen:</td><td>{{ $record->fecha_origen?->format('d/m/Y') ?? '—' }}</td></tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Vencimiento:</td>
-                    <td style="color:{{ $record->fecha_vencimiento?->isPast() && $record->estado !== 'pagado' ? '#ef4444' : '#111827' }}; font-weight:600;">
-                        {{ $record->fecha_vencimiento?->format('d/m/Y') ?? '—' }}
-                        @if($record->fecha_vencimiento?->isPast() && $record->estado !== 'pagado')
-                            <span style="font-size:11px; color:#ef4444;"> · vencido</span>
-                        @endif
-                    </td>
-                </tr>
-                <tr><td style="color:#9ca3af; padding:4px 0;">Pago total:</td><td>{{ $record->fecha_pago_total?->format('d/m/Y') ?? '—' }}</td></tr>
-            </table>
-            @if($record->notas)
-            <div style="margin-top:12px; padding:10px; background:#f9fafb; border-radius:6px; font-size:12px; color:#6b7280;">
-                {{ $record->notas }}
-            </div>
-            @endif
-        </div>
-    </div>
-
-    {{-- Historial de abonos --}}
-    <div style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px;">
-        <h3 style="font-size:14px; font-weight:700; color:#374151; margin:0 0 14px; display:flex; align-items:center; gap:8px;">
-            <svg style="width:16px;height:16px;color:#6366f1;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
-            </svg>
-            Historial de abonos ({{ $abonos->count() }})
-        </h3>
-
-        @if($abonos->isEmpty())
-            <p style="text-align:center; color:#9ca3af; padding:32px 0; font-size:13px;">Sin abonos registrados</p>
-        @else
-            <table style="width:100%; border-collapse:collapse; font-size:13px;">
-                <thead>
-                    <tr style="border-bottom:2px solid #f3f4f6;">
-                        <th style="text-align:left; padding:8px 10px; color:#6b7280; font-weight:600;">Fecha</th>
-                        <th style="text-align:right; padding:8px 10px; color:#6b7280; font-weight:600;">Valor</th>
-                        <th style="text-align:left; padding:8px 10px; color:#6b7280; font-weight:600;">Forma de pago</th>
-                        <th style="text-align:left; padding:8px 10px; color:#6b7280; font-weight:600;">Referencia</th>
-                        <th style="text-align:left; padding:8px 10px; color:#6b7280; font-weight:600;">Registrado por</th>
-                        <th style="text-align:left; padding:8px 10px; color:#6b7280; font-weight:600;">Notas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($abonos as $abono)
-                    <tr style="border-bottom:1px solid #f9fafb;">
-                        <td style="padding:10px; color:#374151;">{{ $abono->fecha_abono->format('d/m/Y') }}</td>
-                        <td style="padding:10px; text-align:right; font-weight:700; color:#22c55e;">${{ number_format($abono->valor, 0, ',', '.') }}</td>
-                        <td style="padding:10px; color:#374151;">{{ ucfirst($abono->forma_pago) }}</td>
-                        <td style="padding:10px; color:#6b7280; font-family:monospace; font-size:12px;">{{ $abono->referencia ?: '—' }}</td>
-                        <td style="padding:10px; color:#374151;">{{ $abono->registradoPor?->name ?? '—' }}</td>
-                        <td style="padding:10px; color:#9ca3af; font-size:12px;">{{ $abono->notas ?: '—' }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr style="background:#f9fafb; border-top:2px solid #e5e7eb;">
-                        <td style="padding:10px; font-weight:700; color:#374151;">Total abonado</td>
-                        <td style="padding:10px; text-align:right; font-weight:700; color:#22c55e; font-size:15px;">${{ number_format($abonos->sum('valor'), 0, ',', '.') }}</td>
-                        <td colspan="4"></td>
-                    </tr>
-                </tfoot>
-            </table>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <span style="background:{{ $estadoColor['bg'] }};color:{{ $estadoColor['txt'] }};border:1.5px solid {{ $estadoColor['bd'] }};padding:4px 14px;border-radius:99px;font-size:12px;font-weight:800">
+            {{ $estadoColor['lbl'] }}
+        </span>
+        @if($vencida && $diasMora > 0)
+        <span style="background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700">
+            ⏰ {{ $diasMora }} días en mora
+        </span>
         @endif
     </div>
+</div>
+
+{{-- KPIs --}}
+<div class="cpc-grid">
+    <div class="cpc-kpi">
+        <div class="cpc-kpi-label">Valor original</div>
+        <div class="cpc-kpi-val" style="color:#0f172a">{{ $fmt($cpc->valor_original) }}</div>
+    </div>
+    <div class="cpc-kpi">
+        <div class="cpc-kpi-label">Total pagado</div>
+        <div class="cpc-kpi-val" style="color:#15803d">{{ $fmt($cpc->valor_pagado) }}</div>
+    </div>
+    <div class="cpc-kpi" style="{{ $cpc->saldo > 0 ? 'border-color:#fca5a5;background:#fff5f5' : '' }}">
+        <div class="cpc-kpi-label">Saldo pendiente</div>
+        <div class="cpc-kpi-val" style="color:{{ $cpc->saldo > 0 ? '#dc2626' : '#15803d' }}">{{ $fmt($cpc->saldo) }}</div>
+    </div>
+    <div class="cpc-kpi">
+        <div class="cpc-kpi-label">Avance de pago</div>
+        <div class="cpc-kpi-val" style="color:#1d4ed8">{{ $pct }}%</div>
+        <div class="cpc-bar-wrap">
+            <div class="cpc-bar-fill" style="width:{{ min(100,$pct) }}%;background:{{ $pct>=100 ? '#16a34a' : ($pct>=50 ? '#2563eb' : '#ef4444') }}"></div>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+{{-- INFO --}}
+<div class="cpc-card">
+    <h3>Información de la cuenta</h3>
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">Deudor</span><span style="font-weight:700">{{ $cpc->third?->nombre_completo ?? '—' }}</span></div>
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">NIT / Cédula</span><span style="font-weight:700">{{ $cpc->third?->numero_documento ?? '—' }}</span></div>
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">Inmueble</span><span style="font-weight:700">{{ $cpc->property?->codigo ?? '—' }}</span></div>
+    @if($cpc->property)
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">Dirección</span><span style="font-weight:700">{{ $cpc->property->direccion }}</span></div>
+    @endif
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">Contrato</span><span style="font-weight:700">{{ $cpc->rentalContract?->numero_contrato ?? '—' }}</span></div>
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">Fecha origen</span><span style="font-weight:700">{{ $cpc->fecha_origen?->format('d/m/Y') ?? '—' }}</span></div>
+    <div class="cpc-row">
+        <span style="color:#64748b;font-weight:500">Vencimiento</span>
+        <span style="font-weight:700;color:{{ $vencida ? '#dc2626' : 'inherit' }}">
+            {{ $cpc->fecha_vencimiento?->format('d/m/Y') ?? '—' }}
+            @if($vencida) &nbsp;<small style="color:#dc2626">VENCIDA</small> @endif
+        </span>
+    </div>
+    @if($cpc->fecha_pago_total)
+    <div class="cpc-row"><span style="color:#64748b;font-weight:500">Fecha pago total</span><span style="font-weight:700;color:#15803d">{{ $cpc->fecha_pago_total->format('d/m/Y') }}</span></div>
+    @endif
+    @if($cpc->notas)
+    <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:#475569">📝 {{ $cpc->notas }}</div>
+    @endif
+</div>
+
+{{-- ABONOS --}}
+<div class="cpc-card">
+    <h3>Historial de abonos ({{ $abonos->count() }})</h3>
+    @if($abonos->isEmpty())
+    <div style="text-align:center;padding:32px 0;color:#94a3b8">
+        <div style="font-size:32px;margin-bottom:8px">💳</div>
+        <div style="font-size:13px;font-weight:600">Sin abonos registrados</div>
+    </div>
+    @else
+    @foreach($abonos as $abono)
+    <div class="abono-row">
+        <div class="abono-dot" style="background:{{ $abono->forma_pago === 'efectivo' ? '#16a34a' : '#1d4ed8' }}"></div>
+        <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px;color:#94a3b8;font-weight:600">{{ $abono->fecha_abono->format('d/m/Y') }}</span>
+                <span style="font-family:monospace;font-weight:800;color:#15803d;font-size:14px">{{ $fmt($abono->valor) }}</span>
+            </div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px">
+                {{ match($abono->forma_pago){
+                    'transferencia'=>'🏦 Transferencia','efectivo'=>'💵 Efectivo',
+                    'cheque'=>'📄 Cheque','pse'=>'🌐 PSE',default=>ucfirst($abono->forma_pago)
+                } }}
+                @if($abono->referencia) · <span style="font-family:monospace">{{ $abono->referencia }}</span> @endif
+                @if($abono->registradoPor) · {{ $abono->registradoPor->name }} @endif
+            </div>
+            @if($abono->notas)<div style="font-size:11px;color:#94a3b8;margin-top:2px">{{ $abono->notas }}</div>@endif
+        </div>
+    </div>
+    @endforeach
+    <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-size:13px;font-weight:900;border-top:2px solid #e2e8f0;margin-top:4px">
+        <span style="color:#64748b">TOTAL ABONADO</span>
+        <span style="color:#15803d;font-family:monospace">{{ $fmt($abonos->sum('valor')) }}</span>
+    </div>
+    @endif
+</div>
+
+</div>
 </x-filament-panels::page>

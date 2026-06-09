@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Support\LogOptions;
 use App\Models\CuentaPorCobrar;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -62,21 +63,40 @@ class RentalContract extends Model
 {
     static::creating(function ($c) {
         if (empty($c->numero_contrato)) {
-            $year   = now()->year;
-            $tipo   = $c->tipo === 'comercial' ? 'COM' : 'VIV';
-            $ultimo = static::whereYear('created_at', $year)->max('numero_contrato');
-            $count  = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
+            $year  = now()->year;
+            $tipo  = $c->tipo === 'comercial' ? 'COM' : 'VIV';
+            $count = \DB::table('rental_contracts')
+                ->whereYear('created_at', $year)
+                ->lockForUpdate()
+                ->count() + 1;
             $c->numero_contrato = $tipo . '-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
         }
     });
 
     static::updating(function ($c) {
-        if ($c->isDirty('estado')) {
-            if ($c->estado === 'activo') {
-                Property::find($c->property_id)?->update(['estado' => 'arrendado']);
-            }
-            if (in_array($c->estado, ['terminado', 'cancelado'])) {
-                Property::find($c->property_id)?->update(['estado' => 'disponible']);
+        if (!$c->isDirty('estado')) return;
+
+        // Registrar historial de estado
+        RentalContractStatusHistory::create([
+            'rental_contract_id' => $c->id,
+            'changed_by'         => Auth::id(),
+            'estado_anterior'    => $c->getOriginal('estado'),
+            'estado_nuevo'       => $c->estado,
+            'cambiado_en'        => now(),
+        ]);
+
+        // Inmueble → ARRENDADO cuando contrato activo
+        if ($c->estado === 'activo') {
+            Property::find($c->property_id)?->update(['estado' => 'arrendado']);
+        }
+
+        // Inmueble → DISPONIBLE si tiene contrato admin activo, sino EN_CAPTACION
+        if (in_array($c->estado, ['terminado', 'cancelado'])) {
+            $property = Property::find($c->property_id);
+            if ($property) {
+                $tieneAdminActivo = $property->administrationContracts()
+                    ->whereIn('estado', ['activo', 'firmado'])->exists();
+                $property->update(['estado' => $tieneAdminActivo ? 'disponible' : 'en_captacion']);
             }
         }
     });
@@ -107,6 +127,15 @@ class RentalContract extends Model
                     'fecha_origen'       => $c->fecha_inicio ?? today(),
                     'fecha_vencimiento'  => ($c->fecha_inicio ?? today())->addDays(30),
                 ]);
+            }
+        }
+
+        // Contabilizar depósito cuando se registra el pago
+        if ($c->wasChanged('deposito_pagado') && $c->deposito_pagado > 0) {
+            try {
+                \App\Services\ContabilidadService::generarParaDeposito($c, (float) $c->deposito_pagado, 'recibido');
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Contabilidad depósito {$c->numero_contrato}: " . $e->getMessage());
             }
         }
     });

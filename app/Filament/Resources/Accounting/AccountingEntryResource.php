@@ -34,7 +34,7 @@ class AccountingEntryResource extends Resource
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Comprobantes';
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
-    protected static ?int    $navigationSort  = 3;
+    protected static ?int    $navigationSort  = 4;
 
     public static function form(Schema $schema): Schema
     {
@@ -47,6 +47,7 @@ class AccountingEntryResource extends Resource
                     'CC' => '📒 Comprobante de Contabilidad (CC)',
                     'CI' => '💚 Comprobante de Ingreso (CI)',
                     'CE' => '💸 Comprobante de Egreso (CE)',
+                    'CR' => '🏦 Comprobante de Recaudo (CR)',
                     'ND' => '📈 Nota Débito (ND)',
                     'NC' => '📉 Nota Crédito (NC)',
                     'CA' => '🔧 Comprobante de Ajuste (CA)',
@@ -190,7 +191,11 @@ class AccountingEntryResource extends Resource
 
                 TextColumn::make('tipo')->label('Tipo')->badge()
                     ->color(fn($state) => match($state) {
-                        'CI'=>'success','CE'=>'danger','ND'=>'warning','NC'=>'info',default=>'gray'
+                        'CI'=>'success','CR'=>'success','CE'=>'danger','ND'=>'warning','NC'=>'info',default=>'gray'
+                    })
+                    ->formatStateUsing(fn($state) => match($state) {
+                        'CC'=>'Contabilidad','CI'=>'Ingreso','CE'=>'Egreso','CR'=>'Recaudo',
+                        'ND'=>'Nota Déb.','NC'=>'Nota Cred.','CA'=>'Ajuste',default=>$state
                     }),
 
                 TextColumn::make('fecha')->label('Fecha')->date('d/m/Y')->sortable(),
@@ -218,13 +223,15 @@ class AccountingEntryResource extends Resource
             ->filters([
                 SelectFilter::make('tipo')->label('Tipo')->options([
                     'CC'=>'Comp. Contabilidad','CI'=>'Comp. Ingreso','CE'=>'Comp. Egreso',
-                    'ND'=>'Nota Débito','NC'=>'Nota Crédito','CA'=>'Comp. Ajuste',
+                    'CR'=>'Comp. Recaudo','ND'=>'Nota Débito','NC'=>'Nota Crédito','CA'=>'Comp. Ajuste',
                 ]),
                 SelectFilter::make('estado')->label('Estado')->options([
                     'borrador'=>'Borrador','contabilizado'=>'Contabilizado','anulado'=>'Anulado',
                 ]),
                 SelectFilter::make('period_id')->label('Período')
-                    ->relationship('period', 'anio'),
+                    ->options(fn() => \App\Models\AccountingPeriod::orderByDesc('anio')->orderByDesc('mes')
+                        ->get()->mapWithKeys(fn($p) => [$p->id => $p->nombre])->toArray()
+                    ),
             ])
             ->recordActions([
                 EditAction::make()->label('Editar')

@@ -42,7 +42,7 @@ class PropertyResource extends Resource
 
     public static function getNavigationIcon(): string { return 'heroicon-o-home-modern'; }
 
-    public static function getNavigationGroup(): ?string { return 'Portafolio'; }
+    public static function getNavigationGroup(): ?string { return 'Operativo'; }
 
     public static function form(Schema $schema): Schema
     {

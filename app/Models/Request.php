@@ -39,13 +39,15 @@ class Request extends Model
 
     protected $fillable = [
         'numero','property_id','asesor_id','tipo','estado',
+        'tipo_aprobacion',
         'canon_evaluar','precio_venta_evaluar',
+        'tarifa_estudio_cobrada',
         'fecha_radicacion','fecha_decision','decidido_por',
         'concepto_evaluacion','condiciones_especiales',
+        'justificacion_gerente',
         'estado_inmueble_anterior','estado_inmueble_nuevo',
         'cambio_estado_aplicado','notas',
-        'tipo_aprobacion','aprobado_por_id',
-        'justificacion_gerente','tarifa_estudio_cobrada',
+        'aprobado_por_id',
     ];
 
     protected $casts = [
@@ -70,10 +72,34 @@ class Request extends Model
             }
         });
 
-        // ── Registrar fecha de decisión al cerrar solicitud ─
+        // ── Registrar fecha de decisión y actualizar terceros ─
         static::updating(function (Request $r) {
-            if ($r->isDirty('estado') && in_array($r->estado, ['aprobada', 'aprobada_gerente', 'rechazada', 'desistida', 'condicional'])) {
+            if (!$r->isDirty('estado')) return;
+
+            $estadosDecision = ['aprobada', 'aprobada_gerente', 'rechazada', 'desistida', 'condicional'];
+
+            if (in_array($r->estado, $estadosDecision)) {
                 $r->fecha_decision = now()->toDateString();
+            }
+
+            // Actualizar estado crediticio del tercero titular
+            $resultadoCrediticio = match($r->estado) {
+                'aprobada', 'aprobada_gerente' => 'aprobado',
+                'condicional'                  => 'condicional',
+                'rechazada'                    => 'rechazado',
+                default                        => null,
+            };
+
+            if ($resultadoCrediticio) {
+                $titular = $r->thirds()->where('rol', 'titular')->with('third')->first();
+                if ($titular?->third) {
+                    $titular->third->update([
+                        'estado_crediticio'           => $resultadoCrediticio,
+                        'fecha_evaluacion_crediticia' => now()->toDateString(),
+                        'notas_evaluacion'            => $r->concepto_evaluacion ?? $r->justificacion_gerente,
+                        'tipo_garantia'               => $r->tipo_aprobacion === 'sura' ? 'poliza' : 'directa',
+                    ]);
+                }
             }
         });
     }
@@ -86,7 +112,6 @@ class Request extends Model
     public function getTipoLabelAttribute(): string
     {
         return match($this->tipo) {
-            'estudio_propietario'  => 'Estudio propietario',
             'estudio_arrendatario' => 'Estudio arrendatario',
             'estudio_comprador'    => 'Estudio comprador',
             default                => $this->tipo,

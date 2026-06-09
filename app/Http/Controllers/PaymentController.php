@@ -39,7 +39,7 @@ class PaymentController extends Controller
 
     public function resultado(Request $request)
     {
-        $transactionId = $request->get('id');
+        $transactionId = $request->query('id');
         $transaction   = null;
         $bill          = null;
 
@@ -89,42 +89,28 @@ class PaymentController extends Controller
 
             if (!$bill) return;
 
+            // Evitar procesar el mismo transaction_id dos veces (reenvíos del webhook)
+            if ($bill->wompi_transaction_id === ($t['id'] ?? null)) return;
+
             $total = round(($t['amount_in_cents'] ?? 0) / 100, 2);
 
-            $year   = now()->year;
-            $ultimo = RentPayment::whereYear('created_at', $year)->max('numero');
-            $count  = $ultimo ? ((int) substr($ultimo, -4)) + 1 : 1;
-            $numero_pago = 'PAG-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            // Guardar referencia Wompi en la factura
+            $bill->update(['wompi_transaction_id' => $t['id'] ?? null]);
 
+            // RentPayment::booted() actualiza la factura y genera liquidación al propietario automáticamente
             RentPayment::create([
-                'numero'             => $numero_pago,
                 'rent_bill_id'       => $bill->id,
                 'rental_contract_id' => $bill->rental_contract_id,
                 'arrendatario_id'    => $bill->arrendatario_id,
                 'total_pagado'       => $total,
+                'valor_canon'        => min($total, $bill->canon_base),
+                'valor_mora'         => max(0, $total - $bill->canon_base - $bill->cuota_administracion),
+                'valor_administracion' => $bill->cuota_administracion,
                 'forma_pago'         => $this->mapPaymentMethod($t['payment_method_type'] ?? ''),
                 'fecha_pago'         => now()->toDateString(),
                 'referencia_pago'    => $t['id'] ?? null,
+                'banco_origen'       => $t['payment_method']['financial_institution_code'] ?? null,
             ]);
-
-            $bill->update([
-                'total_pagado'        => $bill->total_pagado + $total,
-                'saldo_pendiente'     => max(0, $bill->saldo_pendiente - $total),
-                'estado'              => 'pagada',
-                'fecha_pago'          => now()->toDateString(),
-                'wompi_transaction_id'=> $t['id'] ?? null,
-            ]);
-
-            // Confirmación por WhatsApp
-            if ($bill->arrendatario?->celular) {
-                $msg = "✅ *Pago recibido*\n\n"
-                    . "Factura: *{$bill->numero}*\n"
-                    . "Valor: *$" . number_format($total, 0, ',', '.') . " COP*\n"
-                    . "Fecha: " . now()->format('d/m/Y') . "\n\n"
-                    . "Gracias por su pago. — Serviarrendar S.A.S";
-
-                app(WhatsAppService::class)->enviar($bill->arrendatario->celular, $msg);
-            }
         });
 
         return response()->json(['ok' => true]);

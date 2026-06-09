@@ -73,14 +73,7 @@ class RentBill extends Model
             }
         });
 
-        // Contabilización automática al crear factura
-        static::created(function (RentBill $bill) {
-            try {
-                ContabilidadService::generarParaFactura($bill);
-            } catch (\Throwable $e) {
-                Log::warning("Contabilidad factura {$bill->numero}: " . $e->getMessage());
-            }
-        });
+        // Contabilización manejada exclusivamente por RentBillObserver — no duplicar aquí
     }
 
     // ── Payment token ────────────────────────────────────
@@ -114,4 +107,10 @@ class RentBill extends Model
     public function arrendatario(): BelongsTo    { return $this->belongsTo(Third::class, 'arrendatario_id'); }
     public function payments(): HasMany          { return $this->hasMany(RentPayment::class); }
     public function liquidation(): BelongsTo     { return $this->belongsTo(OwnerLiquidation::class, 'owner_liquidation_id'); }
+    public function electronicInvoices(): HasMany { return $this->hasMany(ElectronicInvoice::class, 'rent_bill_id'); }
+    public function electronicInvoice(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ElectronicInvoice::class, 'rent_bill_id')
+            ->latestOfMany();
+    }
 }

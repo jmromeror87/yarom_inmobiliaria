@@ -59,6 +59,11 @@ class Third extends Model
         'direccion_residencia','barrio_residencia','municipio_id','departamento_id','pais_id','codigo_postal',
         'tipo_empleo','empresa_donde_trabaja','cargo','telefono_empresa','direccion_empresa',
         'meses_empleo_actual','ingresos_mensuales','otros_ingresos','descripcion_otros_ingresos',
+        'lugar_expedicion','fecha_expedicion',
+        'habeas_data_aceptado','habeas_data_fecha','habeas_data_metodo',
+        'kyc_completado','kyc_fecha','kyc_actividad_economica','kyc_declaracion_fondos',
+        'kyc_nivel_riesgo','kyc_screening_resultado','kyc_screening_fecha',
+        'estado_expediente',
         'banco','tipo_cuenta','numero_cuenta','titular_cuenta',
         'estado_crediticio','fecha_evaluacion_crediticia','score_crediticio',
         'reporte_negativo','notas_evaluacion',
@@ -87,7 +92,13 @@ class Third extends Model
         'portal_activo'               => 'boolean',
         'portal_token_generado_at'    => 'datetime',
         'fecha_nacimiento'           => 'date',
+        'fecha_expedicion'           => 'date',
         'fecha_evaluacion_crediticia'=> 'date',
+        'kyc_fecha'                  => 'date',
+        'habeas_data_aceptado'       => 'boolean',
+        'habeas_data_fecha'          => 'datetime',
+        'kyc_completado'             => 'boolean',
+        'kyc_screening_fecha'        => 'datetime',
         'ultimo_contacto'            => 'datetime',
         'ingresos_mensuales'         => 'decimal:2',
         'otros_ingresos'             => 'decimal:2',
@@ -106,7 +117,35 @@ class Third extends Model
             if (empty($t->estado_crediticio)) {
                 $t->estado_crediticio = 'sin_evaluar';
             }
+
+            if ($t->es_propietario) {
+                $t->estado_expediente = $t->calcularEstadoExpediente();
+            }
         });
+    }
+
+    public function calcularEstadoExpediente(): string
+    {
+        // BLOQUEADO: screening KYC con alerta
+        if ($this->kyc_screening_resultado === 'alerta') {
+            return 'bloqueado';
+        }
+
+        // COMPLETO: todos los obligatorios presentes
+        $documentosBase = !empty($this->numero_documento)
+            && !empty($this->nombre_completo)
+            && !empty($this->celular)
+            && !empty($this->email)
+            && !empty($this->banco)
+            && !empty($this->numero_cuenta);
+
+        $cumplimientoLegal = $this->habeas_data_aceptado && $this->kyc_completado;
+
+        if ($documentosBase && $cumplimientoLegal) {
+            return 'completo';
+        }
+
+        return 'incompleto';
     }
 
     public function municipio(): BelongsTo    { return $this->belongsTo(Municipio::class); }

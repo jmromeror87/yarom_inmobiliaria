@@ -13,7 +13,7 @@ class ListOwnerLiquidations extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [Actions\CreateAction::make()->label('Nueva Liquidación Manual')];
+        return [];
     }
 
     public function getTabs(): array

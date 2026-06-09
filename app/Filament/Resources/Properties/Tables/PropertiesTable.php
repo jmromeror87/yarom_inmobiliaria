@@ -20,7 +20,6 @@ namespace App\Filament\Resources\Properties\Tables;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -87,9 +86,40 @@ class PropertiesTable
                         default                => $state,
                     }),
 
-                TextColumn::make('estrato')->label('Est.'),
+                TextColumn::make('disponibilidad')
+                    ->label('Disponible para')
+                    ->getStateUsing(fn ($record) => match(true) {
+                        $record->disponible_arriendo && $record->disponible_venta => '🔑 Arriendo + 🏷️ Venta',
+                        $record->disponible_arriendo => '🔑 Arriendo',
+                        $record->disponible_venta    => '🏷️ Venta',
+                        default                      => '—',
+                    }),
 
-                TextColumn::make('habitaciones')->label('Hab.'),
+                TextColumn::make('caracteristicas')
+                    ->label('Características')
+                    ->getStateUsing(fn ($record) => collect([
+                        $record->habitaciones ? "🛏 {$record->habitaciones}" : null,
+                        $record->banos        ? "🚿 {$record->banos}" : null,
+                        $record->garajes      ? "🚗 {$record->garajes}" : null,
+                        $record->area_construida_m2 ? "{$record->area_construida_m2}m²" : null,
+                        "Est. {$record->estrato}",
+                    ])->filter()->implode(' · ')),
+
+                TextColumn::make('ctl_alerta')
+                    ->label('CTL')
+                    ->getStateUsing(fn ($record) => match(true) {
+                        $record->ctl_tiene_limitacion => '🚫 Bloqueado',
+                        !$record->doc_certificado_libertad => '—',
+                        $record->doc_certificado_libertad_fecha?->diffInDays(now()) > 30 => '⚠️ Vencido',
+                        default => '✅ OK',
+                    })
+                    ->badge()
+                    ->color(fn ($record) => match(true) {
+                        $record->ctl_tiene_limitacion => 'danger',
+                        !$record->doc_certificado_libertad => 'gray',
+                        $record->doc_certificado_libertad_fecha?->diffInDays(now()) > 30 => 'warning',
+                        default => 'success',
+                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->striped()

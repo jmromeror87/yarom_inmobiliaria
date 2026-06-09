@@ -25,6 +25,8 @@ class RoleResource extends Resource
     protected static ?string              $navigationLabel = 'Roles y Permisos';
     protected static string|\UnitEnum|null $navigationGroup = 'Configuración';
     protected static ?int                 $navigationSort  = 2;
+
+    public static function getNavigationGroup(): ?string { return 'Configuración'; }
     protected static ?string              $modelLabel      = 'Rol';
     protected static ?string              $pluralModelLabel = 'Roles y Permisos';
 

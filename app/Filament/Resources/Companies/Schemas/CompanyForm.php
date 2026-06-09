@@ -157,18 +157,43 @@ class CompanyForm
                     ])->columns(2),
 
                 Step::make('Facturación DIAN')
-                    ->description('Resolución de facturación electrónica')
+                    ->description('Resolución, operador y configuración FE')
                     ->icon('heroicon-o-qr-code')
                     ->schema([
                         Toggle::make('factura_electronica_activa')
                             ->label('Facturación electrónica activa')
-                            ->live(),
+                            ->helperText('Al activar, las nuevas facturas se emitirán automáticamente ante la DIAN.')
+                            ->live()->columnSpanFull(),
+
+                        \Filament\Forms\Components\Select::make('fe_operador')
+                            ->label('Operador autorizado DIAN')
+                            ->options([
+                                'factus'      => 'Factus (factus.com.co)',
+                                'dataico'     => 'Dataico (dataico.com)',
+                                'facturatech' => 'Facturatech (facturatech.co)',
+                            ])
+                            ->default('factus')
+                            ->required()
+                            ->helperText('El operador activo se configura también en FE_DRIVER del .env'),
+
+                        \Filament\Forms\Components\Select::make('fe_ambiente')
+                            ->label('Ambiente DIAN')
+                            ->options([
+                                'habilitacion' => '🧪 Habilitación (pruebas)',
+                                'produccion'   => '🟢 Producción (real)',
+                            ])
+                            ->default('habilitacion')
+                            ->required(),
 
                         TextInput::make('resolucion_facturacion')
-                            ->label('N° Resolución DIAN'),
+                            ->label('N° Resolución DIAN')
+                            ->placeholder('18760000001'),
 
                         DatePicker::make('fecha_resolucion')
                             ->label('Fecha de la resolución'),
+
+                        DatePicker::make('fecha_vencimiento_resolucion')
+                            ->label('Vencimiento resolución'),
 
                         TextInput::make('prefijo_factura')
                             ->label('Prefijo de factura')
@@ -181,6 +206,16 @@ class CompanyForm
                         TextInput::make('consecutivo_hasta')
                             ->label('Consecutivo hasta')
                             ->numeric(),
+
+                        TextInput::make('consecutivo_actual')
+                            ->label('Consecutivo actual')
+                            ->numeric()->default(1)
+                            ->helperText('Avanza automáticamente con cada FE aceptada.'),
+
+                        \Filament\Forms\Components\Textarea::make('fe_nota_pie')
+                            ->label('Nota al pie de la factura')
+                            ->rows(2)->columnSpanFull()
+                            ->placeholder('Texto que aparece al pie de cada factura electrónica emitida.'),
                     ])->columns(2),
 
                 Step::make('Representante Legal')

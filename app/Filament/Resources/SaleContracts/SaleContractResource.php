@@ -18,6 +18,8 @@ class SaleContractResource extends Resource
     protected static ?string $modelLabel       = 'Contrato de corretaje';
     protected static ?string $pluralModelLabel = 'Corretaje y ventas';
     protected static ?int    $navigationSort   = 5;
+
+    public static function getNavigationGroup(): ?string { return 'Contratación'; }
     protected static ?string $slug             = 'corretaje-ventas';
 
     public static function getPages(): array

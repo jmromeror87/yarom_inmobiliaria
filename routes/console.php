@@ -4,6 +4,8 @@ use App\Jobs\AlertasDocumentosJob;
 use App\Jobs\AlertasVencimientoContratosJob;
 use App\Jobs\EnviarNotificacionesInternasJob;
 use App\Jobs\GenerarFacturasMensuales;
+use App\Jobs\GenerarObligacionesDianJob;
+use App\Jobs\ReintentarFEJob;
 use App\Jobs\RenovarContratosJob;
 use App\Jobs\VerificarMoraJob;
 use Illuminate\Support\Facades\Artisan;
@@ -51,7 +53,21 @@ Schedule::job(new EnviarNotificacionesInternasJob)
     ->withoutOverlapping()
     ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job EnviarNotificacionesInternasJob falló'));
 
-// ── 6. Alertas de documentos — lunes a las 8am ──────────────────────────
+// ── 6. Generar períodos DIAN — el 1 de cada mes a las 6am ───────────────
+Schedule::job(new GenerarObligacionesDianJob)
+    ->monthlyOn(1, '06:00')
+    ->name('generar-obligaciones-dian')
+    ->withoutOverlapping()
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job GenerarObligacionesDianJob falló'));
+
+// ── 7. Reintentar FE fallidas — cada 30 minutos ─────────────────────────
+Schedule::job(new ReintentarFEJob)
+    ->everyThirtyMinutes()
+    ->name('reintentar-fe')
+    ->withoutOverlapping()
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job ReintentarFEJob falló'));
+
+// ── 7. Alertas de documentos — lunes a las 8am ──────────────────────────
 // Alerta al equipo cuando documentos de propiedades están próximos a vencer
 Schedule::job(new AlertasDocumentosJob)
     ->weeklyOn(1, '08:30')

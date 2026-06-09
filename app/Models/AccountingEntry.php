@@ -37,18 +37,27 @@ class AccountingEntry extends Model
                 $e->creado_por = Auth::id();
             }
         });
+        // El saving hook fue eliminado: calculaba sum() sobre líneas aún no guardadas,
+        // dejando total_debitos/total_creditos = 0 en todos los comprobantes.
+        // Los totales se pasan explícitamente en crearComprobante() o se recalculan
+        // con recalcularTotales() después de guardar las líneas (form Filament).
+    }
 
-        static::saving(function (self $e) {
-            $e->total_debitos  = $e->lines()->sum('debito');
-            $e->total_creditos = $e->lines()->sum('credito');
-        });
+    public function recalcularTotales(): void
+    {
+        $this->updateQuietly([
+            'total_debitos'  => $this->lines()->sum('debito'),
+            'total_creditos' => $this->lines()->sum('credito'),
+        ]);
     }
 
     public static function generarNumero(string $tipo): string
     {
         $anio = now()->year;
+        // lockForUpdate evita race condition en inserciones simultáneas del mismo tipo
         $ultimo = static::where('tipo', $tipo)
             ->whereYear('created_at', $anio)
+            ->lockForUpdate()
             ->count() + 1;
         return $tipo . '-' . $anio . '-' . str_pad($ultimo, 4, '0', STR_PAD_LEFT);
     }
@@ -75,6 +84,7 @@ class AccountingEntry extends Model
             'ND' => 'Nota Débito',
             'NC' => 'Nota Crédito',
             'CA' => 'Comp. Ajuste',
+            'CR' => 'Comp. Recaudo',
             default => $this->tipo,
         };
     }

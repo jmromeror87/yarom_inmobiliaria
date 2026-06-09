@@ -27,15 +27,17 @@ class VerificarMoraJob implements ShouldQueue
         $empresa  = $company?->razon_social ?? 'Serviarrendar S.A.S';
         $celEmpresa = $company?->celular ?? '';
 
+        // Solo entra en mora después de agotar los días de gracia
         $bills = RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])
-            ->where('fecha_limite_pago', '<', $hoy)
+            ->whereRaw('DATE_ADD(fecha_limite_pago, INTERVAL dias_gracia DAY) < ?', [$hoy])
             ->with(['arrendatario', 'property', 'rentalContract'])
             ->get();
 
         $actualizadas = 0;
 
         foreach ($bills as $bill) {
-            $diasMora = (int) now()->startOfDay()->diffInDays($bill->fecha_limite_pago->startOfDay());
+            $fechaInicioMora = $bill->fecha_limite_pago->copy()->addDays($bill->dias_gracia);
+            $diasMora = (int) $fechaInicioMora->startOfDay()->diffInDays(now()->startOfDay());
 
             // Si el contrato indica mora solo sobre canon (admin la cobra el edificio),
             // usar canon_base como base de cálculo en lugar del saldo_pendiente completo.
@@ -51,8 +53,16 @@ class VerificarMoraJob implements ShouldQueue
                 'estado'            => 'en_mora',
                 'dias_mora'         => $diasMora,
                 'mora_acumulada'    => $mora,
-                'fecha_inicio_mora' => $bill->fecha_inicio_mora ?? $bill->fecha_limite_pago,
+                'fecha_inicio_mora' => $bill->fecha_inicio_mora ?? $fechaInicioMora->toDateString(),
             ]);
+
+            // Renovar token de pago si expiró (inquilino en mora debe poder pagar en línea)
+            if (!$bill->payment_token || $bill->payment_token_expires_at?->isPast()) {
+                $bill->update([
+                    'payment_token'            => bin2hex(random_bytes(32)),
+                    'payment_token_expires_at' => now()->addDays(30)->endOfDay(),
+                ]);
+            }
 
             // Aviso WhatsApp solo la primera vez
             if (!$bill->wap_mora_enviado && $bill->arrendatario?->celular) {
@@ -82,6 +92,14 @@ class VerificarMoraJob implements ShouldQueue
                 } catch (\Throwable $e) {
                     Log::warning("WhatsApp mora falló para {$bill->numero}: " . $e->getMessage());
                 }
+            }
+
+            // Contabilizar mora e intereses del período
+            try {
+                \App\Services\ContabilidadService::generarParaMora($bill, $mora);
+                \App\Services\ContabilidadService::generarProvisionCartera($bill);
+            } catch (\Throwable $e) {
+                Log::warning("Contabilidad mora {$bill->numero}: " . $e->getMessage());
             }
 
             $actualizadas++;

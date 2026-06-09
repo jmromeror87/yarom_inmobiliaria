@@ -10,7 +10,7 @@ class CarteraPorEdadWidget extends ChartWidget
     protected ?string $heading    = 'Cartera por Edades de Mora';
     protected static ?int $sort   = 3;
     protected int|string|array $columnSpan = ['default' => 12, 'lg' => 7];
-    public static function canView(): bool { return false; }
+    public static function canView(): bool { return true; }
     protected ?string $maxHeight  = '280px';
 
     protected function getData(): array

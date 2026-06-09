@@ -7,7 +7,6 @@ use App\Models\AdministrationContractClause;
 use App\Models\ContractClause;
 use App\Models\ContractTemplate;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -48,9 +47,17 @@ class AdministrationContractForm
 
                         Select::make('property_id')
                             ->label('Inmueble')
-                            ->relationship('property', 'codigo')
-                            ->searchable()->preload()->required()
-                            ->live()
+                            ->options(fn ($record) => \App\Models\Property::whereDoesntHave('administrationContracts', fn ($q) =>
+                                    $q->whereIn('estado', ['activo', 'firmado', 'en_revision', 'aprobado_gerencia'])
+                                      ->when($record?->id, fn ($q2) => $q2->where('id', '!=', $record->id))
+                                )
+                                ->get()
+                                ->mapWithKeys(fn ($p) => [
+                                    $p->id => $p->codigo . ' — ' . $p->direccion
+                                ])
+                            )
+                            ->helperText('Solo inmuebles sin contrato de administración activo.')
+                            ->searchable()->required()->live()
                             ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                 if ($state) {
                                     $property = \App\Models\Property::find($state);
@@ -60,6 +67,13 @@ class AdministrationContractForm
                                             $set('canon_pactado', $property->canon_arriendo);
                                         } else {
                                             $set('precio_venta_pactado', $property->precio_venta);
+                                        }
+                                        // Alerta si el inmueble tiene CTL bloqueado
+                                        if ($property->ctl_tiene_limitacion) {
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('⚠️ Inmueble con limitación jurídica')
+                                                ->body('El CTL de este inmueble tiene: ' . $property->ctl_tipo_limitacion . '. Resolver antes de firmar el contrato.')
+                                                ->warning()->persistent()->send();
                                         }
                                     }
                                 }
@@ -86,13 +100,23 @@ class AdministrationContractForm
                             ->options([
                                 'borrador'            => '📝 Borrador',
                                 'enviado_propietario' => '📤 Enviado al propietario',
-                                'en_revision'         => '🔍 En revisión',
-                                'aprobado'            => '✅ Aprobado',
+                                'en_revision'         => '🔍 En revisión propietario',
+                                'aprobado_gerencia'   => '✅ Aprobado por gerencia',
+                                'enviado_notaria'     => '🏛️ Enviado a notaría',
+                                'autenticado_notaria' => '📋 Autenticado en notaría',
                                 'firmado'             => '✍️ Firmado',
                                 'activo'              => '🟢 Activo',
                                 'terminado'           => '🔴 Terminado',
                                 'cancelado'           => '❌ Cancelado',
-                            ])->default('borrador'),
+                            ])
+                            ->default('borrador')
+                            ->helperText(fn (Get $get) => match($get('estado')) {
+                                'firmado'  => 'Cambie a Activo para que el inmueble quede disponible para arrendar.',
+                                'activo'   => 'El inmueble ya aparece disponible en Solicitudes.',
+                                'cancelado'=> 'El inmueble queda disponible nuevamente.',
+                                default    => '',
+                            })
+                            ->live(),
 
                     ])->columns(2),
 
@@ -103,12 +127,15 @@ class AdministrationContractForm
                     ->schema([
                         DatePicker::make('fecha_inicio')
                             ->label('Fecha de inicio')
-                            ->required()->default(now())->live(),
+                            ->required()->default(now())->live()
+                            ->helperText('Fecha desde la cual la inmobiliaria administra el inmueble.'),
 
                         DatePicker::make('fecha_fin')
                             ->label('Fecha de terminación')
                             ->required()
-                            ->default(now()->addYear()),
+                            ->default(now()->addYear())
+                            ->after('fecha_inicio')
+                            ->helperText('Debe ser posterior a la fecha de inicio.'),
 
                         Select::make('renovacion')
                             ->label('Tipo de renovación')
@@ -160,8 +187,8 @@ class AdministrationContractForm
 
                         TextInput::make('cuota_administracion_valor')
                             ->label('Valor cuota administración')
-                            ->numeric()->prefix('$')
-                            ->helperText('Valor mensual de la cuota de administración del conjunto')
+                            ->numeric()->prefix('$')->default(0)->minValue(0)
+                            ->helperText('0 si no aplica conjunto o edificio.')
                             ->visible(fn (Get $get) => $get('tipo_contrato') !== 'administracion_venta'),
 
                         // ── CAMPOS SOLO VENTA ─────────────────────
@@ -180,14 +207,9 @@ class AdministrationContractForm
                         // ── CAMPOS COMUNES ────────────────────────
                         Toggle::make('autoriza_venta')
                             ->label('El propietario autoriza gestión de venta')
-                            ->helperText('Autoriza a la inmobiliaria a promover la venta del inmueble')
-                            ->visible(fn (Get $get) => $get('tipo_contrato') !== 'administracion_venta'),
-
-                        TextInput::make('comision_venta_porcentaje')
-                            ->label('Comisión si se vende el inmueble %')
-                            ->numeric()->suffix('%')->default(3)
-                            ->helperText('Solo aplica si el arrendatario compra el inmueble')
-                            ->visible(fn (Get $get) => $get('tipo_contrato') !== 'administracion_venta'),
+                            ->helperText('Autoriza a la inmobiliaria a promover la venta del inmueble.')
+                            ->visible(fn (Get $get) => $get('tipo_contrato') !== 'administracion_venta')
+                            ->live(),
 
                         Textarea::make('notas')
                             ->label('Notas y observaciones')

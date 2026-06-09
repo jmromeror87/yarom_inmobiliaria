@@ -1,7 +1,6 @@
 <?php
 namespace App\Models;
 
-use App\Services\ContabilidadService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Support\LogOptions;
@@ -9,7 +8,6 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class OwnerLiquidation extends Model
 {
@@ -79,34 +77,20 @@ class OwnerLiquidation extends Model
             }
         });
 
-        // Contabilización automática al crear liquidación
-        static::created(function (OwnerLiquidation $liq) {
-            try {
-                ContabilidadService::generarParaLiquidacion($liq);
-            } catch (\Throwable $e) {
-                Log::warning("Contabilidad liquidación {$liq->numero}: " . $e->getMessage());
-            }
-        });
-
-        // Contabilización automática al registrar giro al propietario
-        static::updated(function (OwnerLiquidation $liq) {
-            if ($liq->wasChanged('estado') && $liq->estado === 'girada' && $liq->fecha_giro) {
-                try {
-                    ContabilidadService::generarParaGiro($liq);
-                } catch (\Throwable $e) {
-                    Log::warning("Contabilidad giro {$liq->numero}: " . $e->getMessage());
-                }
-            }
-        });
+        // Contabilización manejada exclusivamente por OwnerLiquidationObserver — no duplicar aquí
     }
 
     public static function generarDesdeFact(RentBill $bill): static|null
     {
-        $existe = static::where('rental_contract_id', $bill->rental_contract_id)
-            ->where('mes', $bill->mes)->where('anio', $bill->anio)->exists();
-        if ($existe) return null;
+        // Permitir re-liquidar si la anterior fue anulada
+        $existeActiva = static::where('rental_contract_id', $bill->rental_contract_id)
+            ->where('mes', $bill->mes)->where('anio', $bill->anio)
+            ->whereNotIn('estado', ['anulada'])->exists();
+        if ($existeActiva) return null;
 
-        $contrato = $bill->rentalContract;
+        $contrato = $bill->rentalContract()->with(['property.propietario', 'arrendatario', 'administrationContract'])->first();
+        if (!$contrato || !$contrato->property) return null;
+
         $company  = Company::first();
 
         $comisionPct = $contrato->administrationContract?->comision_porcentaje
@@ -114,9 +98,18 @@ class OwnerLiquidation extends Model
 
         $ivaPct  = (float)($company?->tarifa_iva ?? 19);
         $retePct = (float)($company?->tarifa_retefuente_arrendamiento ?? 3.5);
-        $aplicaRete = false; // TODO: $contrato->arrendatario->es_agente_retenedor
 
-        $canon         = (float)$bill->total_pagado;
+        // Retefuente aplica solo si el arrendatario es agente retenedor (persona jurídica)
+        $aplicaRete = $contrato->arrendatario?->tipo_persona === 'juridica';
+
+        // Canon base sin mora — la mora es ingreso de la inmobiliaria, no del propietario
+        $canon = (float)$bill->canon_base;
+
+        // Si la cuota de administración la cobra la inmobiliaria para el propietario, incluirla
+        if ($contrato->admin_cobrada_por === 'inmobiliaria') {
+            $canon += (float)$bill->cuota_administracion;
+        }
+
         $comisionValor = round($canon * ($comisionPct / 100), 2);
         $ivaComision   = round($comisionValor * ($ivaPct  / 100), 2);
         $retefuente    = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;

@@ -25,7 +25,7 @@ class AccountingCostCenterResource extends Resource
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
     protected static ?string $navigationLabel = 'Centros de Costo';
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {

@@ -38,6 +38,22 @@ class RentBillResource extends Resource
         return 'Cobros';
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = \App\Models\RentBill::where('estado', 'en_mora')
+            ->orWhere(function ($q) {
+                $q->whereNotIn('estado', ['pagada'])
+                  ->whereDate('fecha_limite_pago', '<', now());
+            })->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'danger';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return RentBillForm::configure($schema);

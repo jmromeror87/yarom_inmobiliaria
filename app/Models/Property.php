@@ -40,7 +40,7 @@ class Property extends Model
     }
     protected $table = 'properties';
     protected $fillable = [
-        'codigo','property_type_id','propietario_id',
+        'codigo','property_type_id','destinacion','propietario_id',
         'direccion','barrio','conjunto_edificio','apto_casa_oficina',
         'municipio_id','departamento_id','latitud','longitud',
         'estrato','area_construida_m2','area_privada_m2','area_total_m2',
@@ -51,9 +51,14 @@ class Property extends Model
         'avaluo_catastral','avaluo_comercial','anio_avaluo',
         'disponible_arriendo','disponible_venta','estado',
         'doc_escritura','doc_certificado_libertad','doc_certificado_libertad_fecha',
-        'doc_predial','doc_paz_salvo_admin','doc_documento_propietario','doc_recibo_servicios','doc_escritura_path','doc_certificado_libertad_path','doc_predial_path','doc_paz_salvo_admin_path','doc_propietario_path','doc_recibo_servicios_path',
+        'ctl_tiene_limitacion','ctl_tipo_limitacion','ctl_observacion_limitacion',
+        'doc_predial','doc_paz_salvo_admin','doc_documento_propietario',
+        'doc_recibo_servicios','doc_recibo_tipo','doc_recibo_periodo',
+        'doc_escritura_path','doc_certificado_libertad_path','doc_predial_path',
+        'doc_paz_salvo_admin_path','doc_propietario_path','doc_recibo_servicios_path',
         'fecha_captacion','fecha_disponible','descripcion_publica','notas_internas',
-        'coeficiente_copropiedad','escritura_ph_numero','porcentaje_propiedad','servicios_publicos','coeficiente_copropiedad','escritura_ph_numero','porcentaje_propiedad','servicios_publicos','asesor_id','is_active',
+        'coeficiente_copropiedad','escritura_ph_numero','porcentaje_propiedad',
+        'servicios_publicos','asesor_id','is_active',
     ];
 
     protected $casts = [
@@ -67,7 +72,8 @@ class Property extends Model
         'disponible_arriendo'  => 'boolean',
         'disponible_venta'     => 'boolean',
         'doc_escritura'        => 'boolean',
-        'doc_certificado_libertad' => 'boolean',
+        'doc_certificado_libertad'  => 'boolean',
+        'ctl_tiene_limitacion'      => 'boolean',
         'doc_predial'          => 'boolean',
         'doc_paz_salvo_admin'  => 'boolean',
         'doc_documento_propietario' => 'boolean',
@@ -76,20 +82,47 @@ class Property extends Model
         'fecha_captacion'      => 'date',
         'fecha_disponible'     => 'date',
         'doc_certificado_libertad_fecha' => 'date',
-        'canon_arriendo'       => 'decimal:2',
-        'cuota_administracion' => 'decimal:2',
-        'precio_venta'         => 'decimal:2',
-        'avaluo_catastral'     => 'decimal:2',
-        'avaluo_comercial'     => 'decimal:2',
+        'canon_arriendo'        => 'decimal:2',
+        'cuota_administracion'  => 'decimal:2',
+        'precio_venta'          => 'decimal:2',
+        'avaluo_catastral'      => 'decimal:2',
+        'avaluo_comercial'      => 'decimal:2',
+        'area_construida_m2'    => 'decimal:2',
+        'area_privada_m2'       => 'decimal:2',
+        'area_total_m2'         => 'decimal:2',
+        'coeficiente_copropiedad' => 'decimal:4',
+        'porcentaje_propiedad'  => 'decimal:4',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (Property $p) {
             if (empty($p->codigo)) {
+                // Uso de lockForUpdate para evitar race condition en creación simultánea
                 $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->count() + 1;
+                $count = \DB::table('properties')
+                    ->whereYear('created_at', $year)
+                    ->lockForUpdate()
+                    ->count() + 1;
                 $p->codigo = 'INM-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            }
+        });
+
+        static::saving(function (Property $p) {
+            // Solo aplicar auto-estado si el estado está cambiando desde el formulario
+            // No interferir cuando el cambio viene desde contratos (administración o arriendo)
+            if (!$p->isDirty('estado')) return;
+
+            // CTL bloqueado — siempre aplica
+            if ($p->ctl_tiene_limitacion && !in_array($p->estado, ['arrendado', 'vendido'])) {
+                $p->estado = 'documentos_pendientes';
+                return;
+            }
+
+            // Si viene de un contrato de administración activado → respetar 'disponible'
+            // El contrato ya validó documentos en su propio flujo
+            if ($p->estado === 'disponible' && $p->getOriginal('estado') !== 'disponible') {
+                return; // Respetar el cambio externo
             }
         });
     }
@@ -105,26 +138,41 @@ class Property extends Model
     public function documents() { return $this->hasMany(PropertyDocument::class); }
     public function asesor(): BelongsTo { return $this->belongsTo(User::class, 'asesor_id'); }
 
+    // Documentos obligatorios para avanzar a contrato
+    private function docsObligatorios(): array
+    {
+        return [
+            'CTL'           => $this->doc_certificado_libertad,
+            'Cédula prop.'  => $this->doc_documento_propietario,
+            'Recibo serv.'  => $this->doc_recibo_servicios,
+        ];
+    }
+
+    // Documentos deseables (no bloquean pero suman al porcentaje)
+    private function docsDeseables(): array
+    {
+        return [
+            'Escritura'     => $this->doc_escritura,
+            'Predial'       => $this->doc_predial,
+            'Paz salvo adm.'=> $this->doc_paz_salvo_admin,
+        ];
+    }
+
     public function getDocumentosCompletosAttribute(): bool
     {
-        return $this->doc_escritura &&
-               $this->doc_certificado_libertad &&
-               $this->doc_predial &&
-               $this->doc_paz_salvo_admin &&
-               $this->doc_documento_propietario;
+        return !in_array(false, $this->docsObligatorios(), true)
+            && !$this->ctl_tiene_limitacion;
     }
 
     public function getPorcentajeDocumentosAttribute(): int
     {
-        $docs = [
-            $this->doc_escritura,
-            $this->doc_certificado_libertad,
-            $this->doc_predial,
-            $this->doc_paz_salvo_admin,
-            $this->doc_documento_propietario,
-            $this->doc_recibo_servicios,
-        ];
-        return (int) round((array_sum($docs) / count($docs)) * 100);
+        $todos = array_merge($this->docsObligatorios(), $this->docsDeseables());
+        return (int) round((array_sum($todos) / count($todos)) * 100);
+    }
+
+    public function getDocumentosFaltantesAttribute(): array
+    {
+        return array_keys(array_filter($this->docsObligatorios(), fn ($v) => !$v));
     }
 
     public function scopeDisponibles($q)  { return $q->where('estado', 'disponible'); }

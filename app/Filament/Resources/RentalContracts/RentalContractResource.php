@@ -30,6 +30,20 @@ class RentalContractResource extends Resource
 
     public static function getNavigationGroup(): ?string { return 'Contratación'; }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = \App\Models\RentalContract::where('estado', 'activo')
+            ->whereDate('fecha_fin', '<=', now()->addDays(30))
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return RentalContractForm::configure($schema);

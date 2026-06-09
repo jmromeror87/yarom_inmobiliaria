@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk -F\"'\" '{print $2}')",
+      "Bash(grep -B 1 \"^\\\\s*}$\")",
+      "Bash(awk '{print $2}')",
+      "Bash([ ! -f \"/Users/jmromeror87/yarom-inmobiliaria/app/Http/Controllers/$c.php\" ])",
+      "Bash(xargs -I {} basename {} .php)",
+      "Bash(grep -v \"^\\\\s*$\")"
+    ]
+  }
+}

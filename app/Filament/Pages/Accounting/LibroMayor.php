@@ -15,7 +15,7 @@ class LibroMayor extends Page
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-table-cells';
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
     protected static ?string $navigationLabel = 'Libro Mayor';
-    protected static ?int    $navigationSort  = 5;
+    protected static ?int    $navigationSort  = 6;
 
     public ?int $account_id = null;
     public ?int $periodo_id = null;

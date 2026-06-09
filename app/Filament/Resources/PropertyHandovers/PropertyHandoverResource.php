@@ -36,6 +36,18 @@ class PropertyHandoverResource extends Resource
         return 'Contratación';
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = \App\Models\PropertyHandover::whereIn('estado', ['borrador', 'en_proceso'])->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PropertyHandoverForm::configure($schema);

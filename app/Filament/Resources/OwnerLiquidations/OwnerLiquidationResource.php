@@ -1,7 +1,6 @@
 <?php
 namespace App\Filament\Resources\OwnerLiquidations;
 
-use App\Filament\Resources\OwnerLiquidations\Pages\CreateOwnerLiquidation;
 use App\Filament\Resources\OwnerLiquidations\Pages\EditOwnerLiquidation;
 use App\Filament\Resources\OwnerLiquidations\Pages\ListOwnerLiquidations;
 use App\Filament\Resources\OwnerLiquidations\Schemas\OwnerLiquidationForm;
@@ -31,6 +30,11 @@ class OwnerLiquidationResource extends Resource
     use HasResourcePermissions;
 
     protected static string $permissionPrefix = 'liquidaciones';
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return (bool) auth()->user()?->can('aprobar_liquidaciones');
+    }
     protected static ?string $model = OwnerLiquidation::class;
 
     public static function getNavigationIcon(): string { return 'heroicon-o-banknotes'; }
@@ -150,10 +154,73 @@ class OwnerLiquidationResource extends Resource
 
                 TableAction::make('enviar_wap')
                     ->label('WhatsApp')->icon('heroicon-o-chat-bubble-left-ellipsis')->color('success')
-                    ->visible(fn(OwnerLiquidation $r) => in_array($r->estado,['aprobada','pagada']) && !$r->wap_enviado)
+                    ->visible(fn(OwnerLiquidation $r) => in_array($r->estado, ['aprobada', 'pagada']))
                     ->action(function(OwnerLiquidation $r) {
-                        $r->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
-                        Notification::make()->title('WhatsApp enviado al propietario')->success()->send();
+                        $propietario = $r->propietario;
+                        $celular     = $propietario?->celular;
+
+                        if (!$celular) {
+                            Notification::make()->title('El propietario no tiene celular registrado')->danger()->send();
+                            return;
+                        }
+
+                        $company  = \App\Models\Company::first();
+                        $empresa  = $company?->razon_social ?? 'Serviarrendar S.A.S';
+                        $meses    = [1=>'Enero',2=>'Febrero',3=>'Marzo',4=>'Abril',5=>'Mayo',6=>'Junio',7=>'Julio',8=>'Agosto',9=>'Septiembre',10=>'Octubre',11=>'Noviembre',12=>'Diciembre'];
+                        $periodo  = ($meses[$r->mes] ?? $r->mes) . ' ' . $r->anio;
+
+                        $msg = "🏠 *Liquidación de Arrendamiento*\n\n"
+                            . "Estimado(a) {$propietario->nombre_completo},\n\n"
+                            . "📋 *{$r->numero}* — Período: {$periodo}\n"
+                            . "🏠 Inmueble: {$r->property?->codigo} — {$r->property?->direccion}\n\n"
+                            . "💰 Canon cobrado: \$" . number_format($r->canon_cobrado, 0, ',', '.') . " COP\n"
+                            . "📉 Comisión adm. ({$r->comision_porcentaje}%): -\$" . number_format($r->comision_valor, 0, ',', '.') . " COP\n"
+                            . "📉 IVA comisión: -\$" . number_format($r->iva_comision, 0, ',', '.') . " COP\n"
+                            . ($r->retefuente_valor > 0 ? "📉 Retefuente: -\$" . number_format($r->retefuente_valor, 0, ',', '.') . " COP\n" : '')
+                            . ($r->otros_descuentos > 0 ? "📉 Otros descuentos: -\$" . number_format($r->otros_descuentos, 0, ',', '.') . " COP\n" : '')
+                            . "💵 *Total a girar: \$" . number_format($r->total_giro, 0, ',', '.') . " COP*\n\n"
+                            . ($r->estado === 'pagada' && $r->fecha_giro
+                                ? "✅ Giro realizado el {$r->fecha_giro->format('d/m/Y')} — {$r->forma_giro}\n\n"
+                                : "⏳ Pendiente de giro.\n\n")
+                            . "— {$empresa}\n☎️ " . ($company?->celular ?? '318 693 4710');
+
+                        $wap     = app(\App\Services\WhatsAppService::class);
+                        $enviado = false;
+
+                        if ($wap->isConnected()) {
+                            // Generar PDF temporal para adjuntar
+                            try {
+                                $r->load(['propietario','property.tipo','rentalContract.arrendatario','statusHistories.usuario']);
+                                $company2    = \App\Models\Company::with('municipio')->first();
+                                $logoBase64  = null;
+                                if ($company2?->logo_path) {
+                                    $p = storage_path('app/public/' . $company2->logo_path);
+                                    if (file_exists($p)) $logoBase64 = 'data:' . mime_content_type($p) . ';base64,' . base64_encode(file_get_contents($p));
+                                }
+                                $liquidation = $r;
+                                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.liquidacion-propietario', compact('liquidation','company2','logoBase64'))->setPaper('letter','portrait');
+                                $tmpPath = storage_path('app/tmp/liq-' . $r->numero . '-' . time() . '.pdf');
+                                if (!is_dir(dirname($tmpPath))) mkdir(dirname($tmpPath), 0755, true);
+                                file_put_contents($tmpPath, $pdf->output());
+                                $res     = $wap->enviarConArchivo($celular, $msg, $tmpPath, 'Liquidacion-' . $r->numero . '.pdf');
+                                $enviado = $res['ok'] ?? false;
+                                if (file_exists($tmpPath)) @unlink($tmpPath);
+                            } catch (\Throwable) {
+                                $res     = $wap->enviar($celular, $msg);
+                                $enviado = $res['ok'] ?? false;
+                            }
+                        }
+
+                        if ($enviado) {
+                            $r->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
+                            Notification::make()->title('✅ Liquidación enviada al propietario por WhatsApp')->success()->send();
+                        } else {
+                            $fallback = \App\Helpers\WhatsApp::urlFallback($celular, $msg);
+                            Notification::make()
+                                ->title('WhatsApp no disponible — abra el enlace manualmente')
+                                ->body($fallback)
+                                ->warning()->send();
+                        }
                     }),
 
                 TableAction::make('historial')
@@ -165,6 +232,11 @@ class OwnerLiquidationResource extends Resource
                     ))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar'),
+
+                TableAction::make('pdf')
+                    ->label('PDF')->icon('heroicon-o-arrow-down-tray')->color('gray')
+                    ->url(fn(OwnerLiquidation $r) => route('liquidacion.pdf', $r))
+                    ->openUrlInNewTab(),
 
                 EditAction::make()->label('Editar'),
                 DeleteAction::make()->label('Eliminar'),
@@ -192,6 +264,20 @@ class OwnerLiquidationResource extends Resource
                         }
                         Notification::make()->title("{$n} liquidaciones generadas")->success()->send();
                     }),
+                TableAction::make('reporte_pdf')
+                    ->label('Reporte PDF del mes')->icon('heroicon-o-document-arrow-down')->color('gray')
+                    ->schema([
+                        Forms\Components\Select::make('mes')->label('Mes')
+                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
+                            ->required()->default(now()->month),
+                        Forms\Components\TextInput::make('anio')->label('Año')->numeric()->required()->default(now()->year),
+                    ])
+                    ->action(function(array $data) {
+                        $url = route('liquidacion.reporte.pdf', ['mes' => $data['mes'], 'anio' => $data['anio']]);
+                        // Abrir en nueva pestaña via JS
+                        $this->js("window.open('{$url}', '_blank')");
+                    }),
+
                 BulkActionGroup::make([
                     BulkAction::make('aprobar_lote')
                         ->label('Aprobar seleccionadas')->icon('heroicon-o-check-badge')->color('info')
@@ -213,7 +299,6 @@ class OwnerLiquidationResource extends Resource
     {
         return [
             'index'  => ListOwnerLiquidations::route('/'),
-            'create' => CreateOwnerLiquidation::route('/create'),
             'edit'   => EditOwnerLiquidation::route('/{record}/edit'),
         ];
     }

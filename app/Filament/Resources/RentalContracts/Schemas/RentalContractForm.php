@@ -63,11 +63,15 @@ class RentalContractForm
                         // ── Inmueble: solo con contrato admin activo ──
                         Select::make('property_id')
                             ->label('Inmueble')
-                            ->options(fn () =>
+                            ->options(fn ($record) =>
                                 Property::with(['tipo','administrationContracts'])
                                     ->where('estado', 'disponible')
                                     ->whereHas('administrationContracts', fn ($q) =>
                                         $q->whereIn('estado', ['activo','firmado'])
+                                    )
+                                    ->whereDoesntHave('rentalContracts', fn ($q) =>
+                                        $q->whereIn('estado', ['activo', 'firmado', 'aprobado', 'enviado_arrendatario'])
+                                          ->when($record?->id, fn ($q2) => $q2->where('id', '!=', $record->id))
                                     )
                                     ->get()
                                     ->mapWithKeys(fn ($p) => [
@@ -75,7 +79,7 @@ class RentalContractForm
                                     ])
                             )
                             ->searchable()->required()->live()
-                            ->helperText('Solo inmuebles con contrato de administración activo')
+                            ->helperText('Solo inmuebles disponibles sin contrato de arriendo activo.')
                             ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                 if (!$state) return;
                                 $p = Property::with(['administrationContracts'])->find($state);
@@ -109,16 +113,18 @@ class RentalContractForm
                             ->label('📋 Solicitud de estudio aprobada')
                             ->options(fn (Get $get) =>
                                 Solicitud::where('tipo', 'estudio_arrendatario')
-                                    ->where('estado', 'aprobada')
+                                    ->whereIn('estado', ['aprobada', 'aprobada_gerente'])
                                     ->when($get('property_id'), fn ($q, $pid) => $q->where('property_id', $pid))
                                     ->with(['thirds.third'])
                                     ->get()
                                     ->mapWithKeys(fn ($s) => [
-                                        $s->id => $s->numero . ' — ' . $s->thirds->where('rol','titular')->first()?->third?->nombre_completo . ' (Aprobada Sura)'
+                                        $s->id => $s->numero . ' — '
+                                            . $s->thirds->where('rol','titular')->first()?->third?->nombre_completo
+                                            . ' (' . ($s->estado === 'aprobada_gerente' ? 'Aprobada Gerencia' : 'Aprobada SURA') . ')'
                                     ])
                             )
                             ->searchable()->required()->live()
-                            ->helperText('Seleccione la solicitud aprobada por Suramericana')
+                            ->helperText('Muestra solicitudes aprobadas por SURA o por gerencia.')
                             ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                 if (!$state) return;
                                 $solicitud = Solicitud::with(['thirds.third'])->find($state);
@@ -220,11 +226,17 @@ class RentalContractForm
                     ->icon('heroicon-o-banknotes')
                     ->schema([
                         TextInput::make('canon_mensual')
-                            ->label('Canon mensual')->numeric()->prefix('$')->required(),
+                            ->label('Canon mensual')
+                            ->numeric()->prefix('$')->required()
+                            ->minValue(1)
+                            ->helperText('Valor mensual pactado con el arrendatario.'),
 
                         TextInput::make('deposito')
-                            ->label('Depósito en garantía')->numeric()->prefix('$')->default(0)
-                            ->live(onBlur: true),
+                            ->label('Depósito en garantía')
+                            ->numeric()->prefix('$')->default(0)
+                            ->minValue(0)
+                            ->live(onBlur: true)
+                            ->helperText('Generalmente equivale a 1 canon mensual.'),
 
                         Select::make('estado_deposito')
                             ->label('Estado del depósito')
@@ -241,11 +253,21 @@ class RentalContractForm
                         TextInput::make('deposito_pagado')
                             ->label('Depósito ya recibido ($)')
                             ->numeric()->prefix('$')->default(0)
+                            ->minValue(0)
+                            ->rules([
+                                fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    if ((float)$value > (float)$get('deposito')) {
+                                        $fail('El depósito recibido no puede superar el depósito total pactado.');
+                                    }
+                                },
+                            ])
                             ->visible(fn (Get $get) => $get('estado_deposito') === 'en_cartera')
-                            ->helperText('Monto que el arrendatario ya entregó (el resto va a cartera)'),
+                            ->helperText('Monto que el arrendatario ya entregó (el resto va a cartera).'),
 
                         TextInput::make('cuota_administracion')
-                            ->label('Cuota de administración')->numeric()->prefix('$')->default(0),
+                            ->label('Cuota de administración')
+                            ->numeric()->prefix('$')->default(0)
+                            ->minValue(0),
 
                         Select::make('admin_cobrada_por')
                             ->label('¿Quién cobra la administración?')
@@ -314,7 +336,8 @@ class RentalContractForm
 
                         DatePicker::make('fecha_fin')
                             ->label('Fecha de terminación')->required()
-                            ->helperText('Se calcula automáticamente'),
+                            ->after('fecha_inicio')
+                            ->helperText('Se calcula automáticamente — debe ser posterior al inicio.'),
                     ])->columns(2),
 
                 // ── PASO 5: Deudores (auto desde solicitud) ──────

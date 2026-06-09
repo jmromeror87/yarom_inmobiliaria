@@ -48,16 +48,22 @@ class AdministrationContract extends Model
     protected $fillable = [
         'numero_contrato','contract_template_id','property_id','propietario_id','asesor_id',
         'tipo_contrato','fecha_inicio','fecha_fin','renovacion','dias_aviso_terminacion',
-        'canon_pactado','comision_porcentaje','comision_venta_porcentaje',
+        'canon_pactado','comision_porcentaje','incluye_administracion','cuota_administracion_valor',
+        'autoriza_venta','comision_venta_porcentaje','precio_venta_pactado',
         'estado','fecha_firma','firmado_por','notas',
     ];
 
     protected $casts = [
-        'fecha_inicio' => 'date',
-        'fecha_fin'    => 'date',
-        'fecha_firma'  => 'date',
-        'canon_pactado'         => 'decimal:2',
-        'comision_porcentaje'   => 'decimal:2',
+        'fecha_inicio'              => 'date',
+        'fecha_fin'                 => 'date',
+        'fecha_firma'               => 'date',
+        'canon_pactado'             => 'decimal:2',
+        'comision_porcentaje'       => 'decimal:2',
+        'comision_venta_porcentaje' => 'decimal:2',
+        'cuota_administracion_valor'=> 'decimal:2',
+        'precio_venta_pactado'      => 'decimal:2',
+        'incluye_administracion'    => 'boolean',
+        'autoriza_venta'            => 'boolean',
     ];
 
     // ── Estados del flujo legal colombiano ──────────────────
@@ -74,13 +80,32 @@ class AdministrationContract extends Model
         'cancelado'            => 'Cancelado',
     ];
 
-    // ── Estados que bloquean edición ─────────────────────────
-    const ESTADOS_CERRADOS = ['activo', 'terminado', 'cancelado'];
-    const ESTADOS_READONLY = ['firmado', 'activo', 'terminado', 'cancelado'];
+    // ── Estados que bloquean edición de contenido ────────────
+    const ESTADOS_CERRADOS = ['terminado', 'cancelado'];
+    const ESTADOS_READONLY = ['activo', 'terminado', 'cancelado'];
+
+    protected $attributes = [
+        'estado'                    => 'borrador',
+        'renovacion'                => 'automatica',
+        'dias_aviso_terminacion'    => 30,
+        'comision_porcentaje'       => 10,
+        'comision_venta_porcentaje' => 3,
+        'cuota_administracion_valor'=> 0,
+        'incluye_administracion'    => false,
+        'autoriza_venta'            => false,
+    ];
 
     protected static function booted(): void
     {
         static::creating(function ($c) {
+            // Garantizar defaults aunque el form no los envíe
+            $c->cuota_administracion_valor = $c->cuota_administracion_valor ?? 0;
+            $c->comision_porcentaje        = $c->comision_porcentaje ?? 10;
+            $c->comision_venta_porcentaje  = $c->comision_venta_porcentaje ?? 3;
+            $c->dias_aviso_terminacion     = $c->dias_aviso_terminacion ?? 30;
+            $c->incluye_administracion     = $c->incluye_administracion ?? false;
+            $c->autoriza_venta             = $c->autoriza_venta ?? false;
+
             if (empty($c->numero_contrato)) {
                 $year  = now()->year;
                 $ultimo = static::whereYear('created_at', $year)->max('numero_contrato'); $count = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
@@ -101,13 +126,14 @@ class AdministrationContract extends Model
                     'cambiado_en'     => now(),
                 ]);
 
-                // Si pasa a activo → actualizar inmueble a arrendado
+                // Contrato activo → inmueble disponible para recibir solicitudes de arriendo
                 if ($c->estado === 'activo') {
                     Property::find($c->property_id)?->update(['estado' => 'disponible']);
                 }
-                // Si se cancela → inmueble vuelve a disponible
-                if ($c->estado === 'cancelado') {
-                    Property::find($c->property_id)?->update(['estado' => 'disponible']);
+
+                // Contrato terminado o cancelado → inmueble vuelve a captación
+                if (in_array($c->estado, ['terminado', 'cancelado'])) {
+                    Property::find($c->property_id)?->update(['estado' => 'en_captacion']);
                 }
             }
         });

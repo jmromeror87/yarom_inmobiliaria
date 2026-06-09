@@ -19,13 +19,15 @@ namespace App\Filament\Resources\Thirds\Schemas;
 
 use App\Models\Departamento;
 use App\Models\Municipio;
+use App\Models\Third;
 use App\Forms\Components\MapboxAddressInput;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard;
@@ -78,7 +80,54 @@ class ThirdForm
 
                         TextInput::make('numero_documento')
                             ->label('Número de documento')
-                            ->required()->unique('thirds', 'numero_documento', ignoreRecord: true),
+                            ->required()
+                            ->unique('thirds', 'numero_documento', ignoreRecord: true)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Set $set, Get $get, $record) {
+                                if (blank($state)) return;
+
+                                $existente = Third::where('numero_documento', trim($state))
+                                    ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
+                                    ->first();
+
+                                if (!$existente) return;
+
+                                // Auto-llenar campos con datos existentes
+                                $set('primer_nombre',    $existente->primer_nombre);
+                                $set('segundo_nombre',   $existente->segundo_nombre);
+                                $set('primer_apellido',  $existente->primer_apellido);
+                                $set('segundo_apellido', $existente->segundo_apellido);
+                                $set('razon_social',     $existente->razon_social);
+                                $set('tipo_persona',     $existente->tipo_persona);
+                                $set('tipo_documento',   $existente->tipo_documento);
+                                $set('lugar_expedicion', $existente->lugar_expedicion);
+                                $set('fecha_expedicion', $existente->fecha_expedicion?->format('Y-m-d'));
+                                $set('genero',           $existente->genero);
+                                $set('fecha_nacimiento', $existente->fecha_nacimiento?->format('Y-m-d'));
+                                $set('celular',          $existente->celular);
+                                $set('celular_alt',      $existente->celular_alt);
+                                $set('email',            $existente->email);
+                                $set('direccion_residencia', $existente->direccion_residencia);
+                                $set('municipio_id',     $existente->municipio_id);
+                                $set('departamento_id',  $existente->departamento_id);
+
+                                Notification::make()
+                                    ->title('⚠️ Tercero ya existe en el sistema')
+                                    ->body("CC {$existente->numero_documento} — {$existente->nombre_completo}. Se cargaron sus datos. Si desea editarlo, use el botón Editar desde la lista.")
+                                    ->warning()
+                                    ->persistent()
+                                    ->send();
+                            }),
+
+                        TextInput::make('lugar_expedicion')
+                            ->label('Lugar de expedición')
+                            ->placeholder('Ocaña, Norte de Santander')
+                            ->visible(fn (Get $get) => in_array($get('tipo_documento'), ['CC','CE','TI'])),
+
+                        DatePicker::make('fecha_expedicion')
+                            ->label('Fecha de expedición')
+                            ->maxDate(now())
+                            ->visible(fn (Get $get) => in_array($get('tipo_documento'), ['CC','CE','TI'])),
 
                         Select::make('fuente_captacion')
                             ->label('Fuente de captación')
@@ -153,7 +202,25 @@ class ThirdForm
                         TextInput::make('whatsapp')
                             ->label('WhatsApp')->placeholder('+57 300 0000000'),
                         TextInput::make('email')
-                            ->label('Correo electrónico principal')->email(),
+                            ->label('Correo electrónico principal')
+                            ->email()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Get $get, $record) {
+                                if (blank($state)) return;
+
+                                $existente = Third::where('email', trim($state))
+                                    ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
+                                    ->first();
+
+                                if (!$existente) return;
+
+                                Notification::make()
+                                    ->title('⚠️ Correo ya registrado')
+                                    ->body("Este correo pertenece a {$existente->nombre_completo} (CC {$existente->numero_documento}). Verifique antes de continuar.")
+                                    ->warning()
+                                    ->persistent()
+                                    ->send();
+                            }),
                         TextInput::make('email_alt')
                             ->label('Correo alternativo')->email(),
                     ])->columns(2),
@@ -191,7 +258,8 @@ class ThirdForm
                     ->icon('heroicon-o-briefcase')
                     ->visible(fn (Get $get) => !$get('es_propietario') && !$get('es_cliente_compra'))
                     ->schema([
-                        Select::make('tipo_empleo')->label('Tipo de empleo')
+                        Select::make('tipo_empleo')
+                            ->label('Tipo de empleo')
                             ->options([
                                 'dependiente'   => 'Empleado dependiente',
                                 'independiente' => 'Independiente / Empresario',
@@ -199,24 +267,64 @@ class ThirdForm
                                 'rentista'      => 'Rentista de capital',
                                 'desempleado'   => 'Desempleado',
                                 'otro'          => 'Otro',
-                            ]),
-                        TextInput::make('empresa_donde_trabaja')->label('Empresa donde trabaja'),
-                        TextInput::make('cargo')->label('Cargo'),
-                        TextInput::make('telefono_empresa')->label('Teléfono empresa'),
-                        MapboxAddressInput::make('direccion_empresa')->label('Dirección empresa'),
+                            ])
+                            ->live()
+                            ->columnSpanFull(),
+
+                        // Solo empleado dependiente
+                        TextInput::make('empresa_donde_trabaja')
+                            ->label('Empresa donde trabaja')
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'dependiente'),
+
+                        TextInput::make('cargo')
+                            ->label('Cargo')
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'dependiente'),
+
+                        TextInput::make('telefono_empresa')
+                            ->label('Teléfono empresa')
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'dependiente'),
+
                         TextInput::make('meses_empleo_actual')
-                            ->label('Meses en empleo actual')->numeric(),
+                            ->label('Meses en empleo actual')
+                            ->numeric()
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'dependiente'),
+
+                        MapboxAddressInput::make('direccion_empresa')
+                            ->label('Dirección empresa')
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'dependiente')
+                            ->columnSpanFull(),
+
+                        // Independiente / Empresario
+                        TextInput::make('empresa_donde_trabaja')
+                            ->label('Nombre del negocio / empresa')
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'independiente'),
+
+                        TextInput::make('cargo')
+                            ->label('Actividad económica')
+                            ->visible(fn (Get $get) => $get('tipo_empleo') === 'independiente'),
+
+                        // Ingresos — aplica a todos menos desempleado
                         TextInput::make('ingresos_mensuales')
-                            ->label('Ingresos mensuales ($)')->numeric()->prefix('$'),
+                            ->label('Ingresos mensuales ($)')
+                            ->numeric()->prefix('$')
+                            ->visible(fn (Get $get) => !in_array($get('tipo_empleo'), ['desempleado', null, ''])),
+
                         TextInput::make('otros_ingresos')
-                            ->label('Otros ingresos ($)')->numeric()->prefix('$'),
+                            ->label('Otros ingresos ($)')
+                            ->numeric()->prefix('$')
+                            ->visible(fn (Get $get) => !in_array($get('tipo_empleo'), [null, ''])),
+
                         Textarea::make('descripcion_otros_ingresos')
-                            ->label('Descripción otros ingresos')->rows(2),
+                            ->label('Descripción otros ingresos')
+                            ->rows(2)
+                            ->visible(fn (Get $get) => !in_array($get('tipo_empleo'), [null, '']))
+                            ->columnSpanFull(),
                     ])->columns(2),
 
                 Step::make('Datos Bancarios')
                     ->description('Para pagos al propietario')
                     ->icon('heroicon-o-banknotes')
+                    ->visible(fn (Get $get) => $get('es_propietario') || $get('es_proveedor'))
                     ->schema([
                         TextInput::make('banco')->label('Banco')
                             ->placeholder('Bancolombia, Davivienda, BBVA...'),
@@ -266,9 +374,9 @@ class ThirdForm
                     ])->columns(2),
 
                 Step::make('Evaluación Crediticia')
-                    ->description('Centrales de riesgo y garantía')
+                    ->description('Resultado histórico — el estudio se gestiona en Solicitudes')
                     ->icon('heroicon-o-shield-check')
-                    ->visible(fn (Get $get) => !$get('es_propietario') && !$get('es_cliente_compra'))
+                    ->visible(fn (Get $get) => false)
                     ->schema([
                         Select::make('estado_crediticio')->label('Estado crediticio')
                             ->options([
@@ -299,6 +407,103 @@ class ThirdForm
                             ->label('Aseguradora')
                             ->placeholder('Mapfre, Sura, Bolívar...'),
                         TextInput::make('numero_poliza')->label('Número de póliza'),
+                    ])->columns(2),
+
+                Step::make('Habeas Data')
+                    ->description('Autorización tratamiento de datos — Ley 1581/2012')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        Toggle::make('habeas_data_aceptado')
+                            ->label('El tercero autoriza el tratamiento de sus datos personales')
+                            ->helperText('Obligatorio antes de guardar cualquier dato. Ley 1581/2012.')
+                            ->required()
+                            ->live()
+                            ->columnSpanFull(),
+
+                        Select::make('habeas_data_metodo')
+                            ->label('Método de firma')
+                            ->options([
+                                'fisica'       => '✍️ Firma física (documento impreso)',
+                                'electronica'  => '📱 Firma electrónica',
+                                'verbal_grabada' => '🎙️ Verbal grabada',
+                            ])
+                            ->visible(fn (Get $get) => $get('habeas_data_aceptado'))
+                            ->required(fn (Get $get) => $get('habeas_data_aceptado')),
+
+                        DatePicker::make('habeas_data_fecha')
+                            ->label('Fecha de firma')
+                            ->default(now())
+                            ->maxDate(now())
+                            ->visible(fn (Get $get) => $get('habeas_data_aceptado'))
+                            ->required(fn (Get $get) => $get('habeas_data_aceptado')),
+                    ])->columns(2),
+
+                Step::make('KYC / SARLAFT')
+                    ->description('Vinculación — Circ. Ext. 007/2018 SFC')
+                    ->icon('heroicon-o-document-magnifying-glass')
+                    ->visible(fn (Get $get) => $get('es_propietario') || $get('es_arrendatario') || $get('es_fiador'))
+                    ->schema([
+                        Select::make('kyc_actividad_economica')
+                            ->label('Actividad económica')
+                            ->options([
+                                'empleado'          => 'Empleado dependiente',
+                                'independiente'     => 'Independiente / Empresario',
+                                'pensionado'        => 'Pensionado',
+                                'rentista_capital'  => 'Rentista de capital',
+                                'comerciante'       => 'Comerciante',
+                                'agricultor'        => 'Agricultor / Ganadero',
+                                'profesional_libre' => 'Profesional libre ejercicio',
+                                'otro'              => 'Otro',
+                            ])
+                            ->required()
+                            ->columnSpanFull(),
+
+                        Textarea::make('kyc_declaracion_fondos')
+                            ->label('Declaración de origen de fondos')
+                            ->placeholder('Describa el origen de los recursos con los que adquirió o mantiene el inmueble...')
+                            ->helperText('El tercero declara que los recursos provienen de actividades lícitas.')
+                            ->rows(3)
+                            ->required()
+                            ->columnSpanFull(),
+
+                        Select::make('kyc_nivel_riesgo')
+                            ->label('Nivel de riesgo SARLAFT')
+                            ->options([
+                                'bajo'  => '🟢 Bajo',
+                                'medio' => '🟡 Medio',
+                                'alto'  => '🔴 Alto',
+                            ])
+                            ->helperText('Asignado por el asesor tras revisión de la declaración.')
+                            ->required(),
+
+                        Select::make('kyc_screening_resultado')
+                            ->label('Screening OFAC / Listas PEP Colombia')
+                            ->options([
+                                'pendiente' => '⏳ Pendiente de verificación',
+                                'limpio'    => '✅ Sin coincidencias',
+                                'alerta'    => '🚫 Alerta — coincidencia encontrada',
+                            ])
+                            ->default('pendiente')
+                            ->required()
+                            ->live()
+                            ->helperText('Verificar contra listas OFAC y PEP antes de continuar.'),
+
+                        DatePicker::make('kyc_fecha')
+                            ->label('Fecha del formulario KYC')
+                            ->default(now())
+                            ->maxDate(now()),
+
+                        Toggle::make('kyc_completado')
+                            ->label('KYC completado y verificado')
+                            ->helperText('Marcar solo cuando el screening arroje resultado limpio.')
+                            ->disabled(fn (Get $get) => $get('kyc_screening_resultado') === 'alerta')
+                            ->columnSpanFull(),
+
+                        \Filament\Schemas\Components\Section::make('⚠️ Bloqueo automático')
+                            ->description('Este tercero tiene una alerta en listas OFAC/PEP. No puede avanzar a contrato hasta que el área jurídica autorice.')
+                            ->visible(fn (Get $get) => $get('kyc_screening_resultado') === 'alerta')
+                            ->schema([])
+                            ->columnSpanFull(),
                     ])->columns(2),
 
                 Step::make('Notas')

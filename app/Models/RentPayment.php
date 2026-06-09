@@ -56,12 +56,12 @@ class RentPayment extends Model
                 OwnerLiquidation::generarDesdeFact($bill);
             }
 
-            // Contabilización automática del pago
+            // Contabilización del pago individual (soporta pagos parciales)
             try {
                 $bill->refresh();
-                ContabilidadService::generarParaPagoFactura($bill);
+                ContabilidadService::generarParaPagoFactura($bill, $payment);
             } catch (\Throwable $e) {
-                Log::warning("Contabilidad pago factura {$bill->numero}: " . $e->getMessage());
+                Log::warning("Contabilidad pago {$payment->numero}: " . $e->getMessage());
             }
         });
     }

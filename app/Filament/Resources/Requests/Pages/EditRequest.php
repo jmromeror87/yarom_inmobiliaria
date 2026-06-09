@@ -142,17 +142,60 @@ class EditRequest extends EditRecord
                         'notas'           => $data['notas'] ?? null,
                     ]);
                     $this->record->update(['estado' => 'en_estudio']);
-                    $numero  = preg_replace('/[^0-9]/', '', $data['telefono_sura']);
-                    $mensaje = urlencode($data['mensaje_enviado']);
-                    Notification::make()->title('Enviado — abriendo WhatsApp')->success()->send();
-                    $enviado = \App\Helpers\WhatsApp::enviar($data['telefono'] ?? $data['telefono_sura'] ?? '', $data['mensaje'] ?? $data['mensaje_enviado'] ?? '');
-                    if (!$enviado) {
-                        $numero  = preg_replace('/[^0-9]/', '', $data['telefono'] ?? $data['telefono_sura'] ?? '');
-                        if (!str_starts_with($numero, '57')) $numero = '57' . $numero;
-                        $this->redirect("https://wa.me/{$numero}?text=" . urlencode($data['mensaje'] ?? $data['mensaje_enviado'] ?? ''));
-                    } else {
-                        $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+
+                    $numero = preg_replace('/[^0-9]/', '', $data['telefono_sura']);
+                    if (!str_starts_with($numero, '57')) $numero = '57' . $numero;
+
+                    $wap = app(\App\Services\WhatsAppService::class);
+
+                    if (!$wap->isConnected()) {
+                        Notification::make()->title('WhatsApp no conectado — use enlace manual')->warning()->send();
+                        $this->redirect("https://wa.me/{$numero}?text=" . urlencode($data['mensaje_enviado']));
+                        return;
                     }
+
+                    // 1 — Enviar mensaje principal con el expediente
+                    $wap->enviar($numero, $data['mensaje_enviado']);
+
+                    // 2 — Enviar cada documento adjunto
+                    $docs = $this->record->documents()
+                        ->whereIn('estado_documento', ['recibido', 'verificado'])
+                        ->whereNotNull('path')
+                        ->get();
+
+                    $tiposLabel = [
+                        'cedula'               => 'Cédula de ciudadanía',
+                        'desprendible_nomina'  => 'Desprendible de nómina',
+                        'extracto_bancario'    => 'Extracto bancario',
+                        'certificado_ingresos' => 'Certificado de ingresos',
+                        'declaracion_renta'    => 'Declaración de renta',
+                        'carta_laboral'        => 'Carta laboral',
+                        'camara_comercio'      => 'Cámara de comercio',
+                        'rut'                  => 'RUT',
+                        'referencia_personal'  => 'Referencia personal',
+                        'referencia_comercial' => 'Referencia comercial',
+                        'otro'                 => 'Documento adjunto',
+                    ];
+
+                    $enviados = 0;
+                    foreach ($docs as $doc) {
+                        $filePath = storage_path('app/public/' . $doc->path);
+                        if (!file_exists($filePath)) continue;
+
+                        $label    = $tiposLabel[$doc->tipo_documento] ?? 'Documento';
+                        $ext      = pathinfo($filePath, PATHINFO_EXTENSION);
+                        $nombre   = $label . ' — SOL-' . $this->record->numero . '.' . $ext;
+
+                        $res = $wap->enviarConArchivo($numero, $label, $filePath, $nombre);
+                        if ($res['ok'] ?? false) $enviados++;
+                    }
+
+                    Notification::make()
+                        ->title('✅ Expediente enviado a SURA por WhatsApp')
+                        ->body("Mensaje + {$enviados} documento(s) adjunto(s).")
+                        ->success()->send();
+
+                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
                 });
         }
 
@@ -186,7 +229,12 @@ class EditRequest extends EditRecord
                         'notas'           => $data['notas'] ?? null,
                     ]);
                     $this->record->update(['estado' => 'en_estudio']);
-                    $asunto = urlencode('Solicitud estudio ' . $this->record->numero);
+                    $p      = $this->record->property;
+                    $asunto = urlencode(
+                        'Solicitud Estudio Arrendatario ' . $this->record->numero .
+                        ' — ' . ($p?->direccion ?? '') .
+                        ' — Canon $' . number_format($this->record->canon_evaluar ?? 0, 0, ',', '.') . ' COP'
+                    );
                     $cuerpo = urlencode($data['mensaje_enviado']);
                     Notification::make()->title('Registrado — abriendo correo')->success()->send();
                     $this->redirect("mailto:{$data['email_sura']}?subject={$asunto}&body={$cuerpo}");
@@ -323,22 +371,106 @@ class EditRequest extends EditRecord
 
     protected function generarMensajeWA(): string
     {
-        $r    = $this->record->load(['property', 'thirds.third']);
-        $tipo = match($r->tipo) {
-            'estudio_arrendatario' => 'ARRENDATARIO',
-            'estudio_comprador'    => 'COMPRADOR',
-            default                => 'PROPIETARIO',
-        };
-        $msg  = "Buenos días, somos SERVIARRENDAR S.A.S\n\n";
-        $msg .= "Solicitamos estudio de {$tipo}:\n\n";
-        $msg .= "📋 N° Solicitud: {$r->numero}\n";
-        $msg .= "🏠 Inmueble: {$r->property?->codigo} — {$r->property?->direccion}\n";
-        $msg .= "💰 Canon: $" . number_format($r->canon_evaluar ?? 0, 0, ',', '.') . " COP\n\n";
+        $r = $this->record->load([
+            'property.tipo',
+            'property.municipio',
+            'property.propietario',
+            'thirds.third',
+            'documents',
+        ]);
+
+        $p    = $r->property;
+        $fmt  = fn($v) => '$' . number_format((float)($v ?? 0), 0, ',', '.');
+        $hoy  = now()->format('d/m/Y');
+
+        $msg  = "━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $msg .= "📋 SOLICITUD DE ESTUDIO SURA\n";
+        $msg .= "━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+        $msg .= "🏢 *INMOBILIARIA SERVIARRENDAR S.A.S*\n";
+        $msg .= "NIT: 807.005.762-0\n";
+        $msg .= "Ciudad: Ocaña — Norte de Santander\n";
+        $msg .= "Tel: +57 318 693 4710\n\n";
+
+        $msg .= "📋 *N° Solicitud:* {$r->numero}\n";
+        $msg .= "📅 *Fecha:* {$hoy}\n\n";
+
+        // ── Inmueble ────────────────────────────────
+        $msg .= "🏠 *DATOS DEL INMUEBLE*\n";
+        $msg .= "Código: " . ($p?->codigo ?? 'N/A') . "\n";
+        $msg .= "Dirección: " . ($p?->direccion ?? 'N/A') . "\n";
+        $msg .= "Ciudad: " . ($p?->municipio?->nombre ?? 'Ocaña') . " — Norte de Santander\n";
+        $msg .= "Tipo: " . ($p?->tipo?->nombre ?? 'N/A') . "\n";
+        $msg .= "Estrato: " . ($p?->estrato ?? 'N/A') . "\n";
+        $msg .= "Canon: " . $fmt($r->canon_evaluar) . " COP\n";
+        $msg .= "Adm: " . $fmt($p?->cuota_administracion) . " COP\n\n";
+
+        // ── Propietario/Arrendador ─────────────────
+        $msg .= "👔 *PROPIETARIO / ARRENDADOR*\n";
+        $msg .= "Nombre: " . ($p?->propietario?->nombre_completo ?? 'SERVIARRENDAR N/A N/A') . "\n\n";
+
+        // ── Terceros ────────────────────────────────
         foreach ($r->thirds as $t) {
-            $msg .= "👤 " . ucfirst($t->rol) . ": {$t->third?->nombre_completo} — CC {$t->third?->numero_documento}\n";
-            if ($t->ingresos_declarados) $msg .= "   Ingresos: $" . number_format($t->ingresos_declarados, 0, ',', '.') . "\n";
+            $rolLabel = match($t->rol) {
+                'titular'    => '👤 ARRENDATARIO / INQUILINO',
+                'codeudor'   => '🤝 CODEUDOR',
+                'fiador'     => '🛡️ FIADOR',
+                'representante' => '💼 REPRESENTANTE LEGAL',
+                default      => strtoupper($t->rol),
+            };
+            $msg .= "─────────────────────────\n";
+            $msg .= "*{$rolLabel}*\n";
+            $msg .= "Nombre: " . ($t->third?->nombre_completo ?? 'N/A') . "\n";
+            $msg .= "CC: " . ($t->third?->numero_documento ?? 'N/A') . "\n";
+            if ($t->third?->celular)    $msg .= "Cel: {$t->third->celular}\n";
+            if ($t->third?->email)      $msg .= "Email: {$t->third->email}\n";
+            if ($t->ingresos_declarados) {
+                $msg .= "Ingresos declarados: " . $fmt($t->ingresos_declarados) . " COP\n";
+            }
+            if ($t->third?->tipo_empleo) {
+                $empleo = match($t->third->tipo_empleo) {
+                    'dependiente'   => 'Empleado dependiente',
+                    'independiente' => 'Independiente',
+                    'pensionado'    => 'Pensionado',
+                    'rentista'      => 'Rentista de capital',
+                    default         => $t->third->tipo_empleo,
+                };
+                $msg .= "Actividad: {$empleo}";
+                if ($t->third->empresa_donde_trabaja) $msg .= " — {$t->third->empresa_donde_trabaja}";
+                $msg .= "\n";
+            }
+            $msg .= "\n";
         }
-        $msg .= "\nQuedamos atentos a su respuesta.\nGracias.";
+
+        // ── Documentos adjuntos ─────────────────────
+        $docs = $r->documents->where('estado_documento', '!=', 'pendiente');
+        if ($docs->isNotEmpty()) {
+            $msg .= "─────────────────────────\n";
+            $msg .= "📎 *DOCUMENTOS ADJUNTOS*\n";
+            $tiposLabel = [
+                'cedula'               => 'Cédula de ciudadanía',
+                'desprendible_nomina'  => 'Desprendible de nómina',
+                'extracto_bancario'    => 'Extracto bancario',
+                'certificado_ingresos' => 'Certificado de ingresos',
+                'declaracion_renta'    => 'Declaración de renta',
+                'carta_laboral'        => 'Carta laboral',
+                'camara_comercio'      => 'Cámara de comercio',
+                'rut'                  => 'RUT',
+                'referencia_personal'  => 'Referencia personal',
+                'referencia_comercial' => 'Referencia comercial',
+                'otro'                 => 'Otro documento',
+            ];
+            foreach ($docs as $doc) {
+                $label = $tiposLabel[$doc->tipo_documento] ?? $doc->tipo_documento;
+                $msg .= "✅ {$label}\n";
+            }
+            $msg .= "\n";
+        }
+
+        $msg .= "━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $msg .= "Quedamos atentos a su respuesta.\n";
+        $msg .= "Gracias, equipo SERVIARRENDAR.";
+
         return $msg;
     }
 }
