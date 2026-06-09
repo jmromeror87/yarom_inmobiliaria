@@ -2,20 +2,21 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\CuentaPorCobrar;
 use App\Models\OwnerLiquidation;
 use App\Models\Property;
 use App\Models\RentBill;
 use App\Models\RentPayment;
 use App\Models\RentalContract;
 use App\Models\Request as Solicitud;
-use App\Models\Third;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends BaseDashboard
 {
-    protected static string $view = 'filament.pages.dashboard';
+    public function getView(): string
+    {
+        return 'filament.pages.dashboard';
+    }
 
     public function getWidgets(): array
     {
@@ -44,7 +45,6 @@ class Dashboard extends BaseDashboard
         $facturadoAnt  = (float) RentBill::where('mes', $mesAnt)->where('anio', $anioAnt)->sum('total_factura');
 
         $recaudadoMes  = (float) RentPayment::whereYear('fecha_pago', $anio)->whereMonth('fecha_pago', $mes)->sum('total_pagado');
-        $recaudadoAnt  = (float) RentPayment::whereYear('fecha_pago', $anioAnt)->whereMonth('fecha_pago', $mesAnt)->sum('total_pagado');
 
         $cartera       = (float) RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])->sum('saldo_pendiente');
         $factsMora     = RentBill::where('estado', 'en_mora')->count();
