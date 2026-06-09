@@ -18,7 +18,6 @@ use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Facades\Auth;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -39,16 +38,17 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Configuración')->collapsed(true),
                 NavigationGroup::make('Sistema')->collapsed(true),
             ])
-            ->topbar(false)
+            ->topbar(true)
             ->sidebarCollapsibleOnDesktop()
+            // Logo compacto para el topbar — igual al estilo Farmacia
             ->brandLogo(fn () => new HtmlString('
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#0F172A,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <svg viewBox="0 0 32 32" fill="none" width="20" height="20"><path d="M4 28V14l12-9 12 9v14H20v-7h-8v7H4z" fill="#fff"/></svg>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#1e3a8a,#E11D48);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg viewBox="0 0 32 32" fill="none" width="19" height="19"><path d="M4 28V14l12-9 12 9v14H20v-7h-8v7H4z" fill="#fff"/></svg>
                     </div>
-                    <div style="display:flex;flex-direction:column;line-height:1.15;">
-                        <span style="font-size:17px;font-weight:900;letter-spacing:-.04em;color:#fff;text-transform:uppercase;">YAROM <span style="color:#E11D48;">INMO</span><span style="color:#60a5fa;">BILIARIA</span></span>
-                        <span style="font-size:11px;font-weight:600;letter-spacing:0.05em;color:rgba(255,255,255,0.5);text-transform:uppercase;">Serviarrendar S.A.S</span>
+                    <div style="display:flex;flex-direction:column;line-height:1.1;">
+                        <span style="font-size:14px;font-weight:900;letter-spacing:-.02em;color:#0F172A;">YarOM <span style="color:#E11D48;">INMO</span></span>
+                        <span style="font-size:9px;font-weight:700;color:#94a3b8;letter-spacing:.06em;text-transform:uppercase;">Serviarrendar</span>
                     </div>
                 </div>
             '))
@@ -60,6 +60,42 @@ class AdminPanelProvider extends PanelProvider
                 'danger'  => Color::hex('#E11D48'),
                 'gray'    => Color::Slate,
             ])
+            // ── Reloj + estado en el centro del topbar ──────────────────
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_START,
+                fn (): string => '
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:16px;min-width:0;">
+                    <div style="text-align:center;line-height:1.2;">
+                        <div id="yr-clock" style="font-size:16px;font-weight:900;color:#0F172A;font-variant-numeric:tabular-nums;letter-spacing:.01em;">--:--:--</div>
+                        <div id="yr-date"  style="font-size:10px;font-weight:600;color:#94a3b8;">cargando...</div>
+                    </div>
+                    <div style="width:1px;height:28px;background:#e2e8f0;flex-shrink:0;"></div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="width:7px;height:7px;background:#22c55e;border-radius:50%;box-shadow:0 0 0 3px rgba(34,197,94,.2);flex-shrink:0;display:inline-block;"></span>
+                        <div style="line-height:1.2;">
+                            <div style="font-size:11px;font-weight:800;color:#0F172A;">Sistema Activo</div>
+                            <div style="font-size:10px;color:#94a3b8;font-weight:500;">En línea</div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                (function(){
+                    var D=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+                    var M=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+                    function tick(){
+                        var n=new Date();
+                        var c=document.getElementById("yr-clock");
+                        var d=document.getElementById("yr-date");
+                        if(c) c.textContent=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")+":"+String(n.getSeconds()).padStart(2,"0");
+                        if(d) d.textContent=D[n.getDay()]+", "+n.getDate()+" "+M[n.getMonth()]+" "+n.getFullYear();
+                    }
+                    tick(); setInterval(tick,1000);
+                    document.addEventListener("livewire:navigated",tick);
+                })();
+                </script>
+                '
+            )
+            // ── Estilos sidebar + topbar ────────────────────────────────
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_START,
                 fn (): string => '
@@ -72,191 +108,61 @@ class AdminPanelProvider extends PanelProvider
                         --color-primary-800:#9f1239!important;--color-primary-900:#881337!important;
                         --color-primary-950:#4c0519!important;
                     }
-                    .fi-sidebar{
-                        background:linear-gradient(180deg,#1e3a8a 0%,#0d1b4b 85%,#0A192F 100%)!important;
-                        border-right:none!important;
-                        box-shadow:4px 0 24px rgba(0,0,0,.25)!important;
-                    }
-                    .fi-sidebar-header{border-bottom:1px solid rgba(255,255,255,.08)!important;}
-                    .fi-sidebar-group-label{font-weight:800!important;text-transform:uppercase!important;letter-spacing:.1em!important;font-size:10px!important;color:#E11D48!important;}
-                    .fi-sidebar-group-button{font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.1em!important;color:#E11D48!important;}
-                    .fi-sidebar-group-button svg{display:none!important;}
-                    .fi-sidebar-group-button:hover{color:#fff!important;}
-                    /* SIN LINEAS — ICONOS + TEXTO */
-                    .fi-sidebar-nav .fi-sidebar-group-items{
-                        border:none!important;
-                        border-left:none!important;
-                        outline:none!important;
-                        margin-left:0!important;
-                        padding-left:0!important;
-                    }
-                    .fi-sidebar-nav .fi-sidebar-item-btn::before,
-                    .fi-sidebar-nav .fi-sidebar-item-btn::after{
-                        display:none!important;
-                        content:none!important;
-                    }
-                    .fi-sidebar-nav{padding-bottom:80px!important;}
 
-                    .fi-sidebar-nav .fi-sidebar-item-btn{
-                        display:flex!important;
-                        align-items:center!important;
-                        gap:10px!important;
-                        margin:1px 8px!important;
-                        padding:9px 12px!important;
-                        border-radius:8px!important;
-                        background:transparent!important;
-                        border:none!important;
-                        box-shadow:none!important;
-                        transition:background .15s!important;
-                    }
-                    .fi-sidebar-nav .fi-sidebar-item-btn .fi-icon{
-                        display:flex!important;
-                        color:rgba(255,255,255,.4)!important;
-                        width:17px!important;
-                        height:17px!important;
-                        flex-shrink:0!important;
-                        transition:color .15s!important;
-                    }
-                    .fi-sidebar-nav .fi-sidebar-item-label{
-                        color:rgba(255,255,255,.6)!important;
-                        font-size:13px!important;
-                        font-weight:500!important;
-                        transition:color .15s!important;
-                    }
-                    .fi-sidebar-nav .fi-sidebar-item-btn:hover{background:rgba(255,255,255,.07)!important;}
-                    .fi-sidebar-nav .fi-sidebar-item-btn:hover .fi-icon{color:#E11D48!important;}
-                    .fi-sidebar-nav .fi-sidebar-item-btn:hover .fi-sidebar-item-label{color:#fff!important;}
+                    /* ── Topbar ── */
+                    .fi-topbar{background:#fff!important;border-bottom:1px solid #f1f5f9!important;box-shadow:0 1px 8px rgba(15,23,42,.05)!important;}
+                    .fi-topbar nav{display:flex!important;align-items:center!important;width:100%!important;gap:12px!important;padding:0 20px!important;}
+                    /* Búsqueda */
+                    .fi-global-search-field{background:#f1f5f9!important;border:none!important;border-radius:10px!important;padding:0 14px!important;min-width:240px!important;display:flex!important;align-items:center!important;gap:8px!important;}
+                    .fi-global-search-field:focus-within{background:#e2e8f0!important;}
+                    .fi-global-search-field input{background:transparent!important;border:none!important;outline:none!important;box-shadow:none!important;font-size:13px!important;font-weight:500!important;color:#334155!important;padding:9px 0!important;width:100%!important;}
+                    .fi-global-search-field input::placeholder{color:#94a3b8!important;}
+                    .fi-global-search-field svg{color:#94a3b8!important;width:15px!important;height:15px!important;flex-shrink:0!important;}
+                    /* Botones */
+                    .fi-icon-btn{color:#64748b!important;width:36px!important;height:36px!important;border-radius:10px!important;display:flex!important;align-items:center!important;justify-content:center!important;transition:all .15s!important;}
+                    .fi-icon-btn:hover{color:#E11D48!important;background:rgba(225,29,72,.08)!important;}
+                    .fi-badge{background:#E11D48!important;color:#fff!important;font-size:10px!important;font-weight:800!important;}
+                    /* Avatar */
+                    .fi-user-menu{display:flex!important;}
+                    .fi-user-avatar{background:linear-gradient(135deg,#1e3a8a,#E11D48)!important;font-weight:900!important;}
+                    .fi-user-menu-trigger{border-radius:50%!important;padding:0!important;}
 
-                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:rgba(225,29,72,.13)!important;}
+                    /* ── Sidebar ── */
+                    .fi-sidebar{background:#fff!important;border-right:1px solid #f1f5f9!important;box-shadow:2px 0 12px rgba(15,23,42,.04)!important;}
+                    .fi-sidebar-header{border-bottom:1px solid #f1f5f9!important;padding:14px 16px!important;}
+
+                    /* Grupos */
+                    .fi-sidebar-group-label{font-weight:700!important;font-size:11px!important;color:#94a3b8!important;text-transform:uppercase!important;letter-spacing:.08em!important;padding:14px 16px 4px!important;}
+                    .fi-sidebar-group-button{font-size:13px!important;font-weight:600!important;color:#334155!important;padding:10px 16px!important;width:100%!important;text-align:left!important;display:flex!important;align-items:center!important;gap:10px!important;border-radius:10px!important;margin:1px 8px!important;width:calc(100% - 16px)!important;}
+                    .fi-sidebar-group-button:hover{background:rgba(0,0,0,.04)!important;color:#0F172A!important;}
+                    .fi-sidebar-group-button svg{width:18px!important;height:18px!important;color:#E11D48!important;flex-shrink:0!important;display:block!important;}
+                    .fi-sidebar-nav .fi-sidebar-group-items{border:none!important;margin-left:0!important;padding-left:0!important;}
+
+                    /* Items */
+                    .fi-sidebar-nav .fi-sidebar-item-btn::before,.fi-sidebar-nav .fi-sidebar-item-btn::after{display:none!important;content:none!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn{display:flex!important;align-items:center!important;gap:10px!important;margin:1px 8px!important;padding:9px 12px!important;border-radius:10px!important;background:transparent!important;border:none!important;box-shadow:none!important;transition:background .15s!important;width:calc(100% - 16px)!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn .fi-icon{color:#E11D48!important;width:18px!important;height:18px!important;flex-shrink:0!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-label{color:#334155!important;font-size:13px!important;font-weight:600!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn:hover{background:rgba(225,29,72,.06)!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn:hover .fi-icon{color:#be123c!important;}
+                    .fi-sidebar-nav .fi-sidebar-item-btn:hover .fi-sidebar-item-label{color:#0F172A!important;}
+
+                    /* Activo — pill completa como Farmacia */
+                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:#fde8d8!important;border-radius:10px!important;}
                     .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-icon{color:#E11D48!important;}
-                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#fff!important;font-weight:700!important;}
-                    .fi-sidebar-database-notifications-btn{color:#fff!important;width:100%!important;}
-                    .fi-sidebar-database-notifications-btn-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
-                    .fi-sidebar-database-notifications-btn svg{color:#fff!important;}
-                    .fi-user-menu{display:none!important;}
-                    #yr-collapsed-icon{display:none;align-items:center;justify-content:center;padding:8px;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-header-logo-ctn{display:none!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) #yr-collapsed-icon{display:flex!important;}
-                    /* ── Colapsado ── */
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-items{margin-left:0!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-btn{justify-content:center!important;width:40px!important;margin:2px auto!important;padding:8px!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-label{display:none!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-label{display:none!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-button{display:none!important;}
-                    .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-database-notifications-btn-label{display:none!important;}
-                    .fi-section,.fi-ta-ctn,.fi-card,.fi-wi-card{background:rgba(255,255,255,.7)!important;backdrop-filter:blur(12px);border-radius:20px!important;border:1px solid rgba(226,232,240,.8)!important;box-shadow:0 10px 30px -10px rgba(15,23,42,.05)!important;}
-                    .fi-ta-cell,.fi-ta-header-cell{padding-top:14px!important;padding-bottom:14px!important;padding-left:16px!important;padding-right:16px!important;}
+                    .fi-sidebar-nav .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#E11D48!important;font-weight:700!important;}
+
+                    /* Notificaciones sidebar */
+                    .fi-sidebar-database-notifications-btn{color:#334155!important;width:100%!important;display:flex!important;align-items:center!important;gap:10px!important;padding:10px 16px!important;}
+                    .fi-sidebar-database-notifications-btn-label{color:#334155!important;font-size:13px!important;font-weight:600!important;}
+                    .fi-sidebar-database-notifications-btn svg{color:#E11D48!important;}
+
+                    /* Contenido */
+                    .fi-section,.fi-ta-ctn,.fi-card,.fi-wi-card{background:#fff!important;border-radius:16px!important;border:1px solid #f1f5f9!important;box-shadow:0 2px 8px rgba(15,23,42,.04)!important;}
                     .fi-main{max-width:100%!important;width:100%!important;}
                     .fi-page{max-width:100%!important;width:100%!important;}
                 </style>
-
-                <div id="yr-collapsed-icon">
-                    <div style="width:36px;height:36px;background:linear-gradient(135deg,#0F172A,#2563EB);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <svg viewBox="0 0 32 32" fill="none" width="20" height="20"><path d="M4 28V14l12-9 12 9v14H20v-7h-8v7H4z" fill="#fff"/></svg>
-                    </div>
-                </div>
-
-                <script>
-                (function(){
-                    /* ── Inyectar estilos menú al HEAD — gana a Tailwind JIT ── */
-                    var s=document.createElement("style");
-                    s.id="yr-menu-style";
-                    s.textContent=`
-                        .fi-sidebar-group-items{border:0!important;border-left:0!important;margin-left:0!important;padding-left:0!important;}
-                        .fi-sidebar-item-btn{display:flex!important;align-items:center!important;gap:10px!important;margin:1px 8px!important;padding:9px 12px!important;border-radius:8px!important;background:transparent!important;border:0!important;box-shadow:none!important;transition:background .15s!important;}
-                        .fi-sidebar-item-btn::before,.fi-sidebar-item-btn::after{display:none!important;content:none!important;}
-                        .fi-sidebar-item-btn .fi-icon{display:flex!important;color:rgba(255,255,255,.45)!important;width:17px!important;height:17px!important;flex-shrink:0!important;transition:color .15s!important;}
-                        .fi-sidebar-item-label{color:rgba(255,255,255,.65)!important;font-size:13px!important;font-weight:500!important;transition:color .15s!important;}
-                        .fi-sidebar-item-btn:hover{background:rgba(255,255,255,.07)!important;}
-                        .fi-sidebar-item-btn:hover .fi-icon{color:#E11D48!important;}
-                        .fi-sidebar-item-btn:hover .fi-sidebar-item-label{color:#fff!important;}
-                        .fi-sidebar-item.fi-active>.fi-sidebar-item-btn{background:rgba(225,29,72,.13)!important;}
-                        .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-icon{color:#E11D48!important;}
-                        .fi-sidebar-item.fi-active>.fi-sidebar-item-btn .fi-sidebar-item-label{color:#fff!important;font-weight:700!important;}
-                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-items{margin-left:0!important;}
-                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-btn{justify-content:center!important;width:40px!important;margin:2px auto!important;padding:8px!important;}
-                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-label{display:none!important;}
-                    `;
-                    if(!document.getElementById("yr-menu-style")) document.head.appendChild(s);
-                    var _obs=null;
-                    function updateFooter(){
-                        var sidebar=document.querySelector(".fi-sidebar");
-                        var footer=document.getElementById("yr-footer");
-                        if(!sidebar||!footer) return;
-                        var w=sidebar.offsetWidth||0;
-                        footer.style.left=w+"px";
-                    }
-                    function update(){
-                        var sidebar=document.querySelector(".fi-sidebar");
-                        var icon=document.getElementById("yr-collapsed-icon");
-                        if(!sidebar||!icon) return;
-                        var isOpen=sidebar.classList.contains("fi-sidebar-open");
-                        var logo=document.querySelector(".fi-sidebar-header-logo-ctn");
-                        if(logo) logo.style.display=isOpen?"":"none";
-                        icon.style.display=isOpen?"none":"flex";
-                        updateFooter();
-                    }
-                    function moveIcon(){
-                        var icon=document.getElementById("yr-collapsed-icon");
-                        var header=document.querySelector(".fi-sidebar-header");
-                        if(icon&&header&&!header.contains(icon)) header.prepend(icon);
-                    }
-                    function moveUserBar(){
-                        var bar=document.getElementById("yr-user-bar");
-                        var sidebar=document.querySelector(".fi-sidebar");
-                        if(!bar||!sidebar) return;
-                        if(sidebar.lastElementChild!==bar) sidebar.appendChild(bar);
-                    }
-                    function init(){
-                        var sidebar=document.querySelector(".fi-sidebar");
-                        if(!sidebar){setTimeout(init,300);return;}
-                        moveIcon(); moveUserBar(); update();
-                        if(_obs) _obs.disconnect();
-                        _obs=new MutationObserver(function(){moveIcon();moveUserBar();update();});
-                        _obs.observe(sidebar,{attributes:true,childList:true,attributeFilter:["class"],subtree:false});
-                        var ro=new ResizeObserver(function(){updateFooter();});
-                        ro.observe(sidebar);
-                    }
-                    document.readyState==="loading"
-                        ?document.addEventListener("DOMContentLoaded",function(){setTimeout(init,200);})
-                        :setTimeout(init,200);
-                    document.addEventListener("livewire:navigated",function(){setTimeout(init,200);setTimeout(moveUserBar,400);});
-                    setInterval(function(){update();moveUserBar();},400);
-                })();
-                </script>
                 '
-            )
-            ->renderHook(
-                PanelsRenderHook::SIDEBAR_NAV_END,
-                function (): string {
-                    $token   = csrf_token();
-                    $user    = Auth::user();
-                    $name    = $user?->name ?? 'Admin';
-                    $initial = strtoupper(substr($name, 0, 1));
-                    $email   = $user?->email ?? '';
-                    return <<<HTML
-                    <div id="yr-user-bar" style="padding:10px 12px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px;">
-                        <div style="width:34px;height:34px;min-width:34px;background:linear-gradient(135deg,#E11D48,#be123c);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;">{$initial}</div>
-                        <div id="yr-user-info" style="flex:1;overflow:hidden;">
-                            <div style="font-size:12px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{$name}</div>
-                            <div style="font-size:10px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{$email}</div>
-                        </div>
-                        <a href="#"
-                           onclick="event.preventDefault();document.getElementById('yr-lf').submit();"
-                           title="Cerrar sesión"
-                           style="width:32px;height:32px;min-width:32px;background:rgba(225,29,72,.15);border:1px solid rgba(225,29,72,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#E11D48;cursor:pointer;"
-                           onmouseover="this.style.background='#E11D48';this.style.color='#fff';"
-                           onmouseout="this.style.background='rgba(225,29,72,.15)';this.style.color='#E11D48';">
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="15" height="15">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                            </svg>
-                        </a>
-                        <form id="yr-lf" method="POST" action="/admin/logout" style="display:none;">
-                            <input type="hidden" name="_token" value="{$token}">
-                        </form>
-                    </div>
-HTML;
-                }
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
@@ -265,18 +171,11 @@ HTML;
                 .fi-main-ctn{padding-bottom:60px!important;background:#F7F8FA!important;}
                 .fi-main{background:#F7F8FA!important;}
                 body{background:#F7F8FA!important;}
-
                 .fi-btn.fi-color-primary,.fi-btn-color-primary{background-color:#E11D48!important;color:#fff!important;border:none!important;font-weight:700!important;}
                 .fi-btn.fi-color-primary:hover{background-color:#be123c!important;}
                 .fi-toggle-input:checked~.fi-toggle-indicator,[role="switch"][aria-checked="true"]{background-color:#E11D48!important;}
-                .fi-sidebar:not(.fi-sidebar-open) #yr-user-info{display:none!important;}
-                .fi-sidebar-database-notifications-btn{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;padding:10px 12px!important;color:#fff!important;background:transparent!important;border:none!important;}
-                .fi-sidebar-database-notifications-btn:hover{background:rgba(255,255,255,.08)!important;}
-                .fi-sidebar-database-notifications-btn svg,.fi-sidebar-database-notifications-btn .fi-icon{color:#E11D48!important;}
-                .fi-sidebar-database-notifications-btn-label{color:#fff!important;font-size:13px!important;font-weight:500!important;}
-                .fi-sidebar-database-notifications-btn .fi-badge{background:#E11D48!important;color:#fff!important;}
                 </style>
-                <footer id="yr-footer" style="position:fixed;bottom:0;left:0;right:0;z-index:60;transition:left .3s ease;padding:12px 2.5rem;border-top:1px solid #112240;background:linear-gradient(135deg,#0F172A,#1e3a8a);">
+                <footer id="yr-footer" style="position:fixed;bottom:0;left:0;right:0;z-index:60;padding:11px 2.5rem;border-top:1px solid #112240;background:linear-gradient(135deg,#0F172A,#1e3a8a);">
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
                         <div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.8);">
                             <span>© ' . date('Y') . ' <span style="color:#fff;">YarOM ERP</span></span>
