@@ -126,7 +126,7 @@
                 {{ $solicitudes }} Solicitud{{ $solicitudes > 1 ? 'es' : '' }}
             </a>
             @endif
-            <a href="/admin/rental-contracts/create" class="yr-btn-primary">
+            <a href="/admin/contratos-arriendo/create" class="yr-btn-primary">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Nuevo Contrato
             </a>
@@ -137,7 +137,7 @@
     <div class="yr-kpi-grid">
 
         {{-- Inmuebles --}}
-        <a href="/admin/properties" class="yr-kpi">
+        <a href="/admin/properties" class="yr-kpi" style="text-decoration:none;">
             <div class="yr-kpi-icon" style="background:#dbeafe;">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#2563EB" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21H15v-6H9v6H3V9.75z"/></svg>
             </div>
@@ -152,7 +152,7 @@
         </a>
 
         {{-- Ocupación --}}
-        <a href="/admin/properties?tableFilters[estado][value]=arrendado" class="yr-kpi">
+        <a href="/admin/properties" class="yr-kpi">
             <div class="yr-kpi-icon" style="background:{{ $ocupacion >= 80 ? '#d1fae5' : ($ocupacion >= 60 ? '#fef3c7' : '#fee2e2') }};">
                 <svg fill="none" viewBox="0 0 24 24" stroke="{{ $ocupacion >= 80 ? '#059669' : ($ocupacion >= 60 ? '#d97706' : '#dc2626') }}" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             </div>
@@ -164,7 +164,7 @@
         </a>
 
         {{-- Contratos activos --}}
-        <a href="/admin/rental-contracts?tableFilters[estado][value]=activo" class="yr-kpi">
+        <a href="/admin/contratos-arriendo" class="yr-kpi">
             <div class="yr-kpi-icon" style="background:#ede9fe;">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#7c3aed" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             </div>
@@ -183,7 +183,7 @@
         </a>
 
         {{-- Facturado mes --}}
-        <a href="/admin/rent-bills" class="yr-kpi">
+        <a href="/admin/facturacion" class="yr-kpi">
             <div class="yr-kpi-icon" style="background:#fef3c7;">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#d97706" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
             </div>
@@ -195,7 +195,7 @@
         </a>
 
         {{-- Recaudado mes --}}
-        <a href="/admin/rent-bills?tableFilters[estado][value]=pagada" class="yr-kpi">
+        <a href="/admin/facturacion?tableFilters[estado][value]=pagada" class="yr-kpi">
             <div class="yr-kpi-icon" style="background:#d1fae5;">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
@@ -209,7 +209,7 @@
         </a>
 
         {{-- Cartera pendiente --}}
-        <a href="/admin/rent-bills?tableFilters[estado][value]=en_mora" class="yr-kpi">
+        <a href="/admin/facturacion?tableFilters[estado][value]=en_mora" class="yr-kpi">
             <div class="yr-kpi-icon" style="background:#fee2e2;">
                 <svg fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
@@ -269,7 +269,7 @@
                     <div class="yr-card-title">Últimas Facturas</div>
                     <div class="yr-card-sub">Transacciones recientes</div>
                 </div>
-                <a href="/admin/rent-bills" style="font-size:0.72rem;color:#2563EB;font-weight:700;text-decoration:none;">Ver todas →</a>
+                <a href="/admin/facturacion" style="font-size:0.72rem;color:#2563EB;font-weight:700;text-decoration:none;">Ver todas →</a>
             </div>
             <table class="yr-table">
                 <thead>

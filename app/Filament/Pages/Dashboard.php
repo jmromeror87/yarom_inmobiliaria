@@ -81,12 +81,12 @@ class Dashboard extends BaseDashboard
 
         // ── Accesos rápidos ───────────────────────────────────────────────
         $accesos = [
-            ['label' => 'Nuevo Contrato',   'icon' => 'heroicon-o-document-plus',    'url' => '/admin/rental-contracts/create', 'color' => '#2563EB'],
-            ['label' => 'Registrar Pago',   'icon' => 'heroicon-o-banknotes',        'url' => '/admin/rent-bills',              'color' => '#10b981'],
-            ['label' => 'Nuevo Inmueble',   'icon' => 'heroicon-o-building-office',  'url' => '/admin/properties/create',       'color' => '#E11D48'],
-            ['label' => 'Nuevo Tercero',    'icon' => 'heroicon-o-user-plus',        'url' => '/admin/thirds/create',           'color' => '#f59e0b'],
-            ['label' => 'Liquidar Propiet.','icon' => 'heroicon-o-calculator',       'url' => '/admin/owner-liquidations',      'color' => '#8b5cf6'],
-            ['label' => 'Informes',         'icon' => 'heroicon-o-chart-bar',        'url' => '/admin/informes-contables',      'color' => '#06b6d4'],
+            ['label' => 'Nuevo Contrato',   'icon' => 'heroicon-o-document-plus',    'url' => '/admin/contratos-arriendo/create', 'color' => '#2563EB'],
+            ['label' => 'Facturas Arriendo','icon' => 'heroicon-o-banknotes',        'url' => '/admin/facturacion',               'color' => '#10b981'],
+            ['label' => 'Nuevo Inmueble',   'icon' => 'heroicon-o-building-office',  'url' => '/admin/properties/create',         'color' => '#E11D48'],
+            ['label' => 'Nuevo Tercero',    'icon' => 'heroicon-o-user-plus',        'url' => '/admin/thirds/create',             'color' => '#f59e0b'],
+            ['label' => 'Liquidar Propiet.','icon' => 'heroicon-o-calculator',       'url' => '/admin/owner-liquidations',        'color' => '#8b5cf6'],
+            ['label' => 'Informes',         'icon' => 'heroicon-o-chart-bar',        'url' => '/admin/informes-contables',        'color' => '#06b6d4'],
         ];
 
         return [
