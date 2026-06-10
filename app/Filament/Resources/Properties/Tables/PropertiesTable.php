@@ -95,16 +95,6 @@ class PropertiesTable
                         default                      => '—',
                     }),
 
-                TextColumn::make('caracteristicas')
-                    ->label('Características')
-                    ->getStateUsing(fn ($record) => collect([
-                        $record->habitaciones ? "🛏 {$record->habitaciones}" : null,
-                        $record->banos        ? "🚿 {$record->banos}" : null,
-                        $record->garajes      ? "🚗 {$record->garajes}" : null,
-                        $record->area_construida_m2 ? "{$record->area_construida_m2}m²" : null,
-                        "Est. {$record->estrato}",
-                    ])->filter()->implode(' · ')),
-
                 TextColumn::make('ctl_alerta')
                     ->label('CTL')
                     ->getStateUsing(fn ($record) => match(true) {
@@ -148,7 +138,13 @@ class PropertiesTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()->label('Eliminar'),
+                    DeleteBulkAction::make()
+                        ->label('Eliminar seleccionados')
+                        ->requiresConfirmation()
+                        ->modalHeading('¿Eliminar inmuebles seleccionados?')
+                        ->modalDescription('Solo se eliminarán registros sin contratos activos. Esta acción la pueden realizar únicamente administradores.')
+                        ->modalSubmitActionLabel('Sí, eliminar')
+                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])),
                 ]),
             ]);
     }

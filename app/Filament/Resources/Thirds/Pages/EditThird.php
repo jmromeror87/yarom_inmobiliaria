@@ -1,23 +1,9 @@
 <?php
-/*
-|--------------------------------------------------------------------------
-| YarOM ERP - Soluciones de Gestión
-|--------------------------------------------------------------------------
-| Proyecto privado desarrollado por:
-| Ingeniero Jhoan Romero Rivera
-| LinkedIn: https://linkedin.com/in/jmromeror87
-|
-| Módulo: \1
-| Archivo: EditThird.php
-| Fecha: CURRENT_DAY/05/2026
-| Versión: v1.0
-|--------------------------------------------------------------------------
-*/
-
 
 namespace App\Filament\Resources\Thirds\Pages;
 
 use App\Filament\Resources\Thirds\ThirdResource;
+use App\Filament\Widgets\ThirdHeroWidget;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -37,22 +23,56 @@ class EditThird extends EditRecord
                 ->label('Habeas Data PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
+                ->outlined()
                 ->action(function (): StreamedResponse {
-                    $third = $this->record;
-                    $pdf = Pdf::loadView('pdf.habeas-data', compact('third'))
-                        ->setPaper('letter', 'portrait');
-
+                    $third  = $this->record;
+                    $pdf    = Pdf::loadView('pdf.habeas-data', compact('third'))->setPaper('letter', 'portrait');
                     $nombre = 'HabeasData_' . str_replace(' ', '_', $third->nombre_completo ?: 'tercero') . '.pdf';
-
-                    return response()->streamDownload(
-                        fn () => print($pdf->output()),
-                        $nombre
-                    );
+                    return response()->streamDownload(fn () => print($pdf->output()), $nombre);
                 }),
-
-            DeleteAction::make(),
-            ForceDeleteAction::make(),
-            RestoreAction::make(),
+            DeleteAction::make()
+                ->label('Eliminar Tercero')
+                ->icon('heroicon-o-trash')
+                ->outlined()
+                ->requiresConfirmation()
+                ->modalHeading('¿Eliminar este tercero?')
+                ->modalDescription('Esta acción no se puede deshacer. Se eliminará toda la información del tercero. Solo administradores pueden realizar esta acción.')
+                ->modalSubmitActionLabel('Sí, eliminar')
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])),
+            ForceDeleteAction::make()->outlined()
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])),
+            RestoreAction::make()->outlined()
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])),
         ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [ThirdHeroWidget::class];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 1;
+    }
+
+    protected function getSaveFormAction(): Action
+    {
+        return parent::getSaveFormAction()
+            ->label('Guardar cambios')
+            ->icon('heroicon-o-check-circle')
+            ->extraAttributes([
+                'style' => 'background:linear-gradient(135deg,#1e3a8a,#E11D48)!important;border:none!important;color:#fff!important;font-weight:700!important;border-radius:10px!important;padding:9px 22px!important;box-shadow:0 3px 10px rgba(225,29,72,.3)!important;',
+            ]);
+    }
+
+    protected function getCancelFormAction(): Action
+    {
+        return parent::getCancelFormAction()
+            ->label('Cancelar')
+            ->outlined()
+            ->extraAttributes([
+                'style' => 'border-radius:10px!important;font-weight:600!important;border-color:#cbd5e1!important;color:#475569!important;',
+            ]);
     }
 }

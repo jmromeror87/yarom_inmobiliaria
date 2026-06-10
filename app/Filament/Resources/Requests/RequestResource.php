@@ -54,6 +54,12 @@ class RequestResource extends Resource
         return RequestsTable::configure($table);
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['property', 'thirds', 'asesor', 'suraStudies']);
+    }
+
     public static function getRelations(): array
     {
         return [];

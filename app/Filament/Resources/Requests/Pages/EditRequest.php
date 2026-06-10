@@ -58,7 +58,7 @@ class EditRequest extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        $record       = $this->record->load('suraStudies');
+        $record       = $this->record->load(['suraStudies.enviadoPor', 'property', 'thirds.third']);
         $yaEnvioWA    = $record->suraStudies->where('canal_envio', 'whatsapp')->isNotEmpty();
         $yaEnvioEmail = $record->suraStudies->where('canal_envio', 'email')->isNotEmpty();
         $hayRespuesta = $record->suraStudies->where('resultado_sura', '!=', 'pendiente')->isNotEmpty();
@@ -346,6 +346,10 @@ class EditRequest extends EditRecord
                         ->required(),
                 ])
                 ->action(function (array $data): void {
+                    if (!auth()->user()?->hasAnyRole(['super_admin', 'admin', 'gerente'])) {
+                        Notification::make()->title('Sin permiso')->body('No tiene rol para aprobar solicitudes.')->danger()->send();
+                        return;
+                    }
                     $this->record->update([
                         'estado'                 => 'aprobada_gerente',
                         'tipo_aprobacion'        => 'gerente_directo',
@@ -362,8 +366,13 @@ class EditRequest extends EditRecord
                 });
         }
 
-        if (!$cerrada) {
-            $acciones[] = DeleteAction::make()->label('Borrar');
+        if (!$cerrada && auth()->user()?->hasAnyRole(['super_admin', 'admin'])) {
+            $acciones[] = DeleteAction::make()
+                ->label('Eliminar solicitud')
+                ->requiresConfirmation()
+                ->modalHeading('¿Eliminar esta solicitud?')
+                ->modalDescription('Esta acción eliminará la solicitud y todo su historial. Solo administradores pueden hacerlo.')
+                ->modalSubmitActionLabel('Sí, eliminar');
         }
 
         return $acciones;

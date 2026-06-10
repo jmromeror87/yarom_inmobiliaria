@@ -10,12 +10,13 @@
 .yr-greeting-title { font-size:1.55rem; font-weight:900; color:#0F172A; letter-spacing:-.03em; margin:0 0 4px; }
 .yr-greeting-sub   { font-size:0.8rem; color:#94a3b8; font-weight:600; }
 .yr-btn-primary {
-    background:linear-gradient(135deg,#E11D48,#be123c); color:#fff; border:none;
-    padding:10px 20px; border-radius:10px; font-size:0.78rem; font-weight:800;
-    letter-spacing:0.04em; cursor:pointer; text-decoration:none; display:inline-flex;
-    align-items:center; gap:7px; transition:opacity .15s;
+    background:linear-gradient(135deg,#1e3a8a,#E11D48); color:#fff; border:none;
+    padding:10px 22px; border-radius:12px; font-size:0.8rem; font-weight:800;
+    letter-spacing:0.03em; cursor:pointer; text-decoration:none; display:inline-flex;
+    align-items:center; gap:8px; transition:transform .12s, box-shadow .12s;
+    box-shadow:0 4px 14px rgba(225,29,72,.35);
 }
-.yr-btn-primary:hover { opacity:.88; color:#fff; }
+.yr-btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(225,29,72,.45); color:#fff; }
 .yr-btn-secondary {
     background:#fff; color:#0F172A; border:1.5px solid #e2e8f0;
     padding:10px 20px; border-radius:10px; font-size:0.78rem; font-weight:800;
@@ -285,7 +286,7 @@
                 @forelse($ultimasFacturas as $f)
                 <tr>
                     <td style="font-weight:700;color:#0F172A;">{{ $f->numero ?? '#' . $f->id }}</td>
-                    <td>{{ $f->rentalContract?->third?->nombre_completo ?? '—' }}</td>
+                    <td>{{ $f->rentalContract?->arrendatario?->nombre_completo ?? '—' }}</td>
                     <td style="color:#94a3b8;">{{ $f->rentalContract?->property?->codigo ?? '—' }}</td>
                     <td style="font-weight:700;">${{ number_format($f->total_factura, 0, ',', '.') }}</td>
                     <td><span class="yr-estado {{ $f->estado }}">{{ str_replace('_', ' ', $f->estado) }}</span></td>
@@ -313,12 +314,12 @@
                     @php
                         $dias = now()->diffInDays($c->fecha_fin, false);
                         $color = $dias <= 15 ? '#dc2626' : ($dias <= 30 ? '#d97706' : '#2563EB');
-                        $ini = strtoupper(substr($c->third?->nombre_completo ?? 'N', 0, 1));
+                        $ini = strtoupper(substr($c->arrendatario?->nombre_completo ?? 'N', 0, 1));
                     @endphp
                     <div class="yr-vencer-item">
                         <div class="yr-vencer-avatar" style="background:{{ $color }};">{{ $ini }}</div>
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:0.78rem;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $c->third?->nombre_completo ?? '—' }}</div>
+                            <div style="font-size:0.78rem;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $c->arrendatario?->nombre_completo ?? '—' }}</div>
                             <div style="font-size:0.68rem;color:#94a3b8;">{{ $c->property?->codigo ?? '—' }}</div>
                         </div>
                         <div style="text-align:right;flex-shrink:0;">

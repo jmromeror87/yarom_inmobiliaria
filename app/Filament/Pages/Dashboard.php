@@ -70,11 +70,11 @@ class Dashboard extends BaseDashboard
         ])->values();
 
         // ── Últimas facturas ──────────────────────────────────────────────
-        $ultimasFacturas = RentBill::with(['rentalContract.third', 'rentalContract.property'])
+        $ultimasFacturas = RentBill::with(['rentalContract.arrendatario', 'rentalContract.property'])
             ->orderByDesc('created_at')->limit(8)->get();
 
         // ── Contratos por vencer ──────────────────────────────────────────
-        $contratosPorVencer = RentalContract::with(['third', 'property'])
+        $contratosPorVencer = RentalContract::with(['arrendatario', 'property'])
             ->where('estado', 'activo')
             ->whereBetween('fecha_fin', [now(), now()->addDays(60)])
             ->orderBy('fecha_fin')->limit(5)->get();

@@ -1,20 +1,5 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| YarOM ERP - Soluciones de Gestión
-|--------------------------------------------------------------------------
-| Proyecto privado desarrollado por:
-| Ingeniero Jhoan Romero Rivera
-| LinkedIn: https://linkedin.com/in/jmromeror87
-|
-| Módulo: \1
-| Archivo: ThirdsTable.php
-| Fecha: CURRENT_DAY/05/2026
-| Versión: v1.0
-|--------------------------------------------------------------------------
-*/
-
 namespace App\Filament\Resources\Thirds\Tables;
 
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -23,7 +8,6 @@ use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -35,49 +19,43 @@ class ThirdsTable
         return $table
             ->columns([
 
-                // ── Documento + Nombre ──────────────────────────
+                // ── Avatar + Nombre + Doc ────────────────────────
                 TextColumn::make('nombre_completo')
                     ->label('Tercero')
                     ->searchable()
                     ->sortable()
                     ->description(fn ($record) =>
-                        $record->tipo_documento . ' · ' . $record->numero_documento
+                        ($record->tipo_documento ?? 'CC') . ' · ' . ($record->numero_documento ?? '—')
                     )
                     ->icon('heroicon-o-user-circle')
                     ->iconColor('primary')
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->grow(),
 
-                // ── Roles con badges ────────────────────────────
+                // ── Roles con badges de color ────────────────────
                 TextColumn::make('roles_display')
                     ->label('Roles')
-                    ->getStateUsing(function ($record) {
-                        $roles = [];
-                        if ($record->es_propietario)    $roles[] = '🏠 Propietario';
-                        if ($record->es_arrendatario)   $roles[] = '🔑 Arrendatario';
-                        if ($record->es_cliente_compra) $roles[] = '🛒 Comprador';
-                        if ($record->es_fiador)         $roles[] = '🤝 Fiador';
-                        if ($record->es_proveedor)      $roles[] = '🔧 Proveedor';
-                        return implode("\n", $roles) ?: '—';
-                    })
                     ->html()
-                    ->wrap(),
+                    ->getStateUsing(function ($record) {
+                        $badges = [];
+                        if ($record->es_propietario)    $badges[] = '<span style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">🏠 Propietario</span>';
+                        if ($record->es_arrendatario)   $badges[] = '<span style="display:inline-flex;align-items:center;gap:3px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">🔑 Arrendatario</span>';
+                        if ($record->es_cliente_compra) $badges[] = '<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">🛒 Comprador</span>';
+                        if ($record->es_fiador)         $badges[] = '<span style="display:inline-flex;align-items:center;gap:3px;background:#fdf4ff;color:#7e22ce;border:1px solid #e9d5ff;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">🤝 Fiador</span>';
+                        if ($record->es_proveedor)      $badges[] = '<span style="display:inline-flex;align-items:center;gap:3px;background:#fffbeb;color:#92400e;border:1px solid #fde68a;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">🔧 Proveedor</span>';
+                        return $badges ? '<div style="display:flex;flex-wrap:wrap;gap:4px;">' . implode('', $badges) . '</div>' : '<span style="color:#94a3b8;font-size:12px;">—</span>';
+                    }),
 
-                // ── Contacto: celular + email ───────────────────
+                // ── Contacto ─────────────────────────────────────
                 TextColumn::make('celular')
                     ->label('Contacto')
                     ->description(fn ($record) => $record->email ?? '—')
                     ->icon('heroicon-o-phone')
                     ->iconColor('success')
-                    ->searchable(),
+                    ->searchable()
+                    ->copyable(),
 
-                // ── Ciudad ─────────────────────────────────────
-                TextColumn::make('municipio.nombre')
-                    ->label('Ciudad')
-                    ->description(fn ($record) => $record->departamento?->nombre)
-                    ->icon('heroicon-o-map-pin')
-                    ->iconColor('info'),
-
-                // ── Estado crediticio ───────────────────────────
+                // ── Crédito ───────────────────────────────────────
                 TextColumn::make('estado_crediticio')
                     ->label('Crédito')
                     ->badge()
@@ -99,42 +77,25 @@ class ThirdsTable
                         default                  => $state,
                     }),
 
-                // ── Tipo de persona ─────────────────────────────
-                TextColumn::make('tipo_persona')
-                    ->label('Tipo')
-                    ->badge()
-                    ->color(fn ($state) => $state === 'juridica' ? 'info' : 'gray')
-                    ->formatStateUsing(fn ($state) => $state === 'juridica' ? 'Jurídica' : 'Natural'),
-
-                // ── Estado expediente (solo propietarios) ───────
+                // ── Expediente ────────────────────────────────────
                 TextColumn::make('estado_expediente')
                     ->label('Expediente')
                     ->badge()
-                    ->visible(fn ($record) => $record?->es_propietario ?? true)
                     ->color(fn ($state) => match($state) {
-                        'completo'   => 'success',
-                        'bloqueado'  => 'danger',
-                        default      => 'warning',
+                        'completo'  => 'success',
+                        'bloqueado' => 'danger',
+                        default     => 'warning',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'completo'   => '✓ Completo',
-                        'bloqueado'  => '🚫 Bloqueado',
-                        default      => '⏳ Incompleto',
+                        'completo'  => '✓ Completo',
+                        'bloqueado' => '🚫 Bloqueado',
+                        default     => '⏳ Incompleto',
                     }),
-
-                // ── Activo ──────────────────────────────────────
-                IconColumn::make('is_active')
-                    ->label('Activo')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
 
             ])
             ->defaultSort('created_at', 'desc')
-            ->striped()
             ->filters([
+                TernaryFilter::make('is_active')->label('Activos'),
                 TernaryFilter::make('es_propietario')->label('Propietarios'),
                 TernaryFilter::make('es_arrendatario')->label('Arrendatarios'),
                 TernaryFilter::make('es_cliente_compra')->label('Compradores'),
@@ -192,43 +153,26 @@ class ThirdsTable
                     ])
                     ->modalSubmitActionLabel(fn ($record) => $record->portal_activo ? '📱 Reenviar por WhatsApp' : '🔗 Generar y enviar link')
                     ->action(function ($record, array $data): void {
-                        // Generar o regenerar token
                         $token = $record->generarPortalToken();
                         $url   = route('portal.propietario', ['token' => $token]);
-
                         $enviado = false;
                         if ($record->celular) {
                             $wap     = app(\App\Services\WhatsAppService::class);
-                            $mensaje = $data['mensaje_wap']
-                                ?? "Hola {$record->primer_nombre}, su portal de propietario: {$url}";
-
-                            // Insertar URL real en el mensaje si no está ya
-                            if (! str_contains($mensaje, $url)) {
-                                $mensaje .= "\n\n🔗 {$url}";
-                            }
-
+                            $mensaje = $data['mensaje_wap'] ?? "Hola {$record->primer_nombre}, su portal de propietario: {$url}";
+                            if (! str_contains($mensaje, $url)) { $mensaje .= "\n\n🔗 {$url}"; }
                             $resultado = $wap->enviar($record->celular, $mensaje);
                             $enviado   = $resultado['ok'] ?? false;
                         }
-
                         \Filament\Notifications\Notification::make()
-                            ->title($enviado
-                                ? '✅ Link generado y enviado por WhatsApp'
-                                : '🔗 Link generado' . ($record->celular ? ' (WhatsApp no disponible — copie el link)' : ' — el propietario no tiene celular registrado'))
-                            ->body($url)
-                            ->success()
-                            ->send();
+                            ->title($enviado ? '✅ Link generado y enviado por WhatsApp' : '🔗 Link generado')
+                            ->body($url)->success()->send();
                     })
                     ->extraModalFooterActions(fn ($action) => $action->getRecord()?->portal_activo ? [
                         \Filament\Actions\Action::make('revocar_portal')
-                            ->label('Revocar acceso')
-                            ->color('danger')
-                            ->requiresConfirmation()
+                            ->label('Revocar acceso')->color('danger')->requiresConfirmation()
                             ->action(function () use ($action): void {
                                 $action->getRecord()->revocarPortalToken();
-                                \Filament\Notifications\Notification::make()
-                                    ->title('Acceso al portal revocado')
-                                    ->warning()->send();
+                                \Filament\Notifications\Notification::make()->title('Acceso al portal revocado')->warning()->send();
                             }),
                     ] : []),
 
@@ -237,8 +181,7 @@ class ThirdsTable
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->action(function ($record) {
-                        $pdf  = Pdf::loadView('pdf.habeas-data', ['third' => $record])
-                                   ->setPaper('letter', 'portrait');
+                        $pdf    = Pdf::loadView('pdf.habeas-data', ['third' => $record])->setPaper('letter', 'portrait');
                         $nombre = 'HabeasData_' . str_replace(' ', '_', $record->nombre_completo ?: 'tercero') . '.pdf';
                         return response()->streamDownload(fn () => print($pdf->output()), $nombre);
                     }),

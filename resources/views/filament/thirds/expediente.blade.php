@@ -4,115 +4,149 @@
     $fmt    = fn($v) => '$' . number_format((float)$v, 0, ',', '.');
     $fmtDec = fn($v) => '$' . number_format((float)$v, 2, ',', '.');
 
-    $totalFacturado  = $r->rentBills->sum('total_factura');
-    $totalPagado     = $r->rentBills->sum('total_pagado');
-    $totalPendiente  = $r->rentBills->sum('saldo_pendiente');
-    $totalLiquidado  = $r->ownerLiquidations->sum('canon_cobrado');
-    $totalGirado     = $r->ownerLiquidations->sum('total_giro');
-    $totalComision   = $r->ownerLiquidations->sum('comision_valor');
+    $totalFacturado = $r->rentBills->sum('total_factura');
+    $totalPagado    = $r->rentBills->sum('total_pagado');
+    $totalPendiente = $r->rentBills->sum('saldo_pendiente');
+    $totalLiquidado = $r->ownerLiquidations->sum('canon_cobrado');
+    $totalGirado    = $r->ownerLiquidations->sum('total_giro');
+    $totalComision  = $r->ownerLiquidations->sum('comision_valor');
 
-    $rolColors = [
-        'Propietario'    => ['bg'=>'#eff6ff','color'=>'#2563eb'],
-        'Arrendatario'   => ['bg'=>'#f0fdf4','color'=>'#16a34a'],
-        'Fiador/Codeudor'=> ['bg'=>'#fefce8','color'=>'#ca8a04'],
-        'Proveedor'      => ['bg'=>'#faf5ff','color'=>'#7c3aed'],
-        'Cliente compra' => ['bg'=>'#fff7ed','color'=>'#ea580c'],
-    ];
+    $initials = collect([$r->primer_nombre ?? $r->razon_social, $r->primer_apellido])
+        ->filter()->map(fn($w) => \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($w,0,1)))->join('');
 
+    $roles = [];
+    if ($r->es_propietario)    $roles[] = ['label'=>'🏠 Propietario',  'bg'=>'#eff6ff','color'=>'#1d4ed8'];
+    if ($r->es_arrendatario)   $roles[] = ['label'=>'🔑 Arrendatario', 'bg'=>'#fef2f2','color'=>'#991b1b'];
+    if ($r->es_cliente_compra) $roles[] = ['label'=>'🛒 Comprador',    'bg'=>'#f0fdf4','color'=>'#166534'];
+    if ($r->es_fiador)         $roles[] = ['label'=>'🤝 Fiador',       'bg'=>'#fdf4ff','color'=>'#7e22ce'];
+    if ($r->es_proveedor)      $roles[] = ['label'=>'🔧 Proveedor',    'bg'=>'#fffbeb','color'=>'#92400e'];
+
+    $creditColor = match($r->estado_crediticio) {
+        'aprobado'    => ['bg'=>'#f0fdf4','color'=>'#166534','label'=>'✓ Aprobado'],
+        'rechazado'   => ['bg'=>'#fef2f2','color'=>'#991b1b','label'=>'✕ Rechazado'],
+        'condicional' => ['bg'=>'#fffbeb','color'=>'#92400e','label'=>'⚠ Condicional'],
+        'en_proceso'  => ['bg'=>'#eff6ff','color'=>'#1d4ed8','label'=>'🔍 En estudio'],
+        default       => ['bg'=>'#f8fafc','color'=>'#64748b','label'=>'⏳ Sin evaluar'],
+    };
     $estadoBillColor = [
-        'pendiente' => ['#d97706','#fffbeb'],
-        'pagada'    => ['#16a34a','#f0fdf4'],
-        'en_mora'   => ['#dc2626','#fef2f2'],
-        'anulada'   => ['#64748b','#f8fafc'],
+        'pendiente'=>['#d97706','#fffbeb'],'pagada'=>['#16a34a','#f0fdf4'],
+        'en_mora'=>['#dc2626','#fef2f2'],'anulada'=>['#64748b','#f8fafc'],
     ];
     $estadoLiqColor = [
-        'pendiente' => ['#d97706','#fffbeb'],
-        'girada'    => ['#16a34a','#f0fdf4'],
-        'anulada'   => ['#64748b','#f8fafc'],
+        'pendiente'=>['#d97706','#fffbeb'],'girada'=>['#16a34a','#f0fdf4'],
+        'aprobada'=>['#2563eb','#eff6ff'],'anulada'=>['#64748b','#f8fafc'],
     ];
 @endphp
 
 <style>
-.exp-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:20px 24px;margin-bottom:16px;}
-.exp-card h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#64748b;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
-.exp-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;}
-.exp-row:last-child{border-bottom:none;}
-.exp-row label{color:#94a3b8;font-weight:600;}
-.exp-row span{color:#0f172a;font-weight:700;text-align:right;}
-.stat-box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;text-align:center;}
-.stat-box .num{font-size:22px;font-weight:900;color:#0f172a;}
-.stat-box .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-top:4px;}
-.badge-rol{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;margin:2px;}
+.xp-card{background:#fff;border:1px solid #e2e8f0;border-radius:1rem;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.xp-card-head{display:flex;align-items:center;gap:10px;padding:16px 22px;border-bottom:1px solid #f1f5f9;}
+.xp-card-head .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
+.xp-card-head h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:0;}
+.xp-row{display:flex;justify-content:space-between;padding:8px 22px;border-bottom:1px solid #f8fafc;font-size:13px;}
+.xp-row:last-child{border-bottom:none;}
+.xp-row label{color:#94a3b8;font-weight:600;}
+.xp-row span{color:#0f172a;font-weight:700;}
 .t-table{width:100%;border-collapse:collapse;font-size:12.5px;}
-.t-table th{background:#f8fafc;padding:9px 12px;text-align:left;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#64748b;border-bottom:2px solid #e2e8f0;}
-.t-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.t-table th{background:#f8fafc;padding:10px 16px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#64748b;border-bottom:2px solid #e2e8f0;}
+.t-table td{padding:10px 16px;border-bottom:1px solid #f1f5f9;vertical-align:middle;color:#334155;}
+.t-table tr:last-child td{border-bottom:none;}
 .t-table tr:hover td{background:#fafbfc;}
+.t-table tfoot td{background:#f8fafc;font-weight:900;border-top:2px solid #e2e8f0;color:#0f172a;}
 .t-num{font-family:monospace;font-weight:700;}
-.t-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800;}
-.tl-item{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
-.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:2px;}
-.tl-body{flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;}
+.t-badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:800;}
 </style>
 
-{{-- ── HEADER TERCERO ─────────────────────────────────────────────── --}}
-<div style="background:linear-gradient(135deg,#0f172a,#2563eb);border-radius:16px;padding:24px 28px;margin-bottom:20px;color:#fff;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;">
-        <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.6;margin-bottom:6px;">
-                {{ $r->tipo_documento }} {{ $r->numero_documento }}
-                @if($r->tipo_persona === 'juridica') · Persona Jurídica @endif
+{{-- ── HERO ──────────────────────────────────────────────────────────── --}}
+<div style="background:linear-gradient(135deg,#0F172A 0%,#1e2d45 55%,#1a1f3a 100%);border-radius:1.25rem;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden;">
+    <div style="position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(225,29,72,.18),transparent 70%);pointer-events:none;"></div>
+    <div style="position:absolute;right:80px;bottom:-30px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,.12),transparent 70%);pointer-events:none;"></div>
+
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        {{-- Avatar --}}
+        <div style="width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg,#1e3a8a,#E11D48);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 8px 24px rgba(225,29,72,.28);">
+            <span style="font-size:26px;font-weight:900;color:#fff;">{{ $initials ?: '?' }}</span>
+        </div>
+
+        {{-- Info --}}
+        <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);">
+                    {{ $r->tipo_documento }} {{ $r->numero_documento }}
+                </span>
+                @if($r->is_active)
+                    <span style="font-size:9.5px;font-weight:800;background:#16a34a;color:#fff;border-radius:99px;padding:2px 9px;letter-spacing:.06em;text-transform:uppercase;">● Activo</span>
+                @endif
             </div>
-            <div style="font-size:24px;font-weight:900;margin-bottom:6px;">{{ $r->nombre_completo }}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-                @foreach(array_filter(['Propietario'=>$r->es_propietario,'Arrendatario'=>$r->es_arrendatario,'Fiador/Codeudor'=>$r->es_fiador,'Proveedor'=>$r->es_proveedor,'Cliente compra'=>$r->es_cliente_compra]) as $rol=>$activo)
-                <span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;">{{ $rol }}</span>
+            <h2 style="font-size:22px;font-weight:900;color:#fff;margin:0 0 10px;letter-spacing:-.02em;">{{ \Illuminate\Support\Str::upper($r->nombre_completo) }}</h2>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                @foreach($roles as $role)
+                    <span style="font-size:10.5px;font-weight:700;background:{{ $role['bg'] }};color:{{ $role['color'] }};border-radius:99px;padding:3px 11px;">{{ $role['label'] }}</span>
                 @endforeach
             </div>
-            <div style="font-size:13px;opacity:.75;display:flex;gap:20px;flex-wrap:wrap;">
-                @if($r->celular) <span>📱 {{ $r->celular }}</span> @endif
-                @if($r->email)   <span>📧 {{ $r->email }}</span>  @endif
-                @if($r->municipio) <span>📍 {{ $r->municipio->nombre }}</span> @endif
+            <div style="font-size:12.5px;color:rgba(255,255,255,.55);display:flex;gap:20px;flex-wrap:wrap;">
+                @if($r->celular)<span>📱 {{ $r->celular }}</span>@endif
+                @if($r->email)<span>📧 {{ $r->email }}</span>@endif
+                @if($r->municipio)<span>📍 {{ $r->municipio->nombre }}</span>@endif
             </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-width:320px;">
-            <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;text-align:center;">
-                <div style="font-size:18px;font-weight:900;">{{ $r->rentBills->count() }}</div>
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-top:2px;">Facturas</div>
+
+        {{-- Counters --}}
+        <div style="display:flex;gap:10px;flex-shrink:0;">
+            @foreach([
+                ['n'=>$r->rentBills->count(),      'label'=>'Facturas',      'color'=>'#2563EB'],
+                ['n'=>$r->ownerLiquidations->count(),'label'=>'Liquidaciones','color'=>'#7c3aed'],
+                ['n'=>$r->rentalContracts->count() + $r->properties->count(),'label'=>'Contratos','color'=>'#E11D48'],
+            ] as $cnt)
+            <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 20px;text-align:center;min-width:90px;">
+                <div style="font-size:28px;font-weight:900;color:#fff;line-height:1;">{{ $cnt['n'] }}</div>
+                <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin-top:5px;">{{ $cnt['label'] }}</div>
             </div>
-            <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;text-align:center;">
-                <div style="font-size:18px;font-weight:900;">{{ $r->ownerLiquidations->count() }}</div>
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-top:2px;">Liquidaciones</div>
-            </div>
-            <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;text-align:center;">
-                <div style="font-size:18px;font-weight:900;">{{ $r->rentalContracts->count() + $r->properties->count() }}</div>
-                <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-top:2px;">Contratos</div>
-            </div>
+            @endforeach
         </div>
     </div>
 </div>
 
-{{-- ── RESUMEN FINANCIERO ──────────────────────────────────────────── --}}
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+{{-- ── RESUMEN FINANCIERO ──────────────────────────────────────────────── --}}
+@if($r->es_arrendatario || $r->es_propietario)
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px;">
     @if($r->es_arrendatario)
-    <div class="stat-box"><div class="num" style="color:#2563eb;">{{ $fmt($totalFacturado) }}</div><div class="lbl">Total facturado</div></div>
-    <div class="stat-box"><div class="num" style="color:#16a34a;">{{ $fmt($totalPagado) }}</div><div class="lbl">Total pagado</div></div>
-    <div class="stat-box"><div class="num" style="color:{{ $totalPendiente > 0 ? '#dc2626' : '#64748b' }};">{{ $fmt($totalPendiente) }}</div><div class="lbl">Saldo pendiente</div></div>
+    @foreach([
+        ['v'=>$totalFacturado,'label'=>'Total Facturado','color'=>'#2563EB','bg'=>'#eff6ff','border'=>'#2563EB'],
+        ['v'=>$totalPagado,   'label'=>'Total Pagado',   'color'=>'#16a34a','bg'=>'#f0fdf4','border'=>'#16a34a'],
+        ['v'=>$totalPendiente,'label'=>'Saldo Pendiente', 'color'=>$totalPendiente>0?'#dc2626':'#64748b','bg'=>$totalPendiente>0?'#fef2f2':'#f8fafc','border'=>$totalPendiente>0?'#dc2626':'#e2e8f0'],
+    ] as $s)
+    <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        <div style="font-size:24px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
+        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:6px;">{{ $s['label'] }}</div>
+    </div>
+    @endforeach
     @endif
     @if($r->es_propietario)
-    <div class="stat-box"><div class="num" style="color:#7c3aed;">{{ $fmt($totalLiquidado) }}</div><div class="lbl">Canon liquidado</div></div>
-    <div class="stat-box"><div class="num" style="color:#16a34a;">{{ $fmt($totalGirado) }}</div><div class="lbl">Total girado</div></div>
-    <div class="stat-box"><div class="num" style="color:#ea580c;">{{ $fmt($totalComision) }}</div><div class="lbl">Comisiones</div></div>
+    @foreach([
+        ['v'=>$totalLiquidado,'label'=>'Canon Liquidado','color'=>'#7c3aed','border'=>'#7c3aed'],
+        ['v'=>$totalGirado,   'label'=>'Total Girado',   'color'=>'#16a34a','border'=>'#16a34a'],
+        ['v'=>$totalComision, 'label'=>'Comisiones',     'color'=>'#E11D48','border'=>'#E11D48'],
+    ] as $s)
+    <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        <div style="font-size:24px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
+        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:6px;">{{ $s['label'] }}</div>
+    </div>
+    @endforeach
     @endif
 </div>
+@endif
 
+{{-- ── COLUMNAS ────────────────────────────────────────────────────────── --}}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 <div>
 
-{{-- ── FACTURAS ────────────────────────────────────────────────────── --}}
+{{-- Facturas --}}
 @if($r->rentBills->count())
-<div class="exp-card" style="padding:0;overflow:hidden;">
-    <div style="padding:16px 20px 12px;border-bottom:1px solid #f1f5f9;">
-        <h3 style="margin:0;">🧾 Facturas de Arrendamiento</h3>
+<div class="xp-card">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#eff6ff;">🧾</div>
+        <h3>Facturas de Arrendamiento</h3>
     </div>
     <table class="t-table">
         <thead><tr>
@@ -124,69 +158,76 @@
         @php [$bc,$bb] = $estadoBillColor[$bill->estado] ?? ['#64748b','#f8fafc']; @endphp
         <tr>
             <td class="t-num" style="color:#2563eb;">{{ $bill->numero }}</td>
-            <td style="font-size:11px;color:#475569;">{{ $bill->rentalContract?->property?->direccion ?? '—' }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ \Illuminate\Support\Str::limit($bill->rentalContract?->property?->direccion ?? '—', 22) }}</td>
             <td style="font-size:11px;">{{ $bill->mes }}/{{ $bill->anio }}</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($bill->total_factura) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($bill->total_pagado) }}</td>
             <td><span class="t-badge" style="background:{{ $bb }};color:{{ $bc }};">{{ ucfirst($bill->estado) }}</span></td>
         </tr>
         @endforeach
-        <tr style="background:#f8fafc;font-weight:900;border-top:2px solid #e2e8f0;">
-            <td colspan="3" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">TOTALES</td>
+        </tbody>
+        <tfoot><tr>
+            <td colspan="3" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($totalFacturado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($totalPagado) }}</td>
             <td></td>
-        </tr>
-        </tbody>
+        </tr></tfoot>
     </table>
 </div>
 @endif
 
-{{-- ── CONTRATOS ARRENDAMIENTO ─────────────────────────────────────── --}}
+{{-- Contratos arriendo --}}
 @if($r->rentalContracts->count())
-<div class="exp-card">
-    <h3>🔑 Contratos de Arrendamiento (inquilino)</h3>
+<div class="xp-card">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#fef2f2;">🔑</div>
+        <h3>Contratos de Arrendamiento</h3>
+    </div>
+    <div style="padding:12px 16px;">
     @foreach($r->rentalContracts->sortByDesc('fecha_inicio') as $c)
-    <div style="border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-                <div style="font-weight:800;font-size:13px;color:#0f172a;">{{ $c->numero ?? 'Sin número' }}</div>
-                <div style="font-size:12px;color:#64748b;">{{ $c->property?->direccion }}</div>
-                <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
-                    {{ $c->fecha_inicio?->format('d/m/Y') }} — {{ $c->fecha_fin?->format('d/m/Y') ?? 'Vigente' }}
-                </div>
-            </div>
-            <div style="text-align:right;">
-                <div style="font-family:monospace;font-weight:900;font-size:16px;color:#2563eb;">{{ $fmt($c->canon_mensual ?? 0) }}</div>
-                <div style="font-size:10px;color:#94a3b8;">canon/mes</div>
-            </div>
+    <div style="border:1px solid #e2e8f0;border-left:4px solid #E11D48;border-radius:.875rem;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <div style="font-weight:800;font-size:13px;color:#0f172a;">{{ $c->numero ?? 'Sin número' }}</div>
+            <div style="font-size:11.5px;color:#64748b;margin-top:2px;">{{ $c->property?->direccion }}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">{{ $c->fecha_inicio?->format('d/m/Y') }} — {{ $c->fecha_fin?->format('d/m/Y') ?? 'Vigente' }}</div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-family:monospace;font-weight:900;font-size:17px;color:#E11D48;">{{ $fmt($c->canon_mensual ?? 0) }}</div>
+            <div style="font-size:10px;color:#94a3b8;">canon/mes</div>
         </div>
     </div>
     @endforeach
+    </div>
 </div>
 @endif
 
-{{-- ── INMUEBLES (propietario) ─────────────────────────────────────── --}}
+{{-- Inmuebles propietario --}}
 @if($r->properties->count())
-<div class="exp-card">
-    <h3>🏠 Inmuebles (propietario)</h3>
+<div class="xp-card">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#f0fdf4;">🏠</div>
+        <h3>Inmuebles (propietario)</h3>
+    </div>
+    <div style="padding:4px 0;">
     @foreach($r->properties as $p)
-    <div class="exp-row">
+    <div class="xp-row">
         <label>{{ $p->codigo }}</label>
-        <span>{{ $p->direccion }} <span style="font-size:10px;color:#94a3b8;">· {{ ucfirst($p->estado) }}</span></span>
+        <span style="font-size:12.5px;">{{ $p->direccion }} <span style="font-size:10px;color:#94a3b8;font-weight:500;">· {{ ucfirst($p->estado) }}</span></span>
     </div>
     @endforeach
+    </div>
 </div>
 @endif
 
 </div>
 <div>
 
-{{-- ── LIQUIDACIONES PROPIETARIO ───────────────────────────────────── --}}
+{{-- Liquidaciones --}}
 @if($r->ownerLiquidations->count())
-<div class="exp-card" style="padding:0;overflow:hidden;">
-    <div style="padding:16px 20px 12px;border-bottom:1px solid #f1f5f9;">
-        <h3 style="margin:0;">💰 Liquidaciones al Propietario</h3>
+<div class="xp-card">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#fdf4ff;">💰</div>
+        <h3>Liquidaciones al Propietario</h3>
     </div>
     <table class="t-table">
         <thead><tr>
@@ -194,33 +235,34 @@
             <th style="text-align:right;">Canon</th><th style="text-align:right;">Giro neto</th><th>Estado</th>
         </tr></thead>
         <tbody>
-        @foreach($r->ownerLiquidations->sortByDesc('anio')->sortByDesc('mes') as $liq)
+        @foreach($r->ownerLiquidations->sortByDesc('anio') as $liq)
         @php [$lc,$lb] = $estadoLiqColor[$liq->estado] ?? ['#64748b','#f8fafc']; @endphp
         <tr>
             <td class="t-num" style="color:#7c3aed;">{{ $liq->numero }}</td>
-            <td style="font-size:11px;color:#475569;">{{ $liq->property?->direccion ?? '—' }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ \Illuminate\Support\Str::limit($liq->property?->direccion ?? '—', 22) }}</td>
             <td style="font-size:11px;">{{ $liq->mes }}/{{ $liq->anio }}</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($liq->canon_cobrado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($liq->total_giro) }}</td>
             <td><span class="t-badge" style="background:{{ $lb }};color:{{ $lc }};">{{ ucfirst($liq->estado) }}</span></td>
         </tr>
         @endforeach
-        <tr style="background:#f8fafc;font-weight:900;border-top:2px solid #e2e8f0;">
-            <td colspan="3" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">TOTALES</td>
+        </tbody>
+        <tfoot><tr>
+            <td colspan="3" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($totalLiquidado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($totalGirado) }}</td>
             <td></td>
-        </tr>
-        </tbody>
+        </tr></tfoot>
     </table>
 </div>
 @endif
 
-{{-- ── MOVIMIENTOS CONTABLES ───────────────────────────────────────── --}}
+{{-- Movimientos contables --}}
 @if($r->accountingLines->count())
-<div class="exp-card" style="padding:0;overflow:hidden;margin-top:16px;">
-    <div style="padding:16px 20px 12px;border-bottom:1px solid #f1f5f9;">
-        <h3 style="margin:0;">📊 Movimientos Contables</h3>
+<div class="xp-card">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#eff6ff;">📊</div>
+        <h3>Movimientos Contables</h3>
     </div>
     <table class="t-table">
         <thead><tr>
@@ -228,104 +270,83 @@
             <th style="text-align:right;">Débito</th><th style="text-align:right;">Crédito</th>
         </tr></thead>
         <tbody>
-        @php $totalContDeb = 0; $totalContCre = 0; @endphp
-        @foreach($r->accountingLines->filter(fn($l) => $l->entry?->estado === 'contabilizado')->sortByDesc(fn($l) => $l->entry?->fecha) as $line)
-        @php $totalContDeb += $line->debito; $totalContCre += $line->credito; @endphp
+        @php $tDeb=0; $tCre=0; @endphp
+        @foreach($r->accountingLines->filter(fn($l)=>$l->entry?->estado==='contabilizado')->sortByDesc(fn($l)=>$l->entry?->fecha) as $line)
+        @php $tDeb+=$line->debito; $tCre+=$line->credito; @endphp
         <tr>
-            <td class="t-num" style="font-size:11px;">{{ $line->entry?->fecha?->format('d/m/Y') }}</td>
+            <td style="font-size:11px;">{{ $line->entry?->fecha?->format('d/m/Y') }}</td>
             <td style="font-size:11px;color:#2563eb;">{{ $line->entry?->numero }}</td>
-            <td style="font-size:11px;color:#475569;">
-                <span style="font-family:monospace;color:#0f172a;">{{ $line->account?->codigo }}</span>
-                {{ $line->account?->nombre }}
-            </td>
-            <td class="t-num" style="text-align:right;color:#2563eb;font-size:11px;">{{ $line->debito > 0 ? $fmtDec($line->debito) : '' }}</td>
-            <td class="t-num" style="text-align:right;color:#16a34a;font-size:11px;">{{ $line->credito > 0 ? $fmtDec($line->credito) : '' }}</td>
+            <td style="font-size:11px;color:#475569;"><span style="font-family:monospace;color:#0f172a;">{{ $line->account?->codigo }}</span> {{ $line->account?->nombre }}</td>
+            <td class="t-num" style="text-align:right;color:#2563eb;font-size:11px;">{{ $line->debito>0?$fmtDec($line->debito):'' }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;font-size:11px;">{{ $line->credito>0?$fmtDec($line->credito):'' }}</td>
         </tr>
         @endforeach
-        <tr style="background:#f8fafc;font-weight:900;border-top:2px solid #e2e8f0;">
-            <td colspan="3" style="padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">TOTALES CONTABILIZADOS</td>
-            <td class="t-num" style="text-align:right;color:#2563eb;">{{ $fmtDec($totalContDeb) }}</td>
-            <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmtDec($totalContCre) }}</td>
-        </tr>
         </tbody>
+        <tfoot><tr>
+            <td colspan="3" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales contabilizados</td>
+            <td class="t-num" style="text-align:right;color:#2563eb;">{{ $fmtDec($tDeb) }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmtDec($tCre) }}</td>
+        </tr></tfoot>
     </table>
 </div>
 @endif
 
-{{-- ── INFORMACIÓN PERSONAL ────────────────────────────────────────── --}}
-<div class="exp-card" style="margin-top:16px;">
-    <h3>👤 Información del Tercero</h3>
-    @if($r->tipo_empleo)
-    <div class="exp-row"><label>Empleo</label><span>{{ $r->empresa_donde_trabaja }} — {{ $r->cargo }}</span></div>
-    @endif
-    @if($r->ingresos_mensuales)
-    <div class="exp-row"><label>Ingresos mensuales</label><span>{{ $fmt($r->ingresos_mensuales) }}</span></div>
-    @endif
-    @if($r->banco)
-    <div class="exp-row"><label>Cuenta bancaria</label><span>{{ $r->banco }} {{ $r->tipo_cuenta }} {{ $r->numero_cuenta }}</span></div>
-    @endif
-    @if($r->estado_crediticio)
-    <div class="exp-row">
-        <label>Estado crediticio</label>
-        <span>{{ ucfirst($r->estado_crediticio) }}
-            @if($r->score_crediticio) (Score: {{ $r->score_crediticio }}) @endif
-        </span>
+{{-- Info personal --}}
+<div class="xp-card">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#f8fafc;">👤</div>
+        <h3>Información del Tercero</h3>
     </div>
-    @endif
-    @if($r->tipo_garantia)
-    <div class="exp-row"><label>Garantía</label><span>{{ ucfirst($r->tipo_garantia) }} @if($r->numero_poliza)— Póliza: {{ $r->numero_poliza }}@endif</span></div>
-    @endif
-    @if($r->notas)
-    <div style="margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;font-size:12px;color:#475569;">
-        <strong>Notas:</strong> {{ $r->notas }}
-    </div>
-    @endif
-</div>
-
-</div>
-</div>
-
-{{-- ── PORTAL DEL PROPIETARIO ─────────────────────────────────────── --}}
-@if($r->es_propietario)
-<div class="exp-card" style="margin-top:16px; border-left: 4px solid {{ $r->portal_activo ? '#22c55e' : '#e2e8f0' }};">
-    <h3>
-        <svg style="width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
-        </svg>
-        Portal del propietario
-    </h3>
-
-    @if($r->portal_activo && $r->portal_url)
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
-            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#22c55e;background:#f0fdf4;padding:4px 12px;border-radius:999px;border:1px solid #bbf7d0;">
-                ✅ Activo desde {{ $r->portal_token_generado_at?->format('d/m/Y H:i') }}
-            </span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <input
-                type="text" readonly
-                value="{{ $r->portal_url }}"
-                onclick="this.select()"
-                style="flex:1;font-size:11px;font-family:monospace;padding:7px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;color:#374151;min-width:0;"
-            >
-            <button
-                onclick="navigator.clipboard.writeText('{{ $r->portal_url }}').then(()=>{this.textContent='✓ Copiado';setTimeout(()=>this.textContent='Copiar',1500)})"
-                style="padding:7px 14px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;"
-            >Copiar</button>
-            @if($r->celular)
-            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $r->celular) }}?text={{ urlencode('Hola ' . $r->primer_nombre . ', le compartimos su portal de propietario: ' . $r->portal_url) }}"
-               target="_blank"
-               style="padding:7px 14px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;">
-                📱 WhatsApp
-            </a>
+    <div style="padding:4px 0;">
+        <div class="xp-row"><label>Crédito</label><span style="background:{{ $creditColor['bg'] }};color:{{ $creditColor['color'] }};border-radius:99px;padding:2px 10px;font-size:11px;">{{ $creditColor['label'] }}</span></div>
+        @if($r->tipo_empleo)<div class="xp-row"><label>Empleo</label><span>{{ $r->empresa_donde_trabaja }} — {{ $r->cargo }}</span></div>@endif
+        @if($r->ingresos_mensuales)<div class="xp-row"><label>Ingresos mensuales</label><span>{{ $fmt($r->ingresos_mensuales) }}</span></div>@endif
+        @if($r->banco)<div class="xp-row"><label>Cuenta bancaria</label><span>{{ $r->banco }} · {{ $r->tipo_cuenta }} · {{ $r->numero_cuenta }}</span></div>@endif
+        @if($r->tipo_garantia)<div class="xp-row"><label>Garantía</label><span>{{ ucfirst($r->tipo_garantia) }}@if($r->numero_poliza) — {{ $r->numero_poliza }}@endif</span></div>@endif
+        <div class="xp-row"><label>Habeas Data</label>
+            @if($r->habeas_data_aceptado)
+                <span style="background:#f0fdf4;color:#166534;border-radius:99px;padding:2px 10px;font-size:11px;">✓ Firmado {{ $r->habeas_data_fecha?->format('d/m/Y') }}</span>
+            @else
+                <span style="background:#fef2f2;color:#991b1b;border-radius:99px;padding:2px 10px;font-size:11px;">✕ Pendiente</span>
             @endif
         </div>
-    @else
-        <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:12px;color:#94a3b8;">🔒 Sin acceso generado aún</span>
+        @if($r->notas)
+        <div style="margin:8px 22px;padding:10px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #e2e8f0;font-size:12px;color:#475569;">
+            <strong style="color:#334155;">Notas:</strong> {{ $r->notas }}
         </div>
+        @endif
+    </div>
+</div>
+
+{{-- Portal propietario --}}
+@if($r->es_propietario)
+<div class="xp-card" style="border-left:4px solid {{ $r->portal_activo ? '#16a34a' : '#e2e8f0' }};">
+    <div class="xp-card-head">
+        <div class="icon" style="background:{{ $r->portal_activo ? '#f0fdf4' : '#f8fafc' }};">🔗</div>
+        <h3>Portal del Propietario</h3>
+        @if($r->portal_activo)
+            <span style="font-size:9.5px;font-weight:800;background:#f0fdf4;color:#16a34a;border-radius:99px;padding:2px 9px;letter-spacing:.06em;margin-left:auto;">● Activo</span>
+        @else
+            <span style="font-size:9.5px;font-weight:800;background:#f8fafc;color:#94a3b8;border-radius:99px;padding:2px 9px;letter-spacing:.06em;margin-left:auto;">Sin acceso</span>
+        @endif
+    </div>
+    @if($r->portal_activo && $r->portal_url)
+    <div style="padding:14px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <input type="text" readonly value="{{ $r->portal_url }}" onclick="this.select()"
+            style="flex:1;font-size:11px;font-family:monospace;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#374151;min-width:0;">
+        <button onclick="navigator.clipboard.writeText('{{ $r->portal_url }}').then(()=>{this.textContent='✓ Copiado';setTimeout(()=>this.textContent='Copiar',1500)})"
+            style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Copiar</button>
+        @if($r->celular)
+        <a href="https://wa.me/{{ preg_replace('/[^0-9]/','', $r->celular) }}?text={{ urlencode('Hola '.$r->primer_nombre.', su portal: '.$r->portal_url) }}"
+            target="_blank" style="padding:8px 16px;background:#16a34a;color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📱 WhatsApp</a>
+        @endif
+    </div>
+    @else
+    <div style="padding:14px 22px;font-size:12.5px;color:#94a3b8;">🔒 Sin acceso generado aún. Genérelo desde la lista de terceros.</div>
     @endif
 </div>
 @endif
 
+</div>
+</div>
 </x-filament-panels::page>

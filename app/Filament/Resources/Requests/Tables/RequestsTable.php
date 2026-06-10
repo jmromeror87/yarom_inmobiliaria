@@ -38,8 +38,10 @@ class RequestsTable
         return $table
             ->columns([
                 TextColumn::make('numero')
-                    ->label('N° Solicitud')->searchable()->sortable()
-                    ->weight('bold')->color('primary'),
+                    ->label('N° Solicitud')
+                    ->searchable()->sortable()
+                    ->weight('bold')->color('primary')
+                    ->description(fn ($record) => $record->fecha_radicacion?->format('d/m/Y')),
 
                 TextColumn::make('tipo')
                     ->label('Tipo')->badge()
@@ -50,9 +52,9 @@ class RequestsTable
                         default                => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'estudio_propietario'  => '🏠 Propietario',
-                        'estudio_arrendatario' => '🔑 Arrendatario',
-                        'estudio_comprador'    => '🛒 Comprador',
+                        'estudio_propietario'  => 'Propietario',
+                        'estudio_arrendatario' => 'Arrendatario',
+                        'estudio_comprador'    => 'Comprador',
                         default                => $state,
                     }),
 
@@ -60,14 +62,6 @@ class RequestsTable
                     ->label('Inmueble')
                     ->description(fn ($record) => $record->property?->direccion)
                     ->searchable(),
-
-                TextColumn::make('thirds_count')
-                    ->label('Terceros')
-                    ->counts('thirds')
-                    ->badge()->color('gray'),
-
-                TextColumn::make('fecha_radicacion')
-                    ->label('Radicada')->date('d/m/Y')->sortable(),
 
                 TextColumn::make('estado')
                     ->label('Estado')->badge()
@@ -82,16 +76,20 @@ class RequestsTable
                         default            => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'radicada'         => '📋 Radicada',
-                        'en_estudio'       => '🔍 En estudio',
-                        'aprobada'         => '✅ Aprobada (SURA)',
-                        'aprobada_gerente' => '👔 Aprobada por gerente',
-                        'condicional'      => '⚠️ Condicional',
-                        'rechazada'        => '❌ Rechazada',
-                        'desistida'        => '🚫 Desistida',
+                        'radicada'         => 'Radicada',
+                        'en_estudio'       => 'En estudio',
+                        'aprobada'         => 'Aprobada (SURA)',
+                        'aprobada_gerente' => 'Aprobada gerente',
+                        'condicional'      => 'Condicional',
+                        'rechazada'        => 'Rechazada',
+                        'desistida'        => 'Desistida',
                         default            => $state,
                     }),
 
+                TextColumn::make('thirds_count')
+                    ->label('Terceros')
+                    ->counts('thirds')
+                    ->badge()->color('gray'),
 
                 TextColumn::make('asesor.name')
                     ->label('Asesor')->searchable(),
@@ -121,6 +119,7 @@ class RequestsTable
                     ->label('Enviar a Sura')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('info')
+                    ->outlined()
                     ->visible(fn ($record) => in_array($record->estado, ['radicada', 'en_estudio']))
                     ->form([
                         TextInput::make('telefono_sura')
@@ -171,16 +170,29 @@ class RequestsTable
                             ->success()->send();
                     }),
 
-                EditAction::make()->label('Editar')
+                EditAction::make()
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->outlined()
                     ->hidden(fn ($record) => in_array($record->estado, ['aprobada', 'aprobada_gerente', 'desistida'])),
 
-                Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->color('gray')
+                Action::make('ver')
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->outlined()
+                    ->color('gray')
                     ->url(fn ($record) => \App\Filament\Resources\Requests\RequestResource::getUrl('edit', ['record' => $record]))
                     ->visible(fn ($record) => in_array($record->estado, ['aprobada', 'aprobada_gerente', 'desistida'])),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()->label('Eliminar'),
+                    DeleteBulkAction::make()
+                        ->label('Eliminar seleccionadas')
+                        ->requiresConfirmation()
+                        ->modalHeading('¿Eliminar solicitudes seleccionadas?')
+                        ->modalDescription('Solo administradores pueden realizar esta acción.')
+                        ->modalSubmitActionLabel('Sí, eliminar')
+                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'admin'])),
                 ]),
             ]);
     }

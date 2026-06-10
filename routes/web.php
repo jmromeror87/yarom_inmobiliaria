@@ -30,9 +30,11 @@ Route::get('/admin/actas/{handover}/pdf', [\App\Http\Controllers\PropertyHandove
 Route::post('/admin/actas/{handover}/firma', [App\Http\Controllers\HandoverSignatureController::class, 'store'])->name('acta.firma')->middleware('web');
 Route::get('/admin/facturas/{bill}/pdf', [App\Http\Controllers\RentBillPdfController::class, 'download'])->name('factura.pdf')->middleware('web');
 
-// ── Estudio de crédito Sudamericana (público, sin auth) ─────────────────
-Route::get('/estudio/{token}',  [\App\Http\Controllers\EstudioController::class, 'show'])->name('estudio.show');
-Route::post('/estudio/{token}', [\App\Http\Controllers\EstudioController::class, 'store'])->name('estudio.store');
+// ── Estudio de crédito Sudamericana (público, sin auth, throttled) ──────
+Route::middleware(['throttle:20,1'])->group(function () {
+    Route::get('/estudio/{token}',  [\App\Http\Controllers\EstudioController::class, 'show'])->name('estudio.show');
+    Route::post('/estudio/{token}', [\App\Http\Controllers\EstudioController::class, 'store'])->name('estudio.store');
+});
 
 // ── Acta de entrega pública (sin auth — acceso por token) ───────────────
 Route::get('/acta/{token}',          [\App\Http\Controllers\ActaPublicaController::class, 'show'])->name('acta.publica');

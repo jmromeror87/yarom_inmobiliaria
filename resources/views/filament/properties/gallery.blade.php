@@ -11,7 +11,9 @@
     .cat-filter { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
     .cat-btn { background:#f1f5f9; border:none; padding:6px 14px; border-radius:99px; font-size:12px; font-weight:700; cursor:pointer; color:#475569; }
     .cat-btn.active { background:linear-gradient(135deg,#E11D48,#2563EB); color:#fff; }
-    .header-inm { background:linear-gradient(135deg,#0A192F,#0f2d5a); border-radius:16px; padding:20px 24px; margin-bottom:20px; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+    .header-inm { background:linear-gradient(135deg,#0F172A 0%,#1e2d45 55%,#1a1f3a 100%); border-radius:1.25rem; padding:24px 32px; margin-bottom:20px; color:#fff; display:flex; justify-content:space-between; align-items:center; position:relative; overflow:hidden; box-shadow:0 4px 24px rgba(15,23,42,.15); }
+    .header-inm::before { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px; border-radius:50%; background:radial-gradient(circle,rgba(225,29,72,.12),transparent 70%); pointer-events:none; }
+    .cat-btn.active { background:linear-gradient(135deg,#1e3a8a,#E11D48)!important; color:#fff!important; box-shadow:0 3px 10px rgba(225,29,72,.28); }
 </style>
 
 @php
@@ -39,14 +41,18 @@
 @endphp
 
 <div class="header-inm">
-    <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94a3b8;margin-bottom:4px;">{{ $this->record->tipo?->nombre ?? 'Inmueble' }}</div>
-        <div style="font-size:20px;font-weight:900;">{{ $this->record->codigo }}</div>
-        <div style="font-size:13px;color:#94a3b8;margin-top:4px;">{{ $this->record->direccion }} · {{ $this->record->municipio?->nombre }}</div>
+    {{-- Ícono --}}
+    <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#1e3a8a,#E11D48);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 8px 20px rgba(225,29,72,.28);margin-right:20px;z-index:1;">
+        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
     </div>
-    <div style="text-align:right;">
-        <div style="background:rgba(225,29,72,0.2);border:1px solid rgba(225,29,72,0.4);color:#fca5a5;font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;">{{ $images->count() }} fotos</div>
-        <div style="font-size:13px;color:#64748b;margin-top:8px;">{{ $this->record->propietario?->nombre_completo }}</div>
+    <div style="flex:1;z-index:1;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.45);margin-bottom:4px;">{{ $this->record->tipo?->nombre ?? 'Inmueble' }}</div>
+        <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;">{{ $this->record->codigo }}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.55);margin-top:4px;font-weight:500;">{{ $this->record->direccion }}@if($this->record->municipio) · {{ $this->record->municipio->nombre }}@endif</div>
+        @if($this->record->propietario)<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;">{{ $this->record->propietario->nombre_completo }}</div>@endif
+    </div>
+    <div style="z-index:1;">
+        <div style="background:rgba(225,29,72,.2);border:1px solid rgba(225,29,72,.4);color:#fca5a5;font-size:12px;font-weight:800;padding:5px 14px;border-radius:99px;text-align:center;">{{ $images->count() }} fotos</div>
     </div>
 </div>
 

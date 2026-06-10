@@ -146,10 +146,10 @@ window.mapboxAddr = function(apiKey, statePath, latPath, lngPath) {
         _c:      null,
 
         init() {
-            // Leer valor inicial del input que Filament ya hidrata
+            // Leer valor desde Livewire (fuente de verdad), no del DOM
             this.$nextTick(() => {
-                const inp = this.$el.querySelector('input');
-                if (inp && inp.value) this.query = inp.value;
+                const val = this.$wire.get(statePath);
+                if (val) this.query = val;
             });
         },
 
@@ -184,28 +184,14 @@ window.mapboxAddr = function(apiKey, statePath, latPath, lngPath) {
             this.abierto = false;
             this.sugs    = [];
 
-            // Actualizar el input visible
-            const inp = this.$el.querySelector('input');
-            if (inp) {
-                inp.value = s.place;
-                inp.dispatchEvent(new Event('input',  { bubbles: true }));
-                inp.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-
-            // Actualizar lat/lng via Livewire
-            this._updateField(latPath, this.lat);
-            this._updateField(lngPath, this.lng);
+            // Actualizar Livewire directamente (fuente de verdad)
+            this.$wire.set(statePath, s.place);
+            this.$wire.set(latPath,   this.lat);
+            this.$wire.set(lngPath,   this.lng);
         },
 
         _updateField(path, val) {
-            const name = path.split('.').pop();
-            const sel  = `[wire\\:model="${path}"], [wire\\:model\\.live="${path}"], [name="${name}"]`;
-            const el   = document.querySelector(sel);
-            if (el) {
-                el.value = val;
-                el.dispatchEvent(new Event('input',  { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+            this.$wire.set(path, val);
         },
 
         onPick(d) {
