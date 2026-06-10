@@ -244,7 +244,11 @@ class OwnerLiquidationResource extends Resource
             ])
             ->toolbarActions([
                 TableAction::make('generar_mes')
-                    ->label('Generar liquidaciones del mes')->icon('heroicon-o-bolt')->color('warning')
+                    ->label('Generar liquidaciones del mes')
+                    ->icon('heroicon-o-bolt')
+                    ->extraAttributes([
+                        'style' => 'background:linear-gradient(135deg,#d97706,#f59e0b)!important;color:#fff!important;border:none!important;box-shadow:0 4px 14px rgba(217,119,6,.35)!important;font-weight:700!important;',
+                    ])
                     ->schema([
                         Forms\Components\Select::make('mes')->label('Mes')
                             ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
@@ -265,17 +269,20 @@ class OwnerLiquidationResource extends Resource
                         Notification::make()->title("{$n} liquidaciones generadas")->success()->send();
                     }),
                 TableAction::make('reporte_pdf')
-                    ->label('Reporte PDF del mes')->icon('heroicon-o-document-arrow-down')->color('gray')
+                    ->label('Reporte PDF del mes')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->extraAttributes([
+                        'style' => 'background:linear-gradient(135deg,#1e3a8a,#2563eb)!important;color:#fff!important;border:none!important;box-shadow:0 4px 14px rgba(30,58,138,.3)!important;font-weight:700!important;',
+                    ])
                     ->schema([
                         Forms\Components\Select::make('mes')->label('Mes')
                             ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
                             ->required()->default(now()->month),
                         Forms\Components\TextInput::make('anio')->label('Año')->numeric()->required()->default(now()->year),
                     ])
-                    ->action(function(array $data) {
+                    ->action(function(array $data, \Livewire\Component $livewire) {
                         $url = route('liquidacion.reporte.pdf', ['mes' => $data['mes'], 'anio' => $data['anio']]);
-                        // Abrir en nueva pestaña via JS
-                        $this->js("window.open('{$url}', '_blank')");
+                        $livewire->js("window.open('{$url}', '_blank')");
                     }),
 
                 BulkActionGroup::make([

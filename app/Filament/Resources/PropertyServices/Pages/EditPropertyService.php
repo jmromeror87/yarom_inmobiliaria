@@ -1,21 +1,21 @@
 <?php
 
-namespace App\Filament\Resources\Accounting\Pages;
+namespace App\Filament\Resources\PropertyServices\Pages;
 
-use App\Filament\Resources\Accounting\AccountingAccountResource;
+use App\Filament\Resources\PropertyServices\PropertyServiceResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
-class EditAccount extends EditRecord
+class EditPropertyService extends EditRecord
 {
-    protected static string $resource = AccountingAccountResource::class;
+    protected static string $resource = PropertyServiceResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
             DeleteAction::make()
-                ->label('Eliminar cuenta')
+                ->label('Eliminar')
                 ->icon('heroicon-o-trash')
                 ->outlined()
                 ->color('danger'),
@@ -44,12 +44,5 @@ class EditAccount extends EditRecord
             ->icon('heroicon-o-x-mark')
             ->outlined()
             ->color('gray');
-    }
-
-    public function getHeader(): ?\Illuminate\Contracts\View\View
-    {
-        return view('filament.pages.accounting.edit-account-header', [
-            'record' => $this->record,
-        ]);
     }
 }

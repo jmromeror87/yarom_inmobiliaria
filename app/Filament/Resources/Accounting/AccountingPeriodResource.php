@@ -50,41 +50,41 @@ class AccountingPeriodResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('anio')->label('Año')->sortable()->weight('bold'),
-
                 TextColumn::make('mes_nombre')->label('Mes'),
-
                 TextColumn::make('estado')->label('Estado')->badge()
                     ->formatStateUsing(fn($state) => $state === 'abierto' ? 'Abierto' : 'Cerrado')
                     ->color(fn($state) => $state === 'abierto' ? 'success' : 'gray'),
-
                 TextColumn::make('entries_count')->label('Comprobantes')
                     ->counts('entries')->badge()->color('info'),
-
                 TextColumn::make('cerrado_en')->label('Cerrado el')
                     ->dateTime('d/m/Y H:i')->placeholder('—'),
-
                 TextColumn::make('cerradoPor.name')->label('Cerrado por')->placeholder('—'),
             ])
             ->defaultSort('anio', 'desc')
+            ->striped()
             ->recordActions([
                 \Filament\Actions\Action::make('cerrar')
-                    ->label('🔒 Cerrar período')
+                    ->label('Cerrar período')
+                    ->icon('heroicon-o-lock-closed')
+                    ->outlined()
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('¿Cerrar este período?')
+                    ->modalHeading('Cerrar período contable')
                     ->modalDescription('Una vez cerrado no se podrán registrar más comprobantes en este período.')
                     ->visible(fn($record) => $record->estado === 'abierto')
                     ->action(function ($record) {
                         $record->update([
-                            'estado'     => 'cerrado',
-                            'cerrado_por'=> Auth::id(),
-                            'cerrado_en' => now(),
+                            'estado'      => 'cerrado',
+                            'cerrado_por' => Auth::id(),
+                            'cerrado_en'  => now(),
                         ]);
                         Notification::make()->title('Período cerrado')->success()->send();
                     }),
 
                 \Filament\Actions\Action::make('reabrir')
-                    ->label('🔓 Reabrir')
+                    ->label('Reabrir')
+                    ->icon('heroicon-o-lock-open')
+                    ->outlined()
                     ->color('warning')
                     ->requiresConfirmation()
                     ->visible(fn($record) => $record->estado === 'cerrado')
@@ -96,10 +96,15 @@ class AccountingPeriodResource extends Resource
             ->headerActions([
                 \Filament\Actions\Action::make('abrir_mes_actual')
                     ->label('+ Abrir mes actual')
-                    ->color('primary')
+                    ->icon('heroicon-o-calendar-days')
+                    ->extraAttributes([
+                        'style' => 'background:linear-gradient(135deg,#16a34a,#4ade80)!important;color:#fff!important;border:none!important;box-shadow:0 2px 8px rgba(22,163,74,.25)!important;font-weight:700!important;',
+                    ])
                     ->action(function () {
                         AccountingPeriod::abrirSiNoExiste(now()->year, now()->month);
-                        Notification::make()->title('Período ' . now()->monthName . ' ' . now()->year . ' abierto')->success()->send();
+                        Notification::make()
+                            ->title('Período ' . now()->monthName . ' ' . now()->year . ' abierto')
+                            ->success()->send();
                     }),
             ]);
     }

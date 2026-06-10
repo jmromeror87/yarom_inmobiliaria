@@ -14,6 +14,7 @@ use App\Models\Third;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Components\Html;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -40,127 +41,143 @@ class AccountingEntryResource extends Resource
     {
         return $schema->components([
 
-            // ── Encabezado del comprobante ──────────────────────
-            Select::make('tipo')
-                ->label('Tipo de comprobante')
-                ->options([
-                    'CC' => '📒 Comprobante de Contabilidad (CC)',
-                    'CI' => '💚 Comprobante de Ingreso (CI)',
-                    'CE' => '💸 Comprobante de Egreso (CE)',
-                    'CR' => '🏦 Comprobante de Recaudo (CR)',
-                    'ND' => '📈 Nota Débito (ND)',
-                    'NC' => '📉 Nota Crédito (NC)',
-                    'CA' => '🔧 Comprobante de Ajuste (CA)',
-                ])
-                ->default('CC')->required()->live(),
-
-            TextInput::make('numero')
-                ->label('Número')->disabled()
-                ->placeholder('Auto al guardar'),
-
-            DatePicker::make('fecha')
-                ->label('Fecha')->default(now())->required(),
-
-            Select::make('period_id')
-                ->label('Período contable')
-                ->options(fn() => AccountingPeriod::where('estado','abierto')
-                    ->orderByDesc('anio')->orderByDesc('mes')
-                    ->get()
-                    ->mapWithKeys(fn($p) => [$p->id => $p->nombre])
-                )
-                ->default(fn() => AccountingPeriod::actual()?->id)
-                ->required()->searchable(),
-
-            Textarea::make('descripcion')
-                ->label('Descripción / Concepto')
-                ->required()->rows(2)->columnSpanFull(),
-
-            Select::make('third_id')
-                ->label('Tercero principal')
-                ->options(fn() => Third::orderBy('nombre_completo')
-                    ->get()->mapWithKeys(fn($t)=>[$t->id => $t->nombre_completo . ' — ' . $t->numero_documento])
-                )->searchable()->nullable(),
-
-            Select::make('cost_center_id')
-                ->label('Centro de costo')
-                ->options(fn() => AccountingCostCenter::where('estado','activo')
-                    ->get()->mapWithKeys(fn($c)=>[$c->id => $c->codigo . ' — ' . $c->nombre])
-                )->searchable()->nullable(),
-
-            TextInput::make('referencia')
-                ->label('Referencia externa')->placeholder('N° factura, liquidación...')->nullable(),
-
-            // ── Líneas del comprobante ──────────────────────────
-            Repeater::make('lines')
-                ->label('Movimientos contables')
-                ->relationship()
+            // ── Sección 1: Encabezado ────────────────────────────
+            Section::make('Encabezado del comprobante')
+                ->description('Tipo, número, fecha y período contable')
+                ->icon('heroicon-o-document-text')
+                ->columns(4)
                 ->schema([
-                    Select::make('account_id')
-                        ->label('Cuenta PUC')
-                        ->options(fn() => AccountingAccount::where('acepta_movimiento', true)
-                            ->where('estado','activo')
-                            ->orderBy('codigo')
+                    Select::make('tipo')
+                        ->label('Tipo de comprobante')
+                        ->options([
+                            'CC' => 'Comp. Contabilidad (CC)',
+                            'CI' => 'Comp. Ingreso (CI)',
+                            'CE' => 'Comp. Egreso (CE)',
+                            'CR' => 'Comp. Recaudo (CR)',
+                            'ND' => 'Nota Débito (ND)',
+                            'NC' => 'Nota Crédito (NC)',
+                            'CA' => 'Comp. Ajuste (CA)',
+                        ])
+                        ->default('CC')->required()->live(),
+
+                    TextInput::make('numero')
+                        ->label('Número')
+                        ->disabled()
+                        ->placeholder('Auto al guardar')
+                        ->helperText('Se asigna automáticamente'),
+
+                    DatePicker::make('fecha')
+                        ->label('Fecha')->default(now())->required(),
+
+                    Select::make('period_id')
+                        ->label('Período contable')
+                        ->options(fn() => AccountingPeriod::where('estado','abierto')
+                            ->orderByDesc('anio')->orderByDesc('mes')
                             ->get()
-                            ->mapWithKeys(fn($a) => [$a->id => $a->codigo . ' — ' . $a->nombre])
+                            ->mapWithKeys(fn($p) => [$p->id => $p->nombre])
                         )
-                        ->searchable()->required()
-                        ->live()
-                        ->afterStateUpdated(function ($state) {
-                            if ($state) {
-                                $account = AccountingAccount::find($state);
-                                if ($account) {
-                                    // Sugerir en débito o crédito según naturaleza
-                                }
-                            }
-                        }),
+                        ->default(fn() => AccountingPeriod::actual()?->id)
+                        ->required()->searchable(),
 
-                    TextInput::make('descripcion')
-                        ->label('Descripción línea')->nullable(),
+                    Textarea::make('descripcion')
+                        ->label('Descripción / Concepto')
+                        ->required()->rows(2)->columnSpanFull(),
+                ]),
 
-                    TextInput::make('debito')
-                        ->label('Débito ($)')->numeric()->default(0)
-                        ->prefix('$')->minValue(0)->live(),
-
-                    TextInput::make('credito')
-                        ->label('Crédito ($)')->numeric()->default(0)
-                        ->prefix('$')->minValue(0)->live(),
-
+            // ── Sección 2: Clasificación ─────────────────────────
+            Section::make('Clasificación')
+                ->description('Tercero, centro de costo y referencia')
+                ->icon('heroicon-o-tag')
+                ->columns(3)
+                ->collapsed()
+                ->schema([
                     Select::make('third_id')
-                        ->label('Tercero')
+                        ->label('Tercero principal')
                         ->options(fn() => Third::orderBy('nombre_completo')
-                            ->get()->mapWithKeys(fn($t)=>[$t->id => $t->nombre_completo])
+                            ->get()->mapWithKeys(fn($t)=>[$t->id => $t->nombre_completo . ' — ' . $t->numero_documento])
                         )->searchable()->nullable(),
 
                     Select::make('cost_center_id')
-                        ->label('C. Costo')
+                        ->label('Centro de costo')
                         ->options(fn() => AccountingCostCenter::where('estado','activo')
                             ->get()->mapWithKeys(fn($c)=>[$c->id => $c->codigo . ' — ' . $c->nombre])
                         )->searchable()->nullable(),
 
-                    TextInput::make('base_retencion')
-                        ->label('Base retención')->numeric()->prefix('$')->nullable(),
-                ])
-                ->columns(4)
-                ->defaultItems(2)
-                ->addActionLabel('+ Agregar línea')
-                ->reorderable('orden')
-                ->collapsible()
-                ->itemLabel(function (array $state): string {
-                    $account = $state['account_id']
-                        ? AccountingAccount::find($state['account_id'])
-                        : null;
-                    $codigo = $account?->codigo ?? '—';
-                    $deb = number_format((float)($state['debito'] ?? 0), 0, ',', '.');
-                    $cre = number_format((float)($state['credito'] ?? 0), 0, ',', '.');
-                    return $codigo . '  |  Db: $' . $deb . '  —  Cr: $' . $cre;
-                })
-                ->columnSpanFull(),
+                    TextInput::make('referencia')
+                        ->label('Referencia externa')
+                        ->placeholder('N° factura, liquidación...')
+                        ->nullable(),
+                ]),
 
-            // ── Totales ─────────────────────────────────────────
-            Html::make(fn (Get $get): \Illuminate\Support\HtmlString => static::totalesHtml($get('lines') ?? []))
-                ->columnSpanFull(),
+            // ── Sección 3: Líneas ────────────────────────────────
+            Section::make('Movimientos contables')
+                ->description('Ingrese cada línea con su cuenta PUC, débito y crédito. El comprobante debe cuadrar (Débitos = Créditos).')
+                ->icon('heroicon-o-table-cells')
+                ->schema([
+                    Repeater::make('lines')
+                        ->label('')
+                        ->relationship()
+                        ->schema([
+                            Select::make('account_id')
+                                ->label('Cuenta PUC')
+                                ->options(fn() => AccountingAccount::where('acepta_movimiento', true)
+                                    ->where('estado','activo')
+                                    ->orderBy('codigo')
+                                    ->get()
+                                    ->mapWithKeys(fn($a) => [$a->id => $a->codigo . ' — ' . $a->nombre])
+                                )
+                                ->searchable()->required()->live()
+                                ->afterStateUpdated(function ($state) {
+                                    // naturaleza sugerida
+                                }),
 
-        ])->columns(3);
+                            TextInput::make('descripcion')
+                                ->label('Descripción línea')->nullable(),
+
+                            TextInput::make('debito')
+                                ->label('Débito ($)')->numeric()->default(0)
+                                ->prefix('$')->minValue(0)->live(),
+
+                            TextInput::make('credito')
+                                ->label('Crédito ($)')->numeric()->default(0)
+                                ->prefix('$')->minValue(0)->live(),
+
+                            Select::make('third_id')
+                                ->label('Tercero')
+                                ->options(fn() => Third::orderBy('nombre_completo')
+                                    ->get()->mapWithKeys(fn($t)=>[$t->id => $t->nombre_completo])
+                                )->searchable()->nullable(),
+
+                            Select::make('cost_center_id')
+                                ->label('C. Costo')
+                                ->options(fn() => AccountingCostCenter::where('estado','activo')
+                                    ->get()->mapWithKeys(fn($c)=>[$c->id => $c->codigo . ' — ' . $c->nombre])
+                                )->searchable()->nullable(),
+
+                            TextInput::make('base_retencion')
+                                ->label('Base retención')->numeric()->prefix('$')->nullable(),
+                        ])
+                        ->columns(4)
+                        ->defaultItems(2)
+                        ->addActionLabel('+ Agregar línea')
+                        ->reorderable('orden')
+                        ->collapsible()
+                        ->itemLabel(function (array $state): string {
+                            $account = $state['account_id']
+                                ? AccountingAccount::find($state['account_id'])
+                                : null;
+                            $codigo = $account?->codigo ?? '—';
+                            $deb = number_format((float)($state['debito'] ?? 0), 0, ',', '.');
+                            $cre = number_format((float)($state['credito'] ?? 0), 0, ',', '.');
+                            return $codigo . '  |  Db: $' . $deb . '  —  Cr: $' . $cre;
+                        })
+                        ->columnSpanFull(),
+
+                    Html::make(fn (Get $get): \Illuminate\Support\HtmlString => static::totalesHtml($get('lines') ?? []))
+                        ->columnSpanFull(),
+                ]),
+
+        ])->columns(1);
     }
 
     private static function totalesHtml(array $lines): \Illuminate\Support\HtmlString
@@ -169,15 +186,32 @@ class AccountingEntryResource extends Resource
         $cre = collect($lines)->sum(fn($l) => (float)($l['credito'] ?? 0));
         $diff = abs($deb - $cre);
         $cuadrado = $diff < 0.01;
-        $color = $cuadrado ? '#16a34a' : '#dc2626';
-        $icono = $cuadrado ? '✅' : '❌';
-        $fmt = fn($v) => '$' . number_format($v, 2, ',', '.');
+        $fmt = fn($v) => '$' . number_format($v, 0, ',', '.');
+
+        $bg    = $cuadrado ? 'linear-gradient(135deg,#052e16,#166534)' : 'linear-gradient(135deg,#450a0a,#991b1b)';
+        $bdr   = $cuadrado ? '#166534' : '#991b1b';
+        $badge = $cuadrado
+            ? '<span style="background:#16a34a;color:#fff;border-radius:20px;padding:3px 14px;font-size:11px;font-weight:800;letter-spacing:.05em;">CUADRADO</span>'
+            : '<span style="background:#dc2626;color:#fff;border-radius:20px;padding:3px 14px;font-size:11px;font-weight:800;letter-spacing:.05em;">DIFERENCIA: ' . $fmt($diff) . '</span>';
 
         return new \Illuminate\Support\HtmlString(
-            '<div style="display:flex;gap:32px;padding:12px 16px;background:#f8fafc;border-radius:10px;border:1.5px solid '.$color.';font-family:monospace;">'
-            . '<span>📥 Débitos: <strong>' . $fmt($deb) . '</strong></span>'
-            . '<span>📤 Créditos: <strong>' . $fmt($cre) . '</strong></span>'
-            . '<span style="color:'.$color.';font-weight:900;">' . $icono . ' ' . ($cuadrado ? 'CUADRADO' : 'DIFERENCIA: ' . $fmt($diff)) . '</span>'
+            '<div style="background:' . $bg . ';border:1px solid ' . $bdr . ';border-radius:12px;padding:14px 20px;
+                         display:flex;align-items:center;justify-content:space-between;font-family:\'Plus Jakarta Sans\',monospace;">'
+            . '<div style="display:flex;gap:32px;">'
+            . '  <div style="text-align:center;">'
+            . '    <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Total Débitos</div>'
+            . '    <div style="font-size:20px;font-weight:900;color:#86efac;font-family:monospace;">' . $fmt($deb) . '</div>'
+            . '  </div>'
+            . '  <div style="width:1px;background:rgba(255,255,255,.1);"></div>'
+            . '  <div style="text-align:center;">'
+            . '    <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Total Créditos</div>'
+            . '    <div style="font-size:20px;font-weight:900;color:#93c5fd;font-family:monospace;">' . $fmt($cre) . '</div>'
+            . '  </div>'
+            . '</div>'
+            . '<div style="display:flex;align-items:center;gap:10px;">'
+            . '  <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;">Estado:</span>'
+            . $badge
+            . '</div>'
             . '</div>'
         );
     }
@@ -234,13 +268,14 @@ class AccountingEntryResource extends Resource
                     ),
             ])
             ->recordActions([
-                EditAction::make()->label('Editar')
+                EditAction::make()->label('Editar')->outlined()
                     ->visible(fn($record) => $record->estado === 'borrador'),
 
                 \Filament\Actions\Action::make('contabilizar')
-                    ->label('✅ Contabilizar')
+                    ->label('Contabilizar')
                     ->color('success')
                     ->icon('heroicon-o-check-badge')
+                    ->outlined()
                     ->requiresConfirmation()
                     ->visible(fn($record) => $record->estado === 'borrador')
                     ->action(function ($record) {
@@ -256,6 +291,7 @@ class AccountingEntryResource extends Resource
                     ->label('Anular')
                     ->color('danger')
                     ->icon('heroicon-o-x-circle')
+                    ->outlined()
                     ->schema([
                         Textarea::make('razon_anulacion')
                             ->label('Razón de anulación')->required()->rows(3),
@@ -268,7 +304,9 @@ class AccountingEntryResource extends Resource
 
                 \Filament\Actions\Action::make('ver')
                     ->label('Ver')
-                    ->icon('heroicon-o-eye')->color('gray')
+                    ->icon('heroicon-o-eye')
+                    ->outlined()
+                    ->color('gray')
                     ->url(fn($record) => static::getUrl('view', ['record' => $record]))
                     ->visible(fn($record) => in_array($record->estado, ['contabilizado', 'anulado'])),
             ]);

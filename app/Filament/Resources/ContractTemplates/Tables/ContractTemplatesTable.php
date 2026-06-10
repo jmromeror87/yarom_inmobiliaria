@@ -75,7 +75,7 @@ class ContractTemplatesTable
                     ]),
             ])
             ->recordActions([
-                EditAction::make()->label('Editar'),
+                EditAction::make()->label('Editar')->outlined(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

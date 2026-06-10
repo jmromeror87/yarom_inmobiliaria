@@ -126,4 +126,13 @@
 </div>
 @endif
 
+
+{{-- Otrosíes --}}
+<div style="margin-top:24px;">
+    @livewire(\App\Filament\Resources\RentalContracts\RelationManagers\AmendmentsRelationManager::class, [
+        'ownerRecord' => $record,
+        'pageClass'   => static::class,
+    ])
+</div>
+
 </x-filament-panels::page>

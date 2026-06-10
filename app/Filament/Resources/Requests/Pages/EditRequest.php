@@ -318,7 +318,7 @@ class EditRequest extends EditRecord
         // ── Aprobación directa del gerente ────────────────────
         $puedeAprobarGerente = !$cerrada && !$rechazada
             && !$esPropietario
-            && auth()->user()?->hasAnyRole(['super_admin', 'admin', 'gerente']);
+            &&  Auth::id()?->hasAnyRole(['super_admin', 'admin', 'gerente']);
 
         if ($puedeAprobarGerente) {
             $company = \App\Models\Company::first();
@@ -342,18 +342,18 @@ class EditRequest extends EditRecord
                         ->helperText("Tarifa directa sin SURA. General: $" . number_format($tarifaDefault, 0, ',', '.')),
                     TextInput::make('decidido_por')
                         ->label('Aprobado por (nombre)')
-                        ->default(auth()->user()?->name)
+                        ->default(Auth::user()?->name)
                         ->required(),
                 ])
                 ->action(function (array $data): void {
-                    if (!auth()->user()?->hasAnyRole(['super_admin', 'admin', 'gerente'])) {
+                    if (! Auth::id()?->hasAnyRole(['super_admin', 'admin', 'gerente'])) {
                         Notification::make()->title('Sin permiso')->body('No tiene rol para aprobar solicitudes.')->danger()->send();
                         return;
                     }
                     $this->record->update([
                         'estado'                 => 'aprobada_gerente',
                         'tipo_aprobacion'        => 'gerente_directo',
-                        'aprobado_por_id'        => auth()->user()?->getKey(),
+                        'aprobado_por_id'        => Auth::id(),
                         'justificacion_gerente'  => $data['justificacion_gerente'],
                         'tarifa_estudio_cobrada' => $data['tarifa_estudio_cobrada'] ?? null,
                         'decidido_por'           => $data['decidido_por'],
@@ -366,7 +366,7 @@ class EditRequest extends EditRecord
                 });
         }
 
-        if (!$cerrada && auth()->user()?->hasAnyRole(['super_admin', 'admin'])) {
+        if (!$cerrada && Auth::id()?->hasAnyRole(['super_admin', 'admin'])) {
             $acciones[] = DeleteAction::make()
                 ->label('Eliminar solicitud')
                 ->requiresConfirmation()

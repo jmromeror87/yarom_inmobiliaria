@@ -2,93 +2,124 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\RentBill;
+use App\Models\CuentaPorCobrar;
 use Filament\Widgets\ChartWidget;
 
 class CarteraPorEdadWidget extends ChartWidget
 {
-    protected ?string $heading    = 'Cartera por Edades de Mora';
-    protected static ?int $sort   = 3;
-    protected int|string|array $columnSpan = ['default' => 12, 'lg' => 7];
+    protected ?string $heading     = 'Cartera por Antigüedad de Mora';
+    protected ?string $description = 'Distribución del saldo pendiente según los días de retraso — verde = saludable, rojo = crítico';
+    protected static ?int $sort    = 3;
+    protected int|string|array $columnSpan = ['default' => 12, 'lg' => 12];
     public static function canView(): bool { return true; }
-    protected ?string $maxHeight  = '280px';
+    protected ?string $maxHeight   = '300px';
 
     protected function getData(): array
     {
-        $hoy = now()->toDateString();
+        $cuentas = CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])
+            ->where('saldo', '>', 0)
+            ->get(['saldo', 'fecha_vencimiento']);
 
-        // Facturas con saldo pendiente > 0
-        $bills = RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])
-            ->where('saldo_pendiente', '>', 0)
-            ->get(['saldo_pendiente', 'fecha_limite_pago']);
+        $rangos = [0, 0, 0, 0, 0, 0];
 
-        $rangos = [
-            'Al día (0)'     => 0,
-            '1–30 días'      => 0,
-            '31–60 días'     => 0,
-            '61–90 días'     => 0,
-            '91–180 días'    => 0,
-            'Más de 180 días'=> 0,
-        ];
+        foreach ($cuentas as $c) {
+            if (!$c->fecha_vencimiento) continue;
+            $dias  = (int) now()->startOfDay()->diffInDays($c->fecha_vencimiento->startOfDay(), false);
+            $saldo = (float) $c->saldo;
 
-        foreach ($bills as $bill) {
-            $dias  = (int) now()->startOfDay()->diffInDays($bill->fecha_limite_pago->startOfDay(), false);
-            $saldo = (float) $bill->saldo_pendiente;
-
-            if ($dias >= 0)         $rangos['Al día (0)']      += $saldo;
-            elseif ($dias >= -30)   $rangos['1–30 días']        += $saldo;
-            elseif ($dias >= -60)   $rangos['31–60 días']       += $saldo;
-            elseif ($dias >= -90)   $rangos['61–90 días']       += $saldo;
-            elseif ($dias >= -180)  $rangos['91–180 días']      += $saldo;
-            else                    $rangos['Más de 180 días']  += $saldo;
+            if ($dias >= 0)        $rangos[0] += $saldo;
+            elseif ($dias >= -30)  $rangos[1] += $saldo;
+            elseif ($dias >= -60)  $rangos[2] += $saldo;
+            elseif ($dias >= -90)  $rangos[3] += $saldo;
+            elseif ($dias >= -180) $rangos[4] += $saldo;
+            else                   $rangos[5] += $saldo;
         }
 
         return [
+            'labels' => [
+                ['Al día', '(0 días)'],
+                ['1 – 30', 'días'],
+                ['31 – 60', 'días'],
+                ['61 – 90', 'días'],
+                ['91 – 180', 'días'],
+                ['Más de', '180 días'],
+            ],
             'datasets' => [[
-                'label'           => 'Saldo pendiente ($)',
-                'data'            => array_values($rangos),
-                'backgroundColor' => [
-                    'rgba(34,197,94,0.8)',   // verde - al día
-                    'rgba(234,179,8,0.8)',   // amarillo - 1-30
-                    'rgba(249,115,22,0.8)',  // naranja - 31-60
-                    'rgba(239,68,68,0.8)',   // rojo - 61-90
-                    'rgba(185,28,28,0.85)',  // rojo oscuro - 91-180
-                    'rgba(127,29,29,0.9)',   // rojo muy oscuro - >180
+                'label'               => 'Saldo pendiente',
+                'data'                => $rangos,
+                'backgroundColor'     => [
+                    'rgba(34,197,94,0.80)',
+                    'rgba(234,179,8,0.80)',
+                    'rgba(249,115,22,0.80)',
+                    'rgba(239,68,68,0.80)',
+                    'rgba(185,28,28,0.85)',
+                    'rgba(127,29,29,0.90)',
                 ],
-                'borderColor'     => 'transparent',
-                'borderRadius'    => 6,
+                'borderColor'         => [
+                    'rgb(22,163,74)',
+                    'rgb(202,138,4)',
+                    'rgb(234,88,12)',
+                    'rgb(220,38,38)',
+                    'rgb(153,27,27)',
+                    'rgb(100,20,20)',
+                ],
+                'borderWidth'         => 2,
+                'borderRadius'        => 12,
+                'borderSkipped'       => false,
+                'hoverBorderWidth'    => 0,
             ]],
-            'labels' => array_keys($rangos),
         ];
     }
 
-    protected function getType(): string
-    {
-        return 'bar';
-    }
+    protected function getType(): string { return 'bar'; }
 
     protected function getOptions(): array
     {
         return [
-            'indexAxis' => 'y',
-            'plugins'   => [
+            'plugins' => [
                 'legend' => ['display' => false],
                 'tooltip' => [
                     'callbacks' => [
-                        'label' => "function(c){ return ' $' + c.raw.toLocaleString('es-CO',{minimumFractionDigits:0}); }",
+                        'label' => "function(c){
+                            var v = c.raw;
+                            var fmt = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0,maximumFractionDigits:0});
+                            return '  Saldo: ' + fmt.format(v);
+                        }",
                     ],
+                    'backgroundColor' => 'rgba(15,23,42,0.92)',
+                    'titleColor'      => '#f8fafc',
+                    'bodyColor'       => '#94a3b8',
+                    'padding'         => 14,
+                    'cornerRadius'    => 10,
+                    'titleFont'       => ['size' => 13, 'weight' => '700'],
+                    'bodyFont'        => ['size' => 12],
                 ],
             ],
             'scales' => [
                 'x' => [
-                    'beginAtZero' => true,
-                    'ticks'       => [
-                        'callback' => "function(v){ return '$' + (v/1000000).toFixed(1) + 'M'; }",
-                        'font'     => ['size' => 10],
+                    'grid'   => ['display' => false],
+                    'border' => ['display' => false],
+                    'ticks'  => [
+                        'font'  => ['size' => 11, 'weight' => '600'],
+                        'color' => '#64748b',
                     ],
                 ],
-                'y' => ['ticks' => ['font' => ['size' => 11]]],
+                'y' => [
+                    'beginAtZero' => true,
+                    'grid'   => ['color' => 'rgba(148,163,184,0.1)', 'drawBorder' => false],
+                    'border' => ['display' => false],
+                    'ticks'  => [
+                        'callback'     => "function(v){ if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return '$'+(v/1000).toFixed(0)+'K'; return v===0?'$0':('$'+v); }",
+                        'font'         => ['size' => 10],
+                        'color'        => '#94a3b8',
+                        'maxTicksLimit'=> 5,
+                    ],
+                ],
             ],
+            'responsive'          => true,
+            'maintainAspectRatio' => false,
+            'animation'           => ['duration' => 700, 'easing' => 'easeOutQuart'],
+            'layout'              => ['padding' => ['top' => 8, 'bottom' => 0, 'left' => 4, 'right' => 4]],
         ];
     }
 }

@@ -178,4 +178,9 @@ class Property extends Model
     public function scopeDisponibles($q)  { return $q->where('estado', 'disponible'); }
     public function scopeArrendados($q)   { return $q->where('estado', 'arrendado'); }
     public function scopeEnCaptacion($q)  { return $q->where('estado', 'en_captacion'); }
+
+    public function services()
+    {
+        return $this->hasMany(\App\Models\PropertyService::class)->orderByDesc('fecha_servicio');
+    }
 }

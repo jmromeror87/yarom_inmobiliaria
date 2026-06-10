@@ -56,7 +56,9 @@ class RentalContractResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            \App\Filament\Resources\RentalContracts\RelationManagers\AmendmentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

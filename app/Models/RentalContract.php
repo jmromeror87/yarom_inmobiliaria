@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Support\LogOptions;
 use App\Models\CuentaPorCobrar;
+use App\Models\ContractAmendment;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 
 class RentalContract extends Model
@@ -172,6 +172,7 @@ class RentalContract extends Model
     public function clauses(): HasMany                 { return $this->hasMany(RentalContractClause::class)->orderBy('orden'); }
     public function thirds(): HasMany                  { return $this->hasMany(RentalContractThird::class)->orderBy('orden'); }
     public function cuentasPorCobrar(): HasMany        { return $this->hasMany(CuentaPorCobrar::class); }
+    public function amendments(): HasMany              { return $this->hasMany(ContractAmendment::class)->orderByDesc('fecha_firma'); }
     public function depositoCartera(): ?CuentaPorCobrar
     {
         return $this->cuentasPorCobrar()->where('tipo', 'deposito_arriendo')->latest()->first();

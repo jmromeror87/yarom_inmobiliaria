@@ -139,7 +139,10 @@ class DianDeclarationResource extends Resource
             ->headerActions([
                 Action::make('generar_periodos')
                     ->label('Generar períodos ' . now()->year)
-                    ->icon('heroicon-o-calendar-days')->color('info')
+                    ->icon('heroicon-o-calendar-days')
+                    ->extraAttributes([
+                        'style' => 'background:linear-gradient(135deg,#16a34a,#4ade80)!important;color:#fff!important;border:none!important;box-shadow:0 2px 8px rgba(22,163,74,.25)!important;',
+                    ])
                     ->requiresConfirmation()
                     ->action(function () {
                         $n = DianObligationService::generarPeriodosAnio(now()->year);

@@ -21,14 +21,12 @@ class PropertyHandoversTable
 
                 TextColumn::make('tipo')->label('Tipo')->badge()
                     ->color(fn ($state) => $state === 'entrega' ? 'success' : 'warning')
-                    ->formatStateUsing(fn ($state) => $state === 'entrega' ? '🔑 Entrega' : '🔄 Devolución'),
-
-                TextColumn::make('rentalContract.numero_contrato')
-                    ->label('Contrato')->searchable(),
+                    ->formatStateUsing(fn ($state) => $state === 'entrega' ? 'Entrega' : 'Devolución'),
 
                 TextColumn::make('property.codigo')
                     ->label('Inmueble')
-                    ->description(fn ($record) => $record->property?->direccion),
+                    ->description(fn ($record) => $record->property?->direccion)
+                    ->searchable(),
 
                 TextColumn::make('arrendatario.nombre_completo')
                     ->label('Arrendatario')->searchable(),
@@ -41,21 +39,24 @@ class PropertyHandoversTable
                         'excelente' => 'success', 'bueno' => 'info',
                         'regular'   => 'warning',  'malo'  => 'danger',
                         default     => 'gray',
-                    }),
+                    })
+                    ->formatStateUsing(fn ($state) => ucfirst($state ?? '')),
 
                 TextColumn::make('items_count')->label('Ítems')
                     ->counts('items')->badge()->color('gray'),
 
                 TextColumn::make('estado')->label('Estado acta')->badge()
                     ->color(fn ($state) => match($state) {
-                        'cerrada' => 'success', 'firmada' => 'primary',
-                        'en_proceso' => 'warning', default => 'gray',
+                        'cerrada'    => 'success',
+                        'firmada'    => 'primary',
+                        'en_proceso' => 'warning',
+                        default      => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'borrador'   => '📝 Borrador',
-                        'en_proceso' => '🔄 En proceso',
-                        'firmada'    => '✍️ Firmada',
-                        'cerrada'    => '✅ Cerrada',
+                        'borrador'   => 'Borrador',
+                        'en_proceso' => 'En proceso',
+                        'firmada'    => 'Firmada',
+                        'cerrada'    => 'Cerrada',
                         default      => $state,
                     }),
             ])
@@ -63,11 +64,15 @@ class PropertyHandoversTable
             ->striped()
             ->filters([
                 SelectFilter::make('tipo')->label('Tipo')
-                    ->options(['entrega'=>'Entrega','devolucion'=>'Devolución']),
+                    ->options(['entrega' => 'Entrega', 'devolucion' => 'Devolución']),
                 SelectFilter::make('estado')->label('Estado')
-                    ->options(['borrador'=>'Borrador','firmada'=>'Firmada','cerrada'=>'Cerrada']),
+                    ->options(['borrador' => 'Borrador', 'firmada' => 'Firmada', 'cerrada' => 'Cerrada']),
             ])
-            ->recordActions([EditAction::make()->label('Editar')])
-            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
+            ->recordActions([
+                EditAction::make()->label('Editar')->outlined(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([DeleteBulkAction::make()]),
+            ]);
     }
 }

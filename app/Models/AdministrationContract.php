@@ -23,6 +23,7 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\ContractAmendment;
 use Illuminate\Support\Facades\Auth;
 
 class AdministrationContract extends Model
@@ -167,6 +168,7 @@ class AdministrationContract extends Model
     public function propietario(): BelongsTo { return $this->belongsTo(Third::class, 'propietario_id'); }
     public function asesor(): BelongsTo      { return $this->belongsTo(User::class, 'asesor_id'); }
     public function clauses(): HasMany       { return $this->hasMany(AdministrationContractClause::class)->orderBy('orden'); }
+    public function amendments(): HasMany    { return $this->hasMany(ContractAmendment::class)->orderByDesc('fecha_firma'); }
     public function statusHistory(): HasMany { return $this->hasMany(ContractStatusHistory::class)->orderByDesc('cambiado_en'); }
     public function notaryTracking(): HasOne { return $this->hasOne(ContractNotaryTracking::class)->latest(); }
 }

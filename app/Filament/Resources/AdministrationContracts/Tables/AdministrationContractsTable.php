@@ -33,8 +33,8 @@ class AdministrationContractsTable
                 TextColumn::make('numero_contrato')
                     ->label('Contrato')
                     ->description(fn ($record) => match($record->tipo_contrato) {
-                        'administracion_arriendo' => '🔑 Administración — Arriendo',
-                        'administracion_venta'    => '🏷️ Administración — Venta',
+                        'administracion_arriendo' => 'Administración — Arriendo',
+                        'administracion_venta'    => 'Administración — Venta',
                         default => $record->tipo_contrato,
                     })
                     ->searchable()->sortable()
@@ -119,13 +119,14 @@ class AdministrationContractsTable
                     ]),
                 SelectFilter::make('tipo_contrato')->label('Tipo')
                     ->options([
-                        'administracion_arriendo' => '🔑 Arriendo',
-                        'administracion_venta'    => '🏷️ Venta',
+                        'administracion_arriendo' => 'Arriendo',
+                        'administracion_venta'    => 'Venta',
                     ]),
             ])
             ->recordActions([
-                EditAction::make()->label('Editar')->hidden(fn ($record) => $record->isReadOnly()),
-                \Filament\Actions\Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->color('gray')
+                EditAction::make()->label('Editar')->icon('heroicon-o-pencil-square')->outlined()
+                    ->hidden(fn ($record) => $record->isReadOnly()),
+                \Filament\Actions\Action::make('ver')->label('Ver')->icon('heroicon-o-eye')->outlined()->color('gray')
                     ->url(fn ($record) => \App\Filament\Resources\AdministrationContracts\AdministrationContractResource::getUrl('edit', ['record' => $record]))
                     ->visible(fn ($record) => $record->isReadOnly()),
             ])

@@ -24,12 +24,9 @@ class RentBillsTable
                     ->label('N° Factura')->searchable()->sortable()
                     ->weight('bold')->color('primary'),
 
-                TextColumn::make('rentalContract.numero_contrato')
-                    ->label('Contrato')->searchable(),
 
                 TextColumn::make('arrendatario.nombre_completo')
                     ->label('Arrendatario')
-                    ->description(fn ($record) => $record->property?->codigo . ' — ' . $record->property?->direccion)
                     ->searchable(),
 
                 TextColumn::make('mes')
@@ -63,18 +60,18 @@ class RentBillsTable
                         default     => 'info',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'parcial'   => '🔶 Parcial',
-                        'pagada'    => '✅ Pagada',
-                        'en_mora'   => '🔴 En mora',
-                        'vencida'   => '⚠️ Vencida',
-                        'anulada'   => '❌ Anulada',
+                        'pendiente' => 'Pendiente',
+                        'parcial'   => 'Parcial',
+                        'pagada'    => 'Pagada',
+                        'en_mora'   => 'En mora',
+                        'vencida'   => 'Vencida',
+                        'anulada'   => 'Anulada',
                         default     => $state,
                     }),
 
                 TextColumn::make('tipo_documento')->label('Doc.')
                     ->badge()->color('gray')
-                    ->formatStateUsing(fn ($state) => $state === 'factura_electronica' ? '🧾 FE' : '📄 DE'),
+                    ->formatStateUsing(fn ($state) => $state === 'factura_electronica' ? 'FE' : 'DE'),
 
                 IconColumn::make('contabilizado')
                     ->label('Cont.')
@@ -132,6 +129,7 @@ class RentBillsTable
                     ->label('Enviar link')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
+                    ->outlined()
                     ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'en_mora', 'parcial', 'vencida']))
                     ->requiresConfirmation()
                     ->modalHeading('Enviar link de pago por WhatsApp')
@@ -169,6 +167,7 @@ class RentBillsTable
                     ->label('Recontabilizar')
                     ->icon('heroicon-o-calculator')
                     ->color('gray')
+                    ->outlined()
                     ->tooltip('Generar asiento contable manualmente')
                     ->visible(fn ($record) => !AccountingEntry::where('referencia_id', $record->id)
                         ->where('referencia_tipo', 'factura_rent_bill')->exists())
@@ -190,6 +189,7 @@ class RentBillsTable
                     ->label('Emitir FE')
                     ->icon('heroicon-o-document-check')
                     ->color('info')
+                    ->outlined()
                     ->tooltip('Emitir factura electrónica ante la DIAN')
                     ->visible(fn ($record) =>
                         $record->tipo_documento === 'factura_electronica' &&
@@ -218,7 +218,10 @@ class RentBillsTable
                         }
                     }),
 
-                EditAction::make()->label('Ver / Pagar'),
+                EditAction::make()
+                    ->label('Ver / Pagar')
+                    ->icon('heroicon-o-eye')
+                    ->outlined(),
             ]);
     }
 }

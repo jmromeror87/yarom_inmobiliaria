@@ -22,7 +22,7 @@ class RentalContractsTable
                 TextColumn::make('tipo')
                     ->label('Tipo')->badge()
                     ->color(fn ($state) => $state === 'comercial' ? 'warning' : 'info')
-                    ->formatStateUsing(fn ($state) => $state === 'comercial' ? '🏢 Comercial' : '🏠 Vivienda'),
+                    ->formatStateUsing(fn ($state) => $state === 'comercial' ? 'Comercial' : 'Vivienda'),
 
                 TextColumn::make('property.codigo')
                     ->label('Inmueble')
@@ -31,7 +31,6 @@ class RentalContractsTable
 
                 TextColumn::make('arrendatario.nombre_completo')
                     ->label('Arrendatario')
-                    ->description(fn ($record) => $record->arrendatario?->numero_documento)
                     ->searchable(),
 
                 TextColumn::make('canon_mensual')
@@ -54,13 +53,13 @@ class RentalContractsTable
                         default     => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match($state) {
-                        'borrador'             => '📝 Borrador',
-                        'enviado_arrendatario' => '📤 Enviado',
-                        'aprobado'             => '✅ Aprobado',
-                        'firmado'              => '✍️ Firmado',
-                        'activo'               => '🟢 Activo',
-                        'terminado'            => '🔴 Terminado',
-                        'cancelado'            => '❌ Cancelado',
+                        'borrador'             => 'Borrador',
+                        'enviado_arrendatario' => 'Enviado',
+                        'aprobado'             => 'Aprobado',
+                        'firmado'              => 'Firmado',
+                        'activo'               => 'Activo',
+                        'terminado'            => 'Terminado',
+                        'cancelado'            => 'Cancelado',
                         default                => $state,
                     }),
             ])
@@ -76,10 +75,10 @@ class RentalContractsTable
                     ]),
             ])
             ->recordActions([
-                EditAction::make()->label('Editar')
+                EditAction::make()->label('Editar')->icon('heroicon-o-pencil-square')->outlined()
                     ->hidden(fn ($record) => $record->isReadOnly()),
                 \Filament\Actions\Action::make('ver')
-                    ->label('Ver')->icon('heroicon-o-eye')->color('gray')
+                    ->label('Ver')->icon('heroicon-o-eye')->outlined()->color('gray')
                     ->url(fn ($record) => \App\Filament\Resources\RentalContracts\RentalContractResource::getUrl('edit', ['record' => $record]))
                     ->visible(fn ($record) => $record->isReadOnly()),
             ])

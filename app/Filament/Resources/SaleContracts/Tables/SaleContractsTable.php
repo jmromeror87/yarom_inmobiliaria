@@ -80,7 +80,7 @@ class SaleContractsTable
                     ]),
             ])
             ->recordActions([
-                EditAction::make()->label('Editar'),
+                EditAction::make()->label('Editar')->outlined(),
             ])
             ->toolbarActions([
                 \Filament\Actions\BulkActionGroup::make([

@@ -141,7 +141,7 @@ class AccountingAccountResource extends Resource
                     'activo'=>'Activo','inactivo'=>'Inactivo',
                 ]),
             ])
-            ->recordActions([EditAction::make()->label('Editar')]);
+            ->recordActions([EditAction::make()->label('Editar')->outlined()]);
     }
 
     public static function getPages(): array

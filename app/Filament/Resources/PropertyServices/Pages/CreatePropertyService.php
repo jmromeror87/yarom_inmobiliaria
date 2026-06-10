@@ -1,29 +1,24 @@
 <?php
 
-namespace App\Filament\Resources\Accounting\Pages;
+namespace App\Filament\Resources\PropertyServices\Pages;
 
-use App\Filament\Resources\Accounting\AccountingEntryResource;
+use App\Filament\Resources\PropertyServices\PropertyServiceResource;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 
-class CreateEntry extends CreateRecord
+class CreatePropertyService extends CreateRecord
 {
-    protected static string $resource = AccountingEntryResource::class;
-
-    protected function afterCreate(): void
-    {
-        $this->record->recalcularTotales();
-    }
+    protected static string $resource = PropertyServiceResource::class;
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('edit', ['record' => $this->record]);
+        return static::getResource()::getUrl('index');
     }
 
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
-            ->label('Crear comprobante')
+            ->label('Registrar servicio')
             ->icon('heroicon-o-check-circle')
             ->extraAttributes([
                 'style' => 'background:linear-gradient(135deg,#1e3a8a,#E11D48)!important;color:#fff!important;border:none!important;box-shadow:0 4px 14px rgba(30,58,138,.3)!important;font-weight:700!important;',
@@ -33,7 +28,7 @@ class CreateEntry extends CreateRecord
     protected function getCreateAnotherFormAction(): Action
     {
         return parent::getCreateAnotherFormAction()
-            ->label('Crear y agregar otro')
+            ->label('Registrar y agregar otro')
             ->icon('heroicon-o-plus-circle')
             ->outlined();
     }
@@ -49,6 +44,6 @@ class CreateEntry extends CreateRecord
 
     public function getHeader(): ?\Illuminate\Contracts\View\View
     {
-        return view('filament.pages.accounting.create-entry-header');
+        return view('filament.pages.property-services.create-header');
     }
 }
