@@ -318,7 +318,7 @@ class EditRequest extends EditRecord
         // ── Aprobación directa del gerente ────────────────────
         $puedeAprobarGerente = !$cerrada && !$rechazada
             && !$esPropietario
-            &&  Auth::id()?->hasAnyRole(['super_admin', 'admin', 'gerente']);
+            &&  Auth::user()?->hasAnyRole(['super_admin', 'admin', 'gerente']);
 
         if ($puedeAprobarGerente) {
             $company = \App\Models\Company::first();

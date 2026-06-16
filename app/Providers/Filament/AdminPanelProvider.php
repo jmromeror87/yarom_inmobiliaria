@@ -492,6 +492,10 @@ class AdminPanelProvider extends PanelProvider
                     ';
                 })()
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn(): \Illuminate\Contracts\View\View => view('livewire.inmo-chat-loader'),
+            )
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s');
     }
