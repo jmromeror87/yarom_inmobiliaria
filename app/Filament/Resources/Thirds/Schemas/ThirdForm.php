@@ -510,6 +510,12 @@ class ThirdForm
                     ->description('Observaciones adicionales')
                     ->icon('heroicon-o-chat-bubble-left-ellipsis')
                     ->schema([
+                        TextInput::make('ubicacion_archivo')
+                            ->label('Ubicación en archivo físico')
+                            ->placeholder('Ej: Inquilinos #02 - Pos. 35')
+                            ->helperText('Gaveta y posición donde se guarda el expediente físico.')
+                            ->maxLength(100)
+                            ->columnSpanFull(),
                         Textarea::make('notas_crm')
                             ->label('Notas CRM')->rows(4)->columnSpanFull(),
                         Textarea::make('notas')

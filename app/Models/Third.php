@@ -63,7 +63,7 @@ class Third extends Model
         'habeas_data_aceptado','habeas_data_fecha','habeas_data_metodo',
         'kyc_completado','kyc_fecha','kyc_actividad_economica','kyc_declaracion_fondos',
         'kyc_nivel_riesgo','kyc_screening_resultado','kyc_screening_fecha',
-        'estado_expediente',
+        'estado_expediente','ubicacion_archivo',
         'banco','tipo_cuenta','numero_cuenta','titular_cuenta',
         'estado_crediticio','fecha_evaluacion_crediticia','score_crediticio',
         'reporte_negativo','notas_evaluacion',
