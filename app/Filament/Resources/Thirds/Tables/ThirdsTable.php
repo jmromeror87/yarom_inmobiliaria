@@ -77,6 +77,15 @@ class ThirdsTable
                         default                  => $state,
                     }),
 
+                // ── Archivo físico ────────────────────────────────
+                TextColumn::make('ubicacion_archivo')
+                    ->label('Archivo')
+                    ->icon('heroicon-o-archive-box')
+                    ->iconColor('warning')
+                    ->searchable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 // ── Expediente ────────────────────────────────────
                 TextColumn::make('estado_expediente')
                     ->label('Expediente')
