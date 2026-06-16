@@ -56,6 +56,25 @@ class RentBillForm
                         ->label('Saldo pendiente')->prefix('$')->disabled(),
                 ]),
 
+            Section::make('🛡️ Seguro SURA')
+                ->icon('heroicon-o-shield-check')
+                ->collapsed()
+                ->visible(fn ($record) => $record && (float)$record->valor_seguro_sura > 0)
+                ->columns(3)
+                ->description('Seguro de arrendamiento cobrado al inquilino y pagado a ASURA. No va al propietario.')
+                ->schema([
+                    TextInput::make('valor_seguro_sura')
+                        ->label('Base seguro (2.5% canon)')
+                        ->prefix('$')->disabled(),
+                    TextInput::make('iva_seguro_sura')
+                        ->label('IVA seguro (19%)')
+                        ->prefix('$')->disabled(),
+                    TextInput::make('redondeo_seguro')
+                        ->label('Redondeo (comisión inmobiliaria)')
+                        ->prefix('$')->disabled()
+                        ->helperText('Diferencia entre cobro redondeado y valor exacto'),
+                ]),
+
             Section::make('Estado y fechas')
                 ->columns(3)
                 ->schema([

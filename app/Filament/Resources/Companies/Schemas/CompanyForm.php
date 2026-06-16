@@ -334,6 +334,11 @@ class CompanyForm
                             ->numeric()->suffix('%')->default(1.5441)
                             ->helperText('Tasa máxima legal vigente certificada por la Superfinanciera'),
 
+                        TextInput::make('tarifa_seguro_sura')
+                            ->label('Tarifa seguro arrendamiento SURA %')
+                            ->numeric()->suffix('%')->default(2.50)
+                            ->helperText('% del canon mensual que SURA cobra como seguro de arrendamiento (aplica a contratos con póliza SURA)'),
+
                         TextInput::make('sura_tarifa_estudio')
                             ->label('Tarifa SURA por estudio ($)')
                             ->numeric()->prefix('$')->default(35000)

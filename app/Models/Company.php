@@ -49,7 +49,7 @@ class Company extends Model
         'dia_corte_mensual',
         'dias_gracia_mora', 'tasa_mora_mensual',
         'sura_tarifa_estudio', 'inmobiliaria_tarifa_estudio',
-        'tarifa_estudio_directo', 'nota_estudio_sura',
+        'tarifa_estudio_directo', 'nota_estudio_sura', 'tarifa_seguro_sura',
         'banco', 'tipo_cuenta', 'numero_cuenta',
         'notas', 'is_active',
     ];

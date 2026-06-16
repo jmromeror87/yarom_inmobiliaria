@@ -34,6 +34,7 @@ class OwnerLiquidation extends Model
         'mes', 'anio', 'periodo_inicio', 'periodo_fin',
         'canon_cobrado', 'comision_porcentaje', 'comision_valor', 'iva_comision',
         'aplica_retefuente', 'retefuente_valor',
+        'seguro_sura_deducido',
         'otros_descuentos', 'descripcion_descuentos', 'total_giro',
         'estado', 'fecha_giro', 'forma_giro', 'referencia_giro',
         'comprobante_giro_path', 'wap_enviado', 'wap_enviado_at', 'notas',
@@ -49,8 +50,9 @@ class OwnerLiquidation extends Model
         'canon_cobrado'     => 'decimal:2',
         'comision_valor'    => 'decimal:2',
         'iva_comision'      => 'decimal:2',
-        'retefuente_valor'  => 'decimal:2',
-        'otros_descuentos'  => 'decimal:2',
+        'retefuente_valor'      => 'decimal:2',
+        'seguro_sura_deducido'  => 'decimal:2',
+        'otros_descuentos'      => 'decimal:2',
         'total_giro'        => 'decimal:2',
     ];
 
@@ -114,6 +116,9 @@ class OwnerLiquidation extends Model
         $ivaComision   = round($comisionValor * ($ivaPct  / 100), 2);
         $retefuente    = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
 
+        // Seguro SURA: se cobró al inquilino pero la inmobiliaria lo paga a ASURA — no va al propietario
+        $seguroSura = (float)($bill->valor_seguro_sura ?? 0) + (float)($bill->iva_seguro_sura ?? 0);
+
         $liq = static::create([
             'rental_contract_id'  => $bill->rental_contract_id,
             'property_id'         => $bill->property_id,
@@ -128,6 +133,7 @@ class OwnerLiquidation extends Model
             'iva_comision'        => $ivaComision,
             'aplica_retefuente'   => $aplicaRete,
             'retefuente_valor'    => $retefuente,
+            'seguro_sura_deducido'=> $seguroSura,
             'otros_descuentos'    => 0,
             'total_giro'          => max(0, $canon - $comisionValor - $ivaComision - $retefuente),
             'estado'              => 'pendiente',

@@ -84,6 +84,12 @@ class OwnerLiquidationForm
                         ->prefix('$')->numeric()->disabled()
                         ->helperText('Solo aplica si el arrendatario es persona jurídica'),
 
+                    TextInput::make('seguro_sura_deducido')
+                        ->label('🛡️ Seguro SURA (pagado a ASURA)')
+                        ->prefix('$')->numeric()->disabled()
+                        ->helperText('Base + IVA cobrado al inquilino — la inmobiliaria lo transfiere a ASURA')
+                        ->visible(fn ($record) => $record && (float)$record->seguro_sura_deducido > 0),
+
                     TextInput::make('otros_descuentos')
                         ->label('Otros descuentos')
                         ->prefix('$')->numeric()->default(0)

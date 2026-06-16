@@ -43,12 +43,33 @@ class GenerarFacturasMensuales implements ShouldQueue
 
         $generadas = 0;
 
+        $tarifaSeguroSura = (float)($company?->tarifa_seguro_sura ?? 2.50);
+        $tarifaIva        = (float)($company?->tarifa_iva ?? 19);
+
         foreach ($contratos as $contrato) {
             $existe = RentBill::where('rental_contract_id', $contrato->id)
                 ->where('mes', $mes)->where('anio', $anio)->exists();
             if ($existe) continue;
 
-            $total = $contrato->canon_mensual + ($contrato->cuota_administracion ?? 0);
+            $canonBase = (float)$contrato->canon_mensual;
+            $admin     = (float)($contrato->cuota_administracion ?? 0);
+
+            // ── Seguro SURA: solo contratos con garantía tipo póliza SURA ───
+            $tieneSeguroSura = $contrato->tipo_garantia === 'seguro_arrendamiento';
+            $valorSeguroSura = 0;
+            $ivaSeguroSura   = 0;
+            $redondeoSeguro  = 0;
+
+            if ($tieneSeguroSura) {
+                $valorSeguroSura = round($canonBase * ($tarifaSeguroSura / 100), 2);
+                $ivaSeguroSura   = round($valorSeguroSura * ($tarifaIva / 100), 2);
+                $totalSeguroExacto = $valorSeguroSura + $ivaSeguroSura;
+                // Redondear total de seguro al siguiente múltiplo de 100 (cobro al inquilino)
+                $totalSeguroRedondeado = ceil($totalSeguroExacto / 100) * 100;
+                $redondeoSeguro = round($totalSeguroRedondeado - $totalSeguroExacto, 2);
+            }
+
+            $total = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura + $redondeoSeguro;
 
             $bill = RentBill::create([
                 'rental_contract_id'   => $contrato->id,
@@ -58,8 +79,11 @@ class GenerarFacturasMensuales implements ShouldQueue
                 'anio'                 => $anio,
                 'periodo_inicio'       => $periodoInicio,
                 'periodo_fin'          => $periodoFin,
-                'canon_base'           => $contrato->canon_mensual,
-                'cuota_administracion' => $contrato->cuota_administracion ?? 0,
+                'canon_base'           => $canonBase,
+                'cuota_administracion' => $admin,
+                'valor_seguro_sura'    => $valorSeguroSura,
+                'iva_seguro_sura'      => $ivaSeguroSura,
+                'redondeo_seguro'      => $redondeoSeguro,
                 'total_factura'        => $total,
                 'saldo_pendiente'      => $total,
                 'fecha_limite_pago'    => $fechaLimite,
@@ -80,15 +104,20 @@ class GenerarFacturasMensuales implements ShouldQueue
                     $nombre   = $contrato->arrendatario->nombre_completo;
                     $empresa  = $company?->razon_social ?? 'Serviarrendar S.A.S';
 
+                    $seguroLinea = $tieneSeguroSura && $valorSeguroSura > 0
+                        ? "🛡️ Seguro SURA: \$" . number_format($valorSeguroSura + $ivaSeguroSura + $redondeoSeguro, 0, ',', '.') . " COP\n"
+                        : '';
+
                     $msg = "🏠 *Factura de Arrendamiento*\n\n"
                         . "Estimad@ {$nombre},\n\n"
                         . "📋 *{$bill->numero}*\n"
                         . "📅 Período: " . now()->translatedFormat('F Y') . "\n"
                         . "🏠 Inmueble: {$inmueble}\n\n"
-                        . "💰 Canon: \$" . number_format($contrato->canon_mensual, 0, ',', '.') . " COP\n"
-                        . ($contrato->cuota_administracion > 0
-                            ? "🏢 Administración: \$" . number_format($contrato->cuota_administracion, 0, ',', '.') . " COP\n"
+                        . "💰 Canon: \$" . number_format($canonBase, 0, ',', '.') . " COP\n"
+                        . ($admin > 0
+                            ? "🏢 Administración: \$" . number_format($admin, 0, ',', '.') . " COP\n"
                             : '')
+                        . $seguroLinea
                         . "💵 *Total: {$totalFmt} COP*\n\n"
                         . "📆 *Vence: {$fechaFmt}*\n\n"
                         . "🔗 *Pagar en línea (PSE · Nequi · Tarjeta):*\n{$urlPago}\n\n"
