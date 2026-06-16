@@ -346,7 +346,7 @@ class EditRequest extends EditRecord
                         ->required(),
                 ])
                 ->action(function (array $data): void {
-                    if (! Auth::id()?->hasAnyRole(['super_admin', 'admin', 'gerente'])) {
+                    if (! Auth::user()?->hasAnyRole(['super_admin', 'admin', 'gerente'])) {
                         Notification::make()->title('Sin permiso')->body('No tiene rol para aprobar solicitudes.')->danger()->send();
                         return;
                     }
@@ -366,7 +366,7 @@ class EditRequest extends EditRecord
                 });
         }
 
-        if (!$cerrada && Auth::id()?->hasAnyRole(['super_admin', 'admin'])) {
+        if (!$cerrada && Auth::user()?->hasAnyRole(['super_admin', 'admin'])) {
             $acciones[] = DeleteAction::make()
                 ->label('Eliminar solicitud')
                 ->requiresConfirmation()
