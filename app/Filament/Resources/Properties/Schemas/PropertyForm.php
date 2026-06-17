@@ -326,7 +326,7 @@ class PropertyForm
                             ->label('')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo') && (bool)$get('tiene_seguro_sura'))
                             ->columnSpanFull()
-                            ->content(function (Get $get): HtmlString {
+                            ->content(function (Get $get, $record): HtmlString {
                                 $canon          = (float)($get('canon_arriendo') ?? 0);
                                 $admin          = (float)($get('cuota_administracion') ?? 0);
                                 $canonInquilino = (float)($get('canon_cobrado_inquilino') ?? 0);

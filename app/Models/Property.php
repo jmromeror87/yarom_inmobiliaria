@@ -15,6 +15,8 @@
 */
     
 namespace App\Models;
+
+use App\Models\Company;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,7 +49,9 @@ class Property extends Model
         'habitaciones','banos','garajes','depositos','piso','total_pisos','anio_construccion',
         'tiene_ascensor','tiene_piscina','tiene_gym','tiene_salon_comunal',
         'tiene_vigilancia','permite_mascotas','amoblado',
-        'canon_arriendo','cuota_administracion','tiene_seguro_sura','canon_cobrado_inquilino','precio_venta',
+        'canon_arriendo','cuota_administracion',
+        'tiene_seguro_sura','canon_cobrado_inquilino','valor_seguro_sura','iva_seguro_sura',
+        'precio_venta',
         'avaluo_catastral','avaluo_comercial','anio_avaluo',
         'disponible_arriendo','disponible_venta','estado',
         'doc_escritura','doc_certificado_libertad','doc_certificado_libertad_fecha',
@@ -73,6 +77,8 @@ class Property extends Model
         'disponible_venta'         => 'boolean',
         'tiene_seguro_sura'        => 'boolean',
         'canon_cobrado_inquilino'  => 'decimal:2',
+        'valor_seguro_sura'        => 'decimal:2',
+        'iva_seguro_sura'          => 'decimal:2',
         'doc_escritura'        => 'boolean',
         'doc_certificado_libertad'  => 'boolean',
         'ctl_tiene_limitacion'      => 'boolean',
@@ -111,6 +117,19 @@ class Property extends Model
         });
 
         static::saving(function (Property $p) {
+            // Calcular y fijar valores del seguro SURA cada vez que se guarda el inmueble
+            if ($p->tiene_seguro_sura && $p->canon_arriendo > 0) {
+                $company            = Company::first();
+                $tarifaSura         = (float)($company?->tarifa_seguro_sura ?? 2.50);
+                $tarifaIva          = (float)($company?->tarifa_iva ?? 19);
+                $p->valor_seguro_sura = round((float)$p->canon_arriendo * ($tarifaSura / 100), 2);
+                $p->iva_seguro_sura   = round($p->valor_seguro_sura * ($tarifaIva / 100), 2);
+            } else {
+                $p->valor_seguro_sura = 0;
+                $p->iva_seguro_sura   = 0;
+                $p->canon_cobrado_inquilino = null;
+            }
+
             // Solo aplicar auto-estado si el estado está cambiando desde el formulario
             // No interferir cuando el cambio viene desde contratos (administración o arriendo)
             if (!$p->isDirty('estado')) return;

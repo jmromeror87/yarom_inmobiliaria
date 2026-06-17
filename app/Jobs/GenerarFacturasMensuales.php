@@ -44,9 +44,6 @@ class GenerarFacturasMensuales implements ShouldQueue
 
         $generadas = 0;
 
-        $tarifaSeguroSura = (float)($company?->tarifa_seguro_sura ?? 2.50);
-        $tarifaIva        = (float)($company?->tarifa_iva ?? 19);
-
         foreach ($contratos as $contrato) {
             $existe = RentBill::where('rental_contract_id', $contrato->id)
                 ->where('mes', $mes)->where('anio', $anio)->exists();
@@ -55,19 +52,13 @@ class GenerarFacturasMensuales implements ShouldQueue
             $canonBase = (float)$contrato->canon_mensual;
             $admin     = (float)($contrato->cuota_administracion ?? 0);
 
-            // ── Seguro SURA: se lee del inmueble ────────────────────────────
+            // ── Seguro SURA: valores precalculados y guardados en el inmueble ──
             $tieneSeguroSura = (bool)($contrato->property?->tiene_seguro_sura);
-            $valorSeguroSura = 0;
-            $ivaSeguroSura   = 0;
+            $valorSeguroSura = $tieneSeguroSura ? (float)($contrato->property?->valor_seguro_sura ?? 0) : 0;
+            $ivaSeguroSura   = $tieneSeguroSura ? (float)($contrato->property?->iva_seguro_sura   ?? 0) : 0;
             $redondeoSeguro  = 0;
 
-            if ($tieneSeguroSura) {
-                $valorSeguroSura = round($canonBase * ($tarifaSeguroSura / 100), 2);
-                $ivaSeguroSura   = round($valorSeguroSura * ($tarifaIva / 100), 2);
-            }
-
-            // Canon cobrado al inquilino: valor manual del inmueble (con seguro redondeado)
-            // La diferencia sobre el exacto va al propietario
+            // Canon cobrado al inquilino: guardado manualmente en el inmueble
             $totalExacto    = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura;
             $canonInquilino = (float)($contrato->property?->canon_cobrado_inquilino ?? 0);
             if ($tieneSeguroSura && $canonInquilino > $totalExacto) {
