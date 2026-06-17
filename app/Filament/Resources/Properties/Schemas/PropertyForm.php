@@ -38,6 +38,26 @@ use Illuminate\Support\HtmlString;
 
 class PropertyForm
 {
+    private static function recalcularSeguro(Get $get, Set $set, $canon = null, $admin = null): void
+    {
+        if (!(bool)$get('tiene_seguro_sura')) return;
+
+        $canon = $canon !== null ? (float)$canon : (float)($get('canon_arriendo') ?? 0);
+        $admin = $admin !== null ? (float)$admin  : (float)($get('cuota_administracion') ?? 0);
+
+        if ($canon <= 0) return;
+
+        $company  = Company::first();
+        $tSura    = (float)($company?->tarifa_seguro_sura ?? 2.50);
+        $tIva     = (float)($company?->tarifa_iva ?? 19);
+        $seguro   = round($canon * ($tSura / 100), 2);
+        $iva      = round($seguro * ($tIva / 100), 2);
+        $exacto   = $canon + $admin + $seguro + $iva;
+        $sugerido = (int)(ceil($exacto / 1000) * 1000);
+
+        $set('canon_cobrado_inquilino', $sugerido);
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -298,18 +318,8 @@ class PropertyForm
                             ->minValue(0)
                             ->required(fn (Get $get) => (bool)$get('disponible_arriendo'))
                             ->live(onBlur: true)
-                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                if (!(bool)$get('tiene_seguro_sura') || !$state) return;
-                                $company   = Company::first();
-                                $tSura     = (float)($company?->tarifa_seguro_sura ?? 2.50);
-                                $tIva      = (float)($company?->tarifa_iva ?? 19);
-                                $admin     = (float)($get('cuota_administracion') ?? 0);
-                                $seguro    = round((float)$state * ($tSura / 100), 2);
-                                $iva       = round($seguro * ($tIva / 100), 2);
-                                $exacto    = (float)$state + $admin + $seguro + $iva;
-                                $sugerido  = ceil($exacto / 1000) * 1000;
-                                $set('canon_cobrado_inquilino', $sugerido);
-                            })
+                            ->afterStateUpdated(fn (Get $get, Set $set, $state) =>
+                                self::recalcularSeguro($get, $set, $state, null))
                             ->helperText('Valor base del canon pactado con el propietario.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
@@ -318,6 +328,8 @@ class PropertyForm
                             ->numeric()->prefix('$')->default(0)
                             ->minValue(0)
                             ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Get $get, Set $set) =>
+                                self::recalcularSeguro($get, $set, null, null))
                             ->helperText('0 si no aplica conjunto/edificio.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
@@ -327,17 +339,7 @@ class PropertyForm
                             ->live()
                             ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                 if (!$state) { $set('canon_cobrado_inquilino', null); return; }
-                                $canon     = (float)($get('canon_arriendo') ?? 0);
-                                if (!$canon) return;
-                                $company   = Company::first();
-                                $tSura     = (float)($company?->tarifa_seguro_sura ?? 2.50);
-                                $tIva      = (float)($company?->tarifa_iva ?? 19);
-                                $admin     = (float)($get('cuota_administracion') ?? 0);
-                                $seguro    = round($canon * ($tSura / 100), 2);
-                                $iva       = round($seguro * ($tIva / 100), 2);
-                                $exacto    = $canon + $admin + $seguro + $iva;
-                                $sugerido  = ceil($exacto / 1000) * 1000;
-                                $set('canon_cobrado_inquilino', $sugerido);
+                                self::recalcularSeguro($get, $set, null, null);
                             })
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
