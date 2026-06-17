@@ -63,13 +63,19 @@ class GenerarFacturasMensuales implements ShouldQueue
             if ($tieneSeguroSura) {
                 $valorSeguroSura = round($canonBase * ($tarifaSeguroSura / 100), 2);
                 $ivaSeguroSura   = round($valorSeguroSura * ($tarifaIva / 100), 2);
-                $totalSeguroExacto = $valorSeguroSura + $ivaSeguroSura;
-                // Redondear total de seguro al siguiente múltiplo de 100 (cobro al inquilino)
-                $totalSeguroRedondeado = ceil($totalSeguroExacto / 100) * 100;
-                $redondeoSeguro = round($totalSeguroRedondeado - $totalSeguroExacto, 2);
             }
 
-            $total = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura + $redondeoSeguro;
+            // Si el contrato tiene canon_cobrado_inquilino manual, usarlo como total
+            // La diferencia sobre el exacto es el "redondeo" acordado (va al propietario)
+            $totalExacto = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura;
+            $canonInquilino = (float)($contrato->canon_cobrado_inquilino ?? 0);
+            if ($tieneSeguroSura && $canonInquilino > $totalExacto) {
+                $total          = $canonInquilino;
+                $redondeoSeguro = round($canonInquilino - $totalExacto, 2);
+            } else {
+                $total          = $totalExacto;
+                $redondeoSeguro = 0;
+            }
 
             $bill = RentBill::create([
                 'rental_contract_id'   => $contrato->id,

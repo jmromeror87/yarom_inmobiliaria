@@ -104,11 +104,16 @@ class OwnerLiquidation extends Model
         // Retefuente aplica solo si el arrendatario es agente retenedor (persona jurídica)
         $aplicaRete = $contrato->arrendatario?->tipo_persona === 'juridica';
 
-        // Canon base sin mora — la mora es ingreso de la inmobiliaria, no del propietario
-        $canon = (float)$bill->canon_base;
+        // Canon base del propietario: lo que pagó el inquilino menos el seguro SURA
+        // Si el contrato tiene canon_cobrado_inquilino (SURA), la base del propietario =
+        //   total cobrado al inquilino − seguro − IVA seguro (la diferencia/redondeo va al propietario)
+        $seguroTotal = (float)($bill->valor_seguro_sura ?? 0) + (float)($bill->iva_seguro_sura ?? 0);
+        $canon = $seguroTotal > 0
+            ? (float)$bill->total_factura - $seguroTotal
+            : (float)$bill->canon_base;
 
         // Si la cuota de administración la cobra la inmobiliaria para el propietario, incluirla
-        if ($contrato->admin_cobrada_por === 'inmobiliaria') {
+        if ($contrato->admin_cobrada_por === 'inmobiliaria' && $seguroTotal === 0.0) {
             $canon += (float)$bill->cuota_administracion;
         }
 
