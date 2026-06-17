@@ -298,6 +298,18 @@ class PropertyForm
                             ->minValue(0)
                             ->required(fn (Get $get) => (bool)$get('disponible_arriendo'))
                             ->live(onBlur: true)
+                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                if (!(bool)$get('tiene_seguro_sura') || !$state) return;
+                                $company   = Company::first();
+                                $tSura     = (float)($company?->tarifa_seguro_sura ?? 2.50);
+                                $tIva      = (float)($company?->tarifa_iva ?? 19);
+                                $admin     = (float)($get('cuota_administracion') ?? 0);
+                                $seguro    = round((float)$state * ($tSura / 100), 2);
+                                $iva       = round($seguro * ($tIva / 100), 2);
+                                $exacto    = (float)$state + $admin + $seguro + $iva;
+                                $sugerido  = ceil($exacto / 1000) * 1000;
+                                $set('canon_cobrado_inquilino', $sugerido);
+                            })
                             ->helperText('Valor base del canon pactado con el propietario.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
@@ -313,14 +325,21 @@ class PropertyForm
                             ->label('🛡️ Tiene seguro SURA (Suramericana)')
                             ->helperText('Actívelo si el inmueble tiene póliza de arrendamiento SURA.')
                             ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                if (!$state) { $set('canon_cobrado_inquilino', null); return; }
+                                $canon     = (float)($get('canon_arriendo') ?? 0);
+                                if (!$canon) return;
+                                $company   = Company::first();
+                                $tSura     = (float)($company?->tarifa_seguro_sura ?? 2.50);
+                                $tIva      = (float)($company?->tarifa_iva ?? 19);
+                                $admin     = (float)($get('cuota_administracion') ?? 0);
+                                $seguro    = round($canon * ($tSura / 100), 2);
+                                $iva       = round($seguro * ($tIva / 100), 2);
+                                $exacto    = $canon + $admin + $seguro + $iva;
+                                $sugerido  = ceil($exacto / 1000) * 1000;
+                                $set('canon_cobrado_inquilino', $sugerido);
+                            })
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
-
-                        TextInput::make('canon_cobrado_inquilino')
-                            ->label('Canon cobrado al inquilino (valor redondeado)')
-                            ->numeric()->prefix('$')->minValue(0)
-                            ->live(onBlur: true)
-                            ->visible(fn (Get $get) => (bool)$get('disponible_arriendo') && (bool)$get('tiene_seguro_sura'))
-                            ->helperText('Digite el valor final acordado con el inquilino (ej: $725.000). La calculadora muestra el desglose.'),
 
                         Placeholder::make('calculadora_sura')
                             ->label('')
@@ -341,73 +360,58 @@ class PropertyForm
                                 $seguro      = round($canon * ($tarifaSura / 100), 2);
                                 $ivaSeguro   = round($seguro * ($tarifaIva / 100), 2);
                                 $totalExacto = $canon + $admin + $seguro + $ivaSeguro;
-                                $diferencia  = $canonInquilino > $totalExacto ? round($canonInquilino - $totalExacto, 2) : 0;
+                                $sugerido    = ceil($totalExacto / 1000) * 1000;
+                                $valorFinal  = $canonInquilino > 0 ? $canonInquilino : $sugerido;
+                                $diferencia  = round($valorFinal - $totalExacto, 2);
                                 $totalAsura  = $seguro + $ivaSeguro;
-
-                                $fmt = fn($v) => '$' . number_format($v, 0, ',', '.');
+                                $fmt         = fn($v) => '$' . number_format($v, 0, ',', '.');
 
                                 $filas = [
-                                    ['🏠 Canon base (propietario)',       $fmt($canon),       '#1e40af', '#eff6ff'],
-                                    ['🏢 Cuota administración',           $fmt($admin),       '#374151', '#f9fafb'],
-                                    ['🛡️ Seguro SURA (' . $tarifaSura . '%)', $fmt($seguro),  '#7c3aed', '#faf5ff'],
-                                    ['🧾 IVA seguro (19%)',               $fmt($ivaSeguro),   '#7c3aed', '#faf5ff'],
+                                    ['🏠 Canon base (propietario)',            $fmt($canon),     '#1e40af', '#eff6ff'],
+                                    ['🏢 Cuota administración',                $fmt($admin),     '#374151', '#f9fafb'],
+                                    ['🛡️ Seguro SURA (' . $tarifaSura . '%)', $fmt($seguro),    '#7c3aed', '#faf5ff'],
+                                    ['🧾 IVA seguro (19%)',                    $fmt($ivaSeguro), '#7c3aed', '#faf5ff'],
                                 ];
 
-                                $html = '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;font-size:13px;font-family:monospace;">';
+                                $html  = '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;font-size:13px;font-family:monospace;">';
                                 $html .= '<div style="background:#1e293b;color:#f8fafc;padding:10px 14px;font-weight:700;font-size:12px;letter-spacing:.05em;">🧮 CALCULADORA SEGURO SURA</div>';
 
                                 foreach ($filas as [$label, $valor, $color, $bg]) {
                                     $html .= "<div style='display:flex;justify-content:space-between;padding:8px 14px;background:{$bg};border-bottom:1px solid #e2e8f0;'>"
                                         . "<span style='color:#475569;'>{$label}</span>"
-                                        . "<span style='font-weight:700;color:{$color};'>{$valor}</span>"
-                                        . "</div>";
+                                        . "<span style='font-weight:700;color:{$color};'>{$valor}</span></div>";
                                 }
 
-                                // Sugerencia de redondeo al próximo múltiplo de 1.000
-                                $sugerido = ceil($totalExacto / 1000) * 1000;
-
-                                // Total exacto
                                 $html .= "<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fef3c7;border-bottom:2px solid #f59e0b;'>"
                                     . "<span style='color:#92400e;font-weight:600;'>📊 Total exacto al inquilino</span>"
-                                    . "<span style='font-weight:800;color:#92400e;font-size:15px;'>{$fmt($totalExacto)}</span>"
-                                    . "</div>";
+                                    . "<span style='font-weight:800;color:#92400e;font-size:15px;'>{$fmt($totalExacto)}</span></div>";
 
-                                // Sugerencia
-                                $html .= "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#f0fdf4;border-bottom:1px dashed #86efac;'>"
-                                    . "<span style='color:#166534;font-size:12px;'>💡 Sugerencia redondeada (próximo múltiplo de $1.000)</span>"
-                                    . "<span style='font-weight:700;color:#166534;'>{$fmt($sugerido)}</span>"
-                                    . "</div>";
+                                $colorDif = $diferencia >= 0 ? '#166534' : '#991b1b';
+                                $bgDif    = $diferencia >= 0 ? '#f0fdf4'  : '#fef2f2';
 
-                                // Canon cobrado (digitado vs sugerido)
-                                $valorFinal  = $canonInquilino > 0 ? $canonInquilino : $sugerido;
-                                $diferencia  = round($valorFinal - $totalExacto, 2);
-                                $esSugerido  = $canonInquilino <= 0;
-                                $labelFinal  = $esSugerido ? '💰 Cobrado al inquilino (sugerido)' : '💰 Cobrado al inquilino (manual)';
-                                $colorFinal  = $esSugerido ? '#6b7280' : '#1e40af';
-                                $bgFinal     = $esSugerido ? '#f9fafb' : '#dbeafe';
-                                $borderFinal = $esSugerido ? '#d1d5db' : '#93c5fd';
+                                $html .= "<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#dbeafe;border-bottom:1px solid #93c5fd;'>"
+                                    . "<span style='color:#1e40af;font-weight:600;'>💰 Cobrado al inquilino (campo abajo)</span>"
+                                    . "<span style='font-weight:800;color:#1e40af;font-size:15px;'>{$fmt($valorFinal)}</span></div>";
 
-                                $html .= "<div style='display:flex;justify-content:space-between;padding:10px 14px;background:{$bgFinal};border-bottom:1px solid {$borderFinal};'>"
-                                    . "<span style='color:{$colorFinal};font-weight:600;'>{$labelFinal}</span>"
-                                    . "<span style='font-weight:800;color:{$colorFinal};font-size:15px;'>{$fmt($valorFinal)}" . ($esSugerido ? " <span style='font-size:10px;font-weight:400;'>(edítelo arriba)</span>" : "") . "</span>"
-                                    . "</div>";
-
-                                $colorDif = $diferencia > 0 ? '#166534' : '#991b1b';
-                                $bgDif    = $diferencia > 0 ? '#f0fdf4' : '#fef2f2';
                                 $html .= "<div style='display:flex;justify-content:space-between;padding:8px 14px;background:{$bgDif};border-bottom:2px solid #e2e8f0;'>"
                                     . "<span style='color:{$colorDif};font-weight:600;'>↗ Diferencia (va al propietario)</span>"
-                                    . "<span style='font-weight:700;color:{$colorDif};font-size:14px;'>{$fmt($diferencia)}</span>"
-                                    . "</div>";
+                                    . "<span style='font-weight:700;color:{$colorDif};font-size:14px;'>{$fmt($diferencia)}</span></div>";
 
-                                // A ASURA
                                 $html .= "<div style='display:flex;justify-content:space-between;padding:10px 14px;background:#fdf4ff;'>"
                                     . "<span style='color:#7e22ce;font-weight:600;'>🏦 Total a pagar a ASURA</span>"
-                                    . "<span style='font-weight:800;color:#7e22ce;font-size:15px;'>{$fmt($totalAsura)}</span>"
-                                    . "</div>";
+                                    . "<span style='font-weight:800;color:#7e22ce;font-size:15px;'>{$fmt($totalAsura)}</span></div>";
 
                                 $html .= '</div>';
                                 return new HtmlString($html);
                             }),
+
+                        TextInput::make('canon_cobrado_inquilino')
+                            ->label('💰 Canon cobrado al inquilino (valor redondeado)')
+                            ->numeric()->prefix('$')->minValue(0)
+                            ->live(onBlur: true)
+                            ->visible(fn (Get $get) => (bool)$get('disponible_arriendo') && (bool)$get('tiene_seguro_sura'))
+                            ->helperText('Se llena automáticamente con el valor sugerido. Cámbielo si acordó un valor diferente con el inquilino.')
+                            ->columnSpanFull(),
 
                         TextInput::make('precio_venta')
                             ->label('Precio de venta')
