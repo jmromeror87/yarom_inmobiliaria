@@ -305,14 +305,7 @@ class RentalContractForm
                                 'garantia_bancaria'    => '🏦 Garantía bancaria',
                                 'seguro_arrendamiento' => '🛡️ Seguro Suramericana',
                                 'ninguna'              => 'Ninguna',
-                            ])->default('codeudor')
-                            ->live(),
-
-                        TextInput::make('canon_cobrado_inquilino')
-                            ->label('🛡️ Canon cobrado al inquilino (con seguro SURA)')
-                            ->numeric()->prefix('$')->minValue(1)
-                            ->visible(fn (Get $get) => $get('tipo_garantia') === 'seguro_arrendamiento')
-                            ->helperText('Total que paga el inquilino (canon + seguro + IVA). Ej: exacto $720.825 → coloque $725.000. La diferencia va al propietario.'),
+                            ])->default('codeudor'),
 
                     ])->columns(2),
 

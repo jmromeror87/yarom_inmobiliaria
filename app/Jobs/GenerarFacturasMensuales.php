@@ -41,6 +41,7 @@ class GenerarFacturasMensuales implements ShouldQueue
             ->with(['property', 'arrendatario'])
             ->get();
 
+
         $generadas = 0;
 
         $tarifaSeguroSura = (float)($company?->tarifa_seguro_sura ?? 2.50);
@@ -54,8 +55,8 @@ class GenerarFacturasMensuales implements ShouldQueue
             $canonBase = (float)$contrato->canon_mensual;
             $admin     = (float)($contrato->cuota_administracion ?? 0);
 
-            // ── Seguro SURA: solo contratos con garantía tipo póliza SURA ───
-            $tieneSeguroSura = $contrato->tipo_garantia === 'seguro_arrendamiento';
+            // ── Seguro SURA: se lee del inmueble ────────────────────────────
+            $tieneSeguroSura = (bool)($contrato->property?->tiene_seguro_sura);
             $valorSeguroSura = 0;
             $ivaSeguroSura   = 0;
             $redondeoSeguro  = 0;
@@ -65,10 +66,10 @@ class GenerarFacturasMensuales implements ShouldQueue
                 $ivaSeguroSura   = round($valorSeguroSura * ($tarifaIva / 100), 2);
             }
 
-            // Si el contrato tiene canon_cobrado_inquilino manual, usarlo como total
-            // La diferencia sobre el exacto es el "redondeo" acordado (va al propietario)
-            $totalExacto = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura;
-            $canonInquilino = (float)($contrato->canon_cobrado_inquilino ?? 0);
+            // Canon cobrado al inquilino: valor manual del inmueble (con seguro redondeado)
+            // La diferencia sobre el exacto va al propietario
+            $totalExacto    = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura;
+            $canonInquilino = (float)($contrato->property?->canon_cobrado_inquilino ?? 0);
             if ($tieneSeguroSura && $canonInquilino > $totalExacto) {
                 $total          = $canonInquilino;
                 $redondeoSeguro = round($canonInquilino - $totalExacto, 2);

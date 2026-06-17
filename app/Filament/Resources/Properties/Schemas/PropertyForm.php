@@ -294,7 +294,7 @@ class PropertyForm
                             ->numeric()->prefix('$')
                             ->minValue(0)
                             ->required(fn (Get $get) => (bool)$get('disponible_arriendo'))
-                            ->helperText('Obligatorio si el inmueble está disponible para arriendo.')
+                            ->helperText('Valor base del canon pactado con el propietario.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
                         TextInput::make('cuota_administracion')
@@ -303,6 +303,18 @@ class PropertyForm
                             ->minValue(0)
                             ->helperText('0 si no aplica conjunto/edificio.')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
+
+                        Toggle::make('tiene_seguro_sura')
+                            ->label('🛡️ Tiene seguro SURA')
+                            ->helperText('Actívelo si el inmueble tiene seguro de arrendamiento Suramericana.')
+                            ->live()
+                            ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
+
+                        TextInput::make('canon_cobrado_inquilino')
+                            ->label('Canon cobrado al inquilino (con seguro)')
+                            ->numeric()->prefix('$')->minValue(0)
+                            ->visible(fn (Get $get) => (bool)$get('disponible_arriendo') && (bool)$get('tiene_seguro_sura'))
+                            ->helperText('Total que paga el inquilino (canon + seguro + IVA). Ej: exacto $720.825 → coloque $725.000. La diferencia va al propietario.'),
 
                         TextInput::make('precio_venta')
                             ->label('Precio de venta')
