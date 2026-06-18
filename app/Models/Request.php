@@ -64,7 +64,8 @@ class Request extends Model
         static::creating(function (Request $r) {
             if (empty($r->numero)) {
                 $year   = now()->year;
-                $ultimo = static::whereYear('created_at', $year)
+                $ultimo = static::withTrashed()
+                    ->whereYear('created_at', $year)
                     ->where('numero', 'like', "SOL-{$year}-%")
                     ->max('numero');
                 $count  = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
