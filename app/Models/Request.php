@@ -63,8 +63,11 @@ class Request extends Model
     {
         static::creating(function (Request $r) {
             if (empty($r->numero)) {
-                $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->count() + 1;
+                $year   = now()->year;
+                $ultimo = static::whereYear('created_at', $year)
+                    ->where('numero', 'like', "SOL-{$year}-%")
+                    ->max('numero');
+                $count  = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
                 $r->numero = 'SOL-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
             }
             if (empty($r->fecha_radicacion)) {
