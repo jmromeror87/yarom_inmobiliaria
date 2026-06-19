@@ -86,11 +86,12 @@ class Company extends Model
     public static function calcularDigitoNit(string $nit): int
     {
         $nit    = preg_replace('/[^0-9]/', '', $nit);
-        $primos = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71];
+        // Pesos DIAN: se aplican de derecha a izquierda sobre el NIT
+        $pesos  = [71, 67, 59, 53, 47, 43, 41, 37, 29, 23, 19, 17, 13, 7, 3];
         $nit    = str_pad($nit, 15, '0', STR_PAD_LEFT);
         $suma   = 0;
         for ($i = 0; $i < 15; $i++) {
-            $suma += (int)$nit[$i] * $primos[$i];
+            $suma += (int)$nit[$i] * $pesos[$i];
         }
         $residuo = $suma % 11;
         return $residuo > 1 ? 11 - $residuo : $residuo;
