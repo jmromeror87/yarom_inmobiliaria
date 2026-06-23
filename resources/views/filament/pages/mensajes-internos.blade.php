@@ -149,7 +149,7 @@
 
             @forelse($notas as $i => $nota)
             <div class="nt-nota {{ $nota['completada'] ? 'completada' : '' }}">
-                <button class="nt-check {{ $nota['completada'] ? 'done' : '' }}" wire:click="toggleCompletar({{ $i }})">
+                <button class="nt-check {{ $nota['completada'] ? 'done' : '' }}" wire:click="toggleCompletar({{ $nota['id'] }})">
                     @if($nota['completada'])
                     <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     @endif
@@ -163,7 +163,7 @@
                     <div class="nt-texto">{{ $nota['texto'] }}</div>
                 </div>
                 <div class="nt-actions">
-                    <button class="nt-action-btn" wire:click="eliminar({{ $i }})" title="Eliminar">
+                    <button class="nt-action-btn" wire:click="eliminar({{ $nota['id'] }})" title="Eliminar">
                         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\UserNote;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,54 +24,59 @@ class MensajesInternos extends Page
     public string $filtro    = 'todas';
     public array  $notas     = [];
 
-    private function key(): string
-    {
-        return 'yarom_inmo_notas_' . Auth::id();
-    }
-
     public function mount(): void
     {
-        $this->notas = session($this->key(), []);
+        $this->cargarNotas();
+    }
+
+    private function cargarNotas(): void
+    {
+        $this->notas = UserNote::where('user_id', Auth::id())
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($n) => [
+                'id'         => $n->id,
+                'texto'      => $n->texto,
+                'prioridad'  => $n->prioridad,
+                'categoria'  => $n->categoria,
+                'completada' => $n->completada,
+                'hora'       => $n->created_at->format('d/m/Y H:i'),
+                'autor'      => Auth::user()->name,
+            ])
+            ->toArray();
     }
 
     public function guardar(): void
     {
         if (trim($this->texto) === '') return;
 
-        $lista   = session($this->key(), []);
-        $lista[] = [
-            'id'         => uniqid(),
-            'texto'      => $this->texto,
-            'prioridad'  => $this->prioridad,
-            'categoria'  => $this->categoria,
-            'completada' => false,
-            'hora'       => now()->format('d/m/Y H:i'),
-            'autor'      => Auth::user()->name,
-        ];
-        session([$this->key() => $lista]);
-        $this->notas     = $lista;
+        UserNote::create([
+            'user_id'   => Auth::id(),
+            'texto'     => $this->texto,
+            'prioridad' => $this->prioridad,
+            'categoria' => $this->categoria,
+        ]);
+
         $this->texto     = '';
         $this->prioridad = 'normal';
         $this->categoria = 'nota';
+
+        $this->cargarNotas();
     }
 
-    public function toggleCompletar(int $i): void
+    public function toggleCompletar(int $id): void
     {
-        $lista = session($this->key(), []);
-        if (isset($lista[$i])) {
-            $lista[$i]['completada'] = !$lista[$i]['completada'];
-            session([$this->key() => $lista]);
-            $this->notas = $lista;
+        $nota = UserNote::where('user_id', Auth::id())->find($id);
+        if ($nota) {
+            $nota->update(['completada' => !$nota->completada]);
         }
+        $this->cargarNotas();
     }
 
-    public function eliminar(int $i): void
+    public function eliminar(int $id): void
     {
-        $lista = session($this->key(), []);
-        unset($lista[$i]);
-        $lista = array_values($lista);
-        session([$this->key() => $lista]);
-        $this->notas = $lista;
+        UserNote::where('user_id', Auth::id())->where('id', $id)->delete();
+        $this->cargarNotas();
     }
 
     public function getNotasFiltradas(): array
