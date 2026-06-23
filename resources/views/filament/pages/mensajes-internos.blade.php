@@ -81,6 +81,19 @@
 .nt-submit:hover { filter:brightness(1.1); transform:translateY(-1px); }
 .nt-submit:active { transform:translateY(0); }
 
+.nt-upload-zone { border:2px dashed #e2e8f0; border-radius:10px; padding:10px 12px; cursor:pointer; text-align:center; transition:border-color .15s, background .15s; }
+.nt-upload-zone:hover { border-color:#94a3b8; background:#f8fafc; }
+.nt-upload-zone input[type=file] { display:none; }
+.nt-upload-lbl { font-size:11px; font-weight:600; color:#94a3b8; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; }
+.nt-upload-preview { display:flex; align-items:center; gap:8px; background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:7px 10px; margin-top:6px; }
+.nt-upload-preview-name { font-size:11px; font-weight:700; color:#15803d; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nt-upload-remove { background:none; border:none; color:#94a3b8; cursor:pointer; padding:2px; display:flex; align-items:center; }
+.nt-upload-remove:hover { color:var(--nt-red); }
+.nt-adjunto { margin-top:8px; }
+.nt-adjunto-link { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--nt-blue); text-decoration:none; background:#eff6ff; border:1.5px solid #93c5fd; border-radius:8px; padding:4px 10px; transition:background .12s; }
+.nt-adjunto-link:hover { background:#dbeafe; }
+.nt-adjunto-img { max-width:100%; max-height:140px; border-radius:8px; margin-top:6px; border:1px solid #e2e8f0; display:block; }
+
 @media(max-width:860px){
     .nt-grid{grid-template-columns:1fr;}
     .nt-kpis{grid-template-columns:repeat(2,1fr);}
@@ -161,6 +174,20 @@
                         <span class="nt-hora">{{ $nota['hora'] }}</span>
                     </div>
                     <div class="nt-texto">{{ $nota['texto'] }}</div>
+                    @if(!empty($nota['attachment_path']))
+                    <div class="nt-adjunto">
+                        @if(str_starts_with($nota['attachment_mime'] ?? '', 'image/'))
+                            <a href="{{ Storage::url($nota['attachment_path']) }}" target="_blank">
+                                <img src="{{ Storage::url($nota['attachment_path']) }}" class="nt-adjunto-img" alt="{{ $nota['attachment_name'] }}">
+                            </a>
+                        @else
+                            <a href="{{ Storage::url($nota['attachment_path']) }}" target="_blank" class="nt-adjunto-link">
+                                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                {{ $nota['attachment_name'] }}
+                            </a>
+                        @endif
+                    </div>
+                    @endif
                 </div>
                 <div class="nt-actions">
                     <button class="nt-action-btn" wire:click="eliminar({{ $nota['id'] }})" title="Eliminar">
@@ -204,6 +231,25 @@
                         <button type="button" class="nt-pill {{ $categoria === $val ? 'active-'.$val : '' }}" wire:click="$set('categoria', '{{ $val }}')">{{ $lbl }}</button>
                         @endforeach
                     </div>
+                </div>
+                <div>
+                    <div class="nt-label">Adjunto (PDF o Imagen)</div>
+                    <label class="nt-upload-zone">
+                        <input type="file" wire:model="adjunto" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
+                        <span class="nt-upload-lbl">
+                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            Clic para adjuntar archivo
+                        </span>
+                    </label>
+                    @if($adjunto)
+                    <div class="nt-upload-preview">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#15803d" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        <span class="nt-upload-preview-name">{{ $adjunto->getClientOriginalName() }}</span>
+                        <button type="button" class="nt-upload-remove" wire:click="$set('adjunto', null)">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    @endif
                 </div>
                 <button class="nt-submit" wire:click="guardar">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>

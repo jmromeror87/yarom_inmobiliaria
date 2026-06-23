@@ -5,9 +5,12 @@ namespace App\Filament\Pages;
 use App\Models\UserNote;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Livewire\WithFileUploads;
 
 class MensajesInternos extends Page
 {
+    use WithFileUploads;
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
     protected static ?string $navigationLabel          = 'Notas y Tareas';
     protected static ?string $title                    = 'Notas y Tareas';
@@ -22,7 +25,8 @@ class MensajesInternos extends Page
     public string $prioridad = 'normal';
     public string $categoria = 'nota';
     public string $filtro    = 'todas';
-    public array  $notas     = [];
+    public array   $notas     = [];
+    public         $adjunto   = null;
 
     public function mount(): void
     {
@@ -35,13 +39,16 @@ class MensajesInternos extends Page
             ->orderByDesc('created_at')
             ->get()
             ->map(fn ($n) => [
-                'id'         => $n->id,
-                'texto'      => $n->texto,
-                'prioridad'  => $n->prioridad,
-                'categoria'  => $n->categoria,
-                'completada' => $n->completada,
-                'hora'       => $n->created_at->format('d/m/Y H:i'),
-                'autor'      => Auth::user()->name,
+                'id'              => $n->id,
+                'texto'           => $n->texto,
+                'prioridad'       => $n->prioridad,
+                'categoria'       => $n->categoria,
+                'completada'      => $n->completada,
+                'hora'            => $n->created_at->format('d/m/Y H:i'),
+                'autor'           => Auth::user()->name,
+                'attachment_path' => $n->attachment_path,
+                'attachment_name' => $n->attachment_name,
+                'attachment_mime' => $n->attachment_mime,
             ])
             ->toArray();
     }
@@ -50,16 +57,26 @@ class MensajesInternos extends Page
     {
         if (trim($this->texto) === '') return;
 
-        UserNote::create([
+        $data = [
             'user_id'   => Auth::id(),
             'texto'     => $this->texto,
             'prioridad' => $this->prioridad,
             'categoria' => $this->categoria,
-        ]);
+        ];
+
+        if ($this->adjunto) {
+            $this->validate(['adjunto' => 'file|mimes:pdf,jpg,jpeg,png,gif,webp|max:10240']);
+            $data['attachment_path'] = $this->adjunto->store('notas-adjuntos', 'public');
+            $data['attachment_name'] = $this->adjunto->getClientOriginalName();
+            $data['attachment_mime'] = $this->adjunto->getMimeType();
+        }
+
+        UserNote::create($data);
 
         $this->texto     = '';
         $this->prioridad = 'normal';
         $this->categoria = 'nota';
+        $this->adjunto   = null;
 
         $this->cargarNotas();
     }
@@ -75,7 +92,13 @@ class MensajesInternos extends Page
 
     public function eliminar(int $id): void
     {
-        UserNote::where('user_id', Auth::id())->where('id', $id)->delete();
+        $nota = UserNote::where('user_id', Auth::id())->where('id', $id)->first();
+        if ($nota) {
+            if ($nota->attachment_path) {
+                Storage::disk('public')->delete($nota->attachment_path);
+            }
+            $nota->delete();
+        }
         $this->cargarNotas();
     }
 

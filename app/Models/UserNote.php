@@ -9,7 +9,7 @@ class UserNote extends Model
 {
     protected $table = 'user_notes';
 
-    protected $fillable = ['user_id', 'texto', 'prioridad', 'categoria', 'completada'];
+    protected $fillable = ['user_id', 'texto', 'prioridad', 'categoria', 'completada', 'attachment_path', 'attachment_name', 'attachment_mime'];
 
     protected $casts = ['completada' => 'boolean'];
 
