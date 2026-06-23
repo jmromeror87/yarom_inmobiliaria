@@ -61,6 +61,10 @@ class RentalContractPdfController extends Controller
         // Servicios
         $servicios = mb_strtoupper($contract->servicios_cargo_arrendatario ?? '', 'UTF-8');
 
+        // Destinación e actividad comercial
+        $destinacion      = mb_strtoupper($contract->destinacion ?? '', 'UTF-8');
+        $actividadComercial = mb_strtoupper($contract->actividad_comercial ?? '', 'UTF-8');
+
         // Empresa datos de contacto
         $empresaDireccion = ($company?->direccion ?? 'carrera 13 # 11-15 ofc 103 centro') . '- ' . ($company?->municipio?->nombre ?? 'Ocaña');
         $empresaEmail     = $company?->email ?? 'serviarrendarltda@gmail.com';
@@ -69,6 +73,8 @@ class RentalContractPdfController extends Controller
 
         $reemplazos = [
             '{SERVICIOS}'              => $servicios,
+            '{DESTINACION}'            => $destinacion,
+            '{ACTIVIDAD_COMERCIAL}'    => $actividadComercial,
             '{ARRENDATARIO}'           => $arrNombre . ' identificad' . ($arr?->genero === 'femenino' ? 'a' : 'o') . ' con cédula de ciudadanía ' . $arrDoc . ($arrLugar ? ' de ' . $arrLugar : ''),
             '{DEUDOR_SOLIDARIO}'       => $deudoresTexto ?: 'EL DEUDOR SOLIDARIO',
             '{DEUDORES_SOLIDARIOS}'    => $deudoresTexto ?: 'LOS DEUDORES SOLIDARIOS',
