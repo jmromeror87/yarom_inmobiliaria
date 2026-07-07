@@ -11,7 +11,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('administration_contract_id');
             $table->unsignedBigInteger('contract_clause_id')->nullable();
-            $table->string('numero', 20);
+            $table->string('numero', 60);
             $table->string('titulo', 200);
             $table->enum('tipo', ['considerando','clausula','paragrafo','nota'])->default('clausula');
             $table->longText('contenido_original');
