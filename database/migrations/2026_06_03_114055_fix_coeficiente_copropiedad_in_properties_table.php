@@ -12,17 +12,28 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('properties', function (Blueprint $table) {
-            // decimal(6,4) solo llega a 99.9999 — cambiamos a decimal(8,4) para soportar hasta 9999.9999
-            $table->decimal('coeficiente_copropiedad', 8, 4)->nullable()->change();
-            $table->decimal('porcentaje_propiedad', 8, 4)->nullable()->change();
+            if (Schema::hasColumn('properties', 'coeficiente_copropiedad')) {
+                $table->decimal('coeficiente_copropiedad', 8, 4)->nullable()->change();
+            } else {
+                $table->decimal('coeficiente_copropiedad', 8, 4)->nullable();
+            }
+            if (Schema::hasColumn('properties', 'porcentaje_propiedad')) {
+                $table->decimal('porcentaje_propiedad', 8, 4)->nullable()->change();
+            } else {
+                $table->decimal('porcentaje_propiedad', 8, 4)->nullable();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('properties', function (Blueprint $table) {
-            $table->decimal('coeficiente_copropiedad', 6, 4)->nullable()->change();
-            $table->decimal('porcentaje_propiedad', 6, 4)->nullable()->change();
+            if (Schema::hasColumn('properties', 'coeficiente_copropiedad')) {
+                $table->decimal('coeficiente_copropiedad', 6, 4)->nullable()->change();
+            }
+            if (Schema::hasColumn('properties', 'porcentaje_propiedad')) {
+                $table->decimal('porcentaje_propiedad', 6, 4)->nullable()->change();
+            }
         });
     }
 };
