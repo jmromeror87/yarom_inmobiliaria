@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('owner_liquidations', function (Blueprint $table) {
-            $table->decimal('seguro_sura_deducido', 12, 2)->default(0)->after('retefuente_valor')
+            $table->decimal('seguro_sura_deducido', 12, 2)->default(0)
                 ->comment('Valor seguro SURA + IVA cobrado al inquilino — la inmobiliaria lo paga a ASURA, no va al propietario');
         });
     }
