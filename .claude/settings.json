@@ -6,7 +6,17 @@
       "Bash(awk '{print $2}')",
       "Bash([ ! -f \"/Users/jmromeror87/yarom-inmobiliaria/app/Http/Controllers/$c.php\" ])",
       "Bash(xargs -I {} basename {} .php)",
-      "Bash(grep -v \"^\\\\s*$\")"
+      "Bash(grep -v \"^\\\\s*$\")",
+      "Bash(chmod 400 ~/Downloads/keyservicenter.pem)",
+      "Bash(ssh -i ~/Downloads/keyservicenter.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 'echo \"CONEXION OK\" && lsb_release -a 2>/dev/null | grep Description && free -h | grep Mem && df -h / | tail -1')",
+      "Bash(chmod 400 ~/Downloads/servi-center-key.pem)",
+      "Bash(ssh -i ~/Downloads/servi-center-key.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 'echo \"CONEXION OK\" && lsb_release -a 2>/dev/null | grep Description && free -h | grep Mem && df -h / | tail -1')",
+      "Bash(chmod 400 ~/Downloads/LightsailDefaultKey-us-east-1.pem)",
+      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 'echo \"CONEXION OK\" && lsb_release -a 2>/dev/null | grep Description && free -h | grep Mem && df -h / | tail -1')",
+      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"cat /var/www/yarom-inmobiliaria/vendor/symfony/html-sanitizer/composer.json | grep -E 'version|php|require' | head -20\")",
+      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 ' *)",
+      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"php8.4 -v && ls /etc/php/8.4/fpm/pool.d/\")",
+      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"grep -E '^MAIL_' /var/www/yarom-inmobiliaria/.env\")"
     ]
   }
 }

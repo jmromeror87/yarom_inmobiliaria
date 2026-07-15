@@ -32,11 +32,12 @@ class ThirdsStatsWidget extends Widget
         $inactivos     = $total - $activos;
         $compradores   = Third::where('es_cliente_compra', true)->count();
         $fiadores      = Third::where('es_fiador', true)->count();
+        $proveedores   = Third::where('es_proveedor', true)->count();
 
         return compact(
             'total','propietarios','arrendatarios',
             'aprobados','pendientes','activos','inactivos',
-            'compradores','fiadores'
+            'compradores','fiadores','proveedores'
         );
     }
 }

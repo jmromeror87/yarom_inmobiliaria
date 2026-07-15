@@ -455,7 +455,6 @@ class ThirdForm
                                 'profesional_libre' => 'Profesional libre ejercicio',
                                 'otro'              => 'Otro',
                             ])
-                            ->required()
                             ->columnSpanFull(),
 
                         Textarea::make('kyc_declaracion_fondos')
@@ -463,7 +462,6 @@ class ThirdForm
                             ->placeholder('Describa el origen de los recursos con los que adquirió o mantiene el inmueble...')
                             ->helperText('El tercero declara que los recursos provienen de actividades lícitas.')
                             ->rows(3)
-                            ->required()
                             ->columnSpanFull(),
 
                         Select::make('kyc_nivel_riesgo')
@@ -473,8 +471,7 @@ class ThirdForm
                                 'medio' => '🟡 Medio',
                                 'alto'  => '🔴 Alto',
                             ])
-                            ->helperText('Asignado por el asesor tras revisión de la declaración.')
-                            ->required(),
+                            ->helperText('Asignado por el asesor tras revisión de la declaración.'),
 
                         Select::make('kyc_screening_resultado')
                             ->label('Screening OFAC / Listas PEP Colombia')
@@ -484,7 +481,6 @@ class ThirdForm
                                 'alerta'    => '🚫 Alerta — coincidencia encontrada',
                             ])
                             ->default('pendiente')
-                            ->required()
                             ->live()
                             ->helperText('Verificar contra listas OFAC y PEP antes de continuar.'),
 

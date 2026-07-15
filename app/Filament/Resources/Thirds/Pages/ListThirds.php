@@ -2,8 +2,14 @@
 
 namespace App\Filament\Resources\Thirds\Pages;
 
+use App\Exports\Thirds\ThirdImportReportExporter;
+use App\Exports\Thirds\ThirdTemplateExporter;
 use App\Filament\Resources\Thirds\ThirdResource;
+use App\Services\ThirdImportService;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Livewire\Attributes\On;
 
@@ -14,6 +20,47 @@ class ListThirds extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('descargarPlantilla')
+                ->label('Descargar plantilla')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(fn () => (new ThirdTemplateExporter())->stream('plantilla_terceros.xlsx')),
+
+            Action::make('validarExcel')
+                ->label('Validar archivo')
+                ->icon('heroicon-o-shield-check')
+                ->color('gray')
+                ->schema([
+                    FileUpload::make('archivo')
+                        ->label('Archivo Excel (.xlsx)')
+                        ->helperText('Revisa el archivo y te dice qué filas están listas y cuáles tienen error, sin crear ningún tercero todavía.')
+                        ->required()
+                        ->disk('local')
+                        ->directory('imports-temp')
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        ])
+                        ->visibility('private'),
+                ])
+                ->action(fn (array $data) => $this->procesarImportacion($data, dryRun: true)),
+
+            Action::make('importarExcel')
+                ->label('Importar Excel')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('gray')
+                ->schema([
+                    FileUpload::make('archivo')
+                        ->label('Archivo Excel (.xlsx)')
+                        ->required()
+                        ->disk('local')
+                        ->directory('imports-temp')
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        ])
+                        ->visibility('private'),
+                ])
+                ->action(fn (array $data) => $this->procesarImportacion($data, dryRun: false)),
+
             CreateAction::make()
                 ->label('Nuevo Tercero')
                 ->icon('heroicon-o-user-plus')
@@ -48,5 +95,43 @@ class ListThirds extends ListRecords
     public function clearThirdsFilter(): void
     {
         $this->resetTableFiltersForm();
+    }
+
+    private function procesarImportacion(array $data, bool $dryRun): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $relativePath = $data['archivo'];
+        $fullPath     = storage_path('app/private/' . $relativePath);
+
+        if (! file_exists($fullPath)) {
+            $fullPath = storage_path('app/' . $relativePath);
+        }
+
+        $resultado = (new ThirdImportService())->importFrom($fullPath, dryRun: $dryRun);
+
+        @unlink($fullPath);
+
+        $validos   = count($resultado['validos']);
+        $creados   = count($resultado['creados']);
+        $omitidos  = count($resultado['omitidos_existentes']);
+        $errores   = count($resultado['errores']);
+
+        if ($dryRun) {
+            $body = "Listos para importar: {$validos} · Ya existen: {$omitidos} · Con error: {$errores}";
+            $titulo = 'Validación completada — no se creó ningún tercero';
+        } else {
+            $body = "Creados: {$creados} · Omitidos (ya existían): {$omitidos} · Con error: {$errores}";
+            $titulo = 'Importación de terceros completada';
+        }
+
+        Notification::make()
+            ->title($titulo)
+            ->body($body . ' — descargando reporte detallado con el motivo de cada fila.')
+            ->color($errores > 0 ? 'warning' : 'success')
+            ->duration(10000)
+            ->send();
+
+        $nombreArchivo = $dryRun ? 'validacion_terceros.xlsx' : 'reporte_importacion_terceros.xlsx';
+
+        return (new ThirdImportReportExporter())->stream($resultado['filas'], $nombreArchivo);
     }
 }

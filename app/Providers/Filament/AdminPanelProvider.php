@@ -45,6 +45,8 @@ class AdminPanelProvider extends PanelProvider
             ->login(\App\Filament\Pages\Auth\Login::class)
             ->profile(\App\Filament\Pages\Auth\EditProfile::class)
             ->font('Plus Jakarta Sans')
+            ->brandName('YarOM Inmobiliaria')
+            ->favicon(asset('favicon.ico'))
             ->navigationGroups([
                 NavigationGroup::make('CRM'),
                 NavigationGroup::make('Operativo'),
@@ -494,7 +496,9 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
-                fn(): \Illuminate\Contracts\View\View => view('livewire.inmo-chat-loader'),
+                fn(): \Illuminate\Contracts\View\View|string => auth()->check()
+                    ? view('livewire.inmo-chat-loader')
+                    : '',
             )
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s');
