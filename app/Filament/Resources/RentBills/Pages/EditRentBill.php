@@ -14,7 +14,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -46,86 +45,84 @@ class EditRentBill extends EditRecord
                 ->label('💰 Registrar pago')
                 ->color('success')
                 ->icon('heroicon-o-banknotes')
-                ->modalHeading('Registrar pago de factura')
+                ->modalHeading('Registrar pago')
                 ->modalDescription(fn () => "Factura {$record->numero} — {$record->arrendatario?->nombre_completo}")
-                ->modalSubmitActionLabel('Registrar pago')
-                ->modalWidth('lg')
+                ->modalSubmitActionLabel('✓ Registrar pago')
+                ->slideOver()
+                ->modalWidth('md')
+                ->modalFooterActionsAlignment('start')
                 ->schema([
-                    Section::make('Valor y fecha')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                TextInput::make('total_pagado')
-                                    ->label('Valor recibido')
-                                    ->numeric()->prefix('$')
-                                    ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada)
-                                    ->required(),
-                                DatePicker::make('fecha_pago')
-                                    ->label('Fecha de pago')
-                                    ->default(now())
-                                    ->native(false)
-                                    ->required(),
-                            ]),
-                        ]),
+                    self::grupoLabel('💰 Valor y fecha'),
+                    Grid::make(2)->schema([
+                        TextInput::make('total_pagado')
+                            ->label('Valor recibido')
+                            ->numeric()->prefix('$')
+                            ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada)
+                            ->required(),
+                        DatePicker::make('fecha_pago')
+                            ->label('Fecha de pago')
+                            ->default(now())
+                            ->native(false)
+                            ->required(),
+                    ]),
 
-                    Section::make('Método de pago')
-                        ->description('El destino contable del dinero se asigna automáticamente según lo que elijas aquí.')
-                        ->schema([
-                            Select::make('forma_pago')
-                                ->label('Forma de pago')
-                                ->options([
-                                    'efectivo'      => '💵 Efectivo',
-                                    'transferencia' => '🏦 Transferencia',
-                                    'consignacion'  => '🏧 Consignación',
-                                    'nequi'         => '📱 Nequi',
-                                    'daviplata'     => '📱 Daviplata',
-                                    'pse'           => '💻 PSE',
-                                    'cheque'        => '📝 Cheque',
-                                ])
-                                ->default('transferencia')
-                                ->native(false)
-                                ->live()
-                                ->required()
-                                ->afterStateUpdated(function ($state, callable $set) {
-                                    if ($state === 'efectivo') {
-                                        $set('bank_id', Bank::where('tipo_cuenta', 'caja')->value('id'));
-                                    } else {
-                                        $set('bank_id', null);
-                                    }
-                                }),
+                    self::grupoLabel('💳 Método de pago', 'El destino contable del dinero se asigna automáticamente según lo que elijas aquí.'),
+                    Select::make('forma_pago')
+                        ->label('Forma de pago')
+                        ->options([
+                            'efectivo'      => '💵 Efectivo',
+                            'transferencia' => '🏦 Transferencia',
+                            'consignacion'  => '🏧 Consignación',
+                            'nequi'         => '📱 Nequi',
+                            'daviplata'     => '📱 Daviplata',
+                            'pse'           => '💻 PSE',
+                            'cheque'        => '📝 Cheque',
+                        ])
+                        ->default('transferencia')
+                        ->native(false)
+                        ->live()
+                        ->required()
+                        ->columnSpanFull()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state === 'efectivo') {
+                                $set('bank_id', Bank::where('tipo_cuenta', 'caja')->value('id'));
+                            } else {
+                                $set('bank_id', null);
+                            }
+                        }),
 
-                            Select::make('bank_id')
-                                ->label('Cuenta destino')
-                                ->options(fn () => Bank::where('is_active', true)
-                                    ->where('tipo_cuenta', '!=', 'caja')
-                                    ->get()
-                                    ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
-                                ->native(false)
-                                ->searchable()
-                                ->visible(fn (Get $get) => $get('forma_pago') !== 'efectivo')
-                                ->required(fn (Get $get) => $get('forma_pago') !== 'efectivo')
-                                ->helperText('Cuenta bancaria donde efectivamente entró el dinero — determina a qué cuenta contable se contabiliza.'),
+                    Select::make('bank_id')
+                        ->label('Cuenta destino')
+                        ->options(fn () => Bank::where('is_active', true)
+                            ->where('tipo_cuenta', '!=', 'caja')
+                            ->get()
+                            ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
+                        ->native(false)
+                        ->searchable()
+                        ->columnSpanFull()
+                        ->visible(fn (Get $get) => $get('forma_pago') !== 'efectivo')
+                        ->required(fn (Get $get) => $get('forma_pago') !== 'efectivo')
+                        ->helperText('Cuenta bancaria donde efectivamente entró el dinero — determina a qué cuenta contable se contabiliza.'),
 
-                            Placeholder::make('info_caja')
-                                ->label('')
-                                ->content('Este pago se contabilizará en Caja general.')
-                                ->visible(fn (Get $get) => $get('forma_pago') === 'efectivo'),
-                        ]),
+                    Placeholder::make('info_caja')
+                        ->label('')
+                        ->columnSpanFull()
+                        ->content('💵 Este pago se contabilizará en Caja general.')
+                        ->visible(fn (Get $get) => $get('forma_pago') === 'efectivo'),
 
-                    Section::make('Soporte')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                TextInput::make('referencia_pago')->label('Referencia / N° comprobante'),
-                                TextInput::make('banco_origen')->label('Banco de origen del pagador')
-                                    ->helperText('Ej: si pagó por Nequi, aquí puedes anotar de qué banco venía la plata.'),
-                            ]),
-                            FileUpload::make('comprobante_path')
-                                ->label('Comprobante de pago')
-                                ->disk('public')->directory('pagos/comprobantes')
-                                ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
-                                ->maxSize(5120)
-                                ->columnSpanFull(),
-                            Textarea::make('notas')->label('Notas')->rows(2)->columnSpanFull(),
-                        ]),
+                    self::grupoLabel('📎 Soporte'),
+                    Grid::make(2)->schema([
+                        TextInput::make('referencia_pago')->label('Referencia / N° comprobante'),
+                        TextInput::make('banco_origen')->label('Banco de origen del pagador')
+                            ->helperText('Ej: si pagó por Nequi, aquí puedes anotar de qué banco venía la plata.'),
+                    ]),
+                    FileUpload::make('comprobante_path')
+                        ->label('Comprobante de pago')
+                        ->disk('public')->directory('pagos/comprobantes')
+                        ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
+                        ->maxSize(5120)
+                        ->columnSpanFull(),
+                    Textarea::make('notas')->label('Notas')->rows(2)->columnSpanFull(),
                 ])
                 ->action(function (array $data) {
                     $mora  = $this->record->mora_acumulada;
@@ -189,5 +186,22 @@ class EditRentBill extends EditRecord
             ->openUrlInNewTab();
 
         return $acciones;
+    }
+
+    /**
+     * Título de grupo estilo "kicker" (mayúsculas, pequeño, gris) para
+     * separar secciones del formulario sin usar cajas/bordes pesados.
+     */
+    private static function grupoLabel(string $texto, ?string $descripcion = null): Placeholder
+    {
+        $html = '<div style="margin-top:4px;">'
+            . '<span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#64748b;">' . e($texto) . '</span>'
+            . ($descripcion ? '<p style="font-size:12px;color:#94a3b8;margin-top:2px;">' . e($descripcion) . '</p>' : '')
+            . '</div>';
+
+        return Placeholder::make('grupo_' . md5($texto))
+            ->hiddenLabel()
+            ->columnSpanFull()
+            ->content(new \Illuminate\Support\HtmlString($html));
     }
 }

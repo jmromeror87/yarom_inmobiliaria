@@ -417,7 +417,7 @@ class AdminPanelProvider extends PanelProvider
                     pwObserver.observe(document.body, { childList:true, subtree:true });
                 })();
                 </script>
-                <footer id="yr-footer" style="position:fixed;bottom:0;left:0;right:0;z-index:60;padding:11px 2.5rem;border-top:1px solid #112240;background:linear-gradient(135deg,#0F172A,#1e2d45,#E11D48);">
+                <footer id="yr-footer" style="position:fixed;bottom:0;left:0;right:0;z-index:30;padding:11px 2.5rem;border-top:1px solid #112240;background:linear-gradient(135deg,#0F172A,#1e2d45,#E11D48);">
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">
                         <div style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.8);">
                             <span>© ' . date('Y') . ' <span style="color:#fff;">YarOM ERP</span></span>
