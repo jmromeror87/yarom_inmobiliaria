@@ -30,6 +30,8 @@ class RentalContractImportService
         'codeudor','garantia_bancaria','seguro_arrendamiento','ninguna',
     ];
 
+    private const PLANTILLA_VIVIENDA_ID = 2; // "Contrato de Arrendamiento Vivienda Urbana"
+
     public function importFrom(string $filePath, bool $dryRun = false): array
     {
         $this->filas = [];
@@ -169,6 +171,7 @@ class RentalContractImportService
         $contract = RentalContract::create([
             'property_id'                 => $property->id,
             'administration_contract_id'  => $administrationContractId,
+            'contract_template_id'        => self::PLANTILLA_VIVIENDA_ID,
             'arrendatario_id'             => $arrendatario->id,
             'tipo'                        => 'vivienda_urbana',
             'canon_mensual'               => $canonMensual,
@@ -180,6 +183,8 @@ class RentalContractImportService
             'estado'                       => $estado,
             'notas'                        => $data['notas'] ?: null,
         ]);
+
+        \App\Filament\Resources\RentalContracts\Schemas\RentalContractForm::copyClausesFromTemplate($contract);
 
         RentalContractThird::create([
             'rental_contract_id' => $contract->id,

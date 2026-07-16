@@ -168,7 +168,7 @@ class AdministrationContractImportService
     {
         $estado = in_array($data['estado'] ?? null, self::ESTADOS_VALIDOS) ? $data['estado'] : 'activo';
 
-        return AdministrationContract::create([
+        $contract = AdministrationContract::create([
             'contract_template_id' => self::PLANTILLA_ID,
             'property_id'          => $property->id,
             'propietario_id'       => $propietario->id,
@@ -181,6 +181,10 @@ class AdministrationContractImportService
             'estado'               => $estado,
             'notas'                => $data['notas'] ?: null,
         ]);
+
+        \App\Filament\Resources\AdministrationContracts\Schemas\AdministrationContractForm::copyClausesFromTemplate($contract);
+
+        return $contract;
     }
 
     private function parsearFecha(mixed $valor): ?Carbon
