@@ -13,7 +13,7 @@ class RentPayment extends Model
     protected $fillable = [
         'numero','rent_bill_id','rental_contract_id','arrendatario_id','registrado_por',
         'valor_canon','valor_mora','valor_administracion','otros_valores','total_pagado',
-        'forma_pago','fecha_pago','referencia_pago','banco_origen','comprobante_path','notas',
+        'forma_pago','fecha_pago','referencia_pago','banco_origen','bank_id','comprobante_path','notas',
     ];
 
     protected $casts = [
@@ -70,4 +70,5 @@ class RentPayment extends Model
     public function rentalContract(): BelongsTo  { return $this->belongsTo(RentalContract::class); }
     public function arrendatario(): BelongsTo    { return $this->belongsTo(Third::class, 'arrendatario_id'); }
     public function registradoPor(): BelongsTo   { return $this->belongsTo(User::class, 'registrado_por'); }
+    public function bank(): BelongsTo            { return $this->belongsTo(Bank::class); }
 }

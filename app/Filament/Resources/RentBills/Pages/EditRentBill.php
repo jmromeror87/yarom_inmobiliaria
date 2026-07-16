@@ -3,14 +3,19 @@
 namespace App\Filament\Resources\RentBills\Pages;
 
 use App\Filament\Resources\RentBills\RentBillResource;
+use App\Models\Bank;
 use App\Models\RentPayment;
 use App\Helpers\WhatsApp;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Auth;
@@ -41,33 +46,86 @@ class EditRentBill extends EditRecord
                 ->label('💰 Registrar pago')
                 ->color('success')
                 ->icon('heroicon-o-banknotes')
-                ->form([
-                    TextInput::make('total_pagado')
-                        ->label('Valor recibido ($)')
-                        ->numeric()->prefix('$')
-                        ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada)
-                        ->required(),
-                    Select::make('forma_pago')
-                        ->label('Forma de pago')
-                        ->options([
-                            'efectivo'      => '💵 Efectivo',
-                            'transferencia' => '🏦 Transferencia',
-                            'consignacion'  => '🏧 Consignación',
-                            'nequi'         => '📱 Nequi',
-                            'daviplata'     => '📱 Daviplata',
-                            'pse'           => '💻 PSE',
-                            'cheque'        => '📝 Cheque',
-                        ])->default('transferencia')->required(),
-                    DatePicker::make('fecha_pago')
-                        ->label('Fecha de pago')->default(now())->required(),
-                    TextInput::make('referencia_pago')->label('Referencia / comprobante'),
-                    TextInput::make('banco_origen')->label('Banco origen'),
-                    FileUpload::make('comprobante_path')
-                        ->label('Comprobante de pago')
-                        ->disk('public')->directory('pagos/comprobantes')
-                        ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
-                        ->maxSize(5120),
-                    Textarea::make('notas')->label('Notas')->rows(2),
+                ->modalHeading('Registrar pago de factura')
+                ->modalDescription(fn () => "Factura {$record->numero} — {$record->arrendatario?->nombre_completo}")
+                ->modalSubmitActionLabel('Registrar pago')
+                ->modalWidth('lg')
+                ->schema([
+                    Section::make('Valor y fecha')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('total_pagado')
+                                    ->label('Valor recibido')
+                                    ->numeric()->prefix('$')
+                                    ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada)
+                                    ->required(),
+                                DatePicker::make('fecha_pago')
+                                    ->label('Fecha de pago')
+                                    ->default(now())
+                                    ->native(false)
+                                    ->required(),
+                            ]),
+                        ]),
+
+                    Section::make('Método de pago')
+                        ->description('El destino contable del dinero se asigna automáticamente según lo que elijas aquí.')
+                        ->schema([
+                            Select::make('forma_pago')
+                                ->label('Forma de pago')
+                                ->options([
+                                    'efectivo'      => '💵 Efectivo',
+                                    'transferencia' => '🏦 Transferencia',
+                                    'consignacion'  => '🏧 Consignación',
+                                    'nequi'         => '📱 Nequi',
+                                    'daviplata'     => '📱 Daviplata',
+                                    'pse'           => '💻 PSE',
+                                    'cheque'        => '📝 Cheque',
+                                ])
+                                ->default('transferencia')
+                                ->native(false)
+                                ->live()
+                                ->required()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state === 'efectivo') {
+                                        $set('bank_id', Bank::where('tipo_cuenta', 'caja')->value('id'));
+                                    } else {
+                                        $set('bank_id', null);
+                                    }
+                                }),
+
+                            Select::make('bank_id')
+                                ->label('Cuenta destino')
+                                ->options(fn () => Bank::where('is_active', true)
+                                    ->where('tipo_cuenta', '!=', 'caja')
+                                    ->get()
+                                    ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
+                                ->native(false)
+                                ->searchable()
+                                ->visible(fn (Get $get) => $get('forma_pago') !== 'efectivo')
+                                ->required(fn (Get $get) => $get('forma_pago') !== 'efectivo')
+                                ->helperText('Cuenta bancaria donde efectivamente entró el dinero — determina a qué cuenta contable se contabiliza.'),
+
+                            Placeholder::make('info_caja')
+                                ->label('')
+                                ->content('Este pago se contabilizará en Caja general.')
+                                ->visible(fn (Get $get) => $get('forma_pago') === 'efectivo'),
+                        ]),
+
+                    Section::make('Soporte')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('referencia_pago')->label('Referencia / N° comprobante'),
+                                TextInput::make('banco_origen')->label('Banco de origen del pagador')
+                                    ->helperText('Ej: si pagó por Nequi, aquí puedes anotar de qué banco venía la plata.'),
+                            ]),
+                            FileUpload::make('comprobante_path')
+                                ->label('Comprobante de pago')
+                                ->disk('public')->directory('pagos/comprobantes')
+                                ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
+                                ->maxSize(5120)
+                                ->columnSpanFull(),
+                            Textarea::make('notas')->label('Notas')->rows(2)->columnSpanFull(),
+                        ]),
                 ])
                 ->action(function (array $data) {
                     $mora  = $this->record->mora_acumulada;
@@ -86,6 +144,7 @@ class EditRentBill extends EditRecord
                         'fecha_pago'          => $data['fecha_pago'],
                         'referencia_pago'     => $data['referencia_pago'] ?? null,
                         'banco_origen'        => $data['banco_origen'] ?? null,
+                        'bank_id'             => $data['bank_id'] ?? null,
                         'comprobante_path'    => $data['comprobante_path'] ?? null,
                         'notas'               => $data['notas'] ?? null,
                     ]);

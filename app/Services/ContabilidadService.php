@@ -124,14 +124,14 @@ class ContabilidadService
         // Autorretención (persona jurídica obligada según Decreto 2418/2013)
         $autoRete     = round($comision * 0.035, 2);  // 3.5% sobre comisión
 
-        $cuentaArrendatarios = static::cuentaId('130505');
-        $cuentaComision      = static::cuentaId('413505');
-        $cuentaIva           = static::cuentaId('240805');
-        $cuentaXPagarProp    = static::cuentaId('233510');
+        $cuentaArrendatarios = static::cuentaId('13050501');
+        $cuentaComision      = static::cuentaId('41551001');
+        $cuentaIva           = static::cuentaId('24080101');
+        $cuentaXPagarProp    = static::cuentaId('23354001');
         // 136515 = Anticipo impuestos (activo deudor) — retención practicada A FAVOR
         // 236515 era incorrecto: es "retenciones por pagar" (pasivo, lo que nosotros practicamos a otros)
         $cuentaRete          = static::cuentaId('136515');
-        $cuentaAutoRete      = static::cuentaId('135505');  // Anticipo autorretención
+        $cuentaAutoRete      = static::cuentaId('13551502');  // Anticipo autorretención
 
         if (!$cuentaArrendatarios || !$cuentaComision || !$cuentaIva || !$cuentaXPagarProp) return null;
 
@@ -184,23 +184,26 @@ class ContabilidadService
         $monto = $payment ? (float) $payment->total_pagado : (float) $bill->total_pagado;
         if ($monto <= 0) return null;
 
-        $cuentaBancos        = static::cuentaId('111005');
-        $cuentaArrendatarios = static::cuentaId('130505');
+        // La cuenta de destino del dinero depende del banco/caja elegido al registrar
+        // el pago — si no se seleccionó ninguno, se usa Bancolombia como respaldo.
+        $cuentaBancos        = $payment?->bank?->accounting_account_id ?? static::cuentaId('11100502');
+        $cuentaArrendatarios = static::cuentaId('13050501');
 
         if (!$cuentaBancos || !$cuentaArrendatarios) return null;
 
-        $numero    = $payment?->numero ?? $bill->numero;
-        $fechaPago = $payment?->fecha_pago?->toDateString() ?? $bill->fecha_pago?->toDateString() ?? now()->toDateString();
+        $numero      = $payment?->numero ?? $bill->numero;
+        $fechaPago   = $payment?->fecha_pago?->toDateString() ?? $bill->fecha_pago?->toDateString() ?? now()->toDateString();
+        $nombreBanco = $payment?->bank?->nombre;
 
         // Si hay mora, separar el ingreso por mora
         $lineas = [
-            ['account_id' => $cuentaBancos,        'debito' => $monto, 'credito' => 0,      'descripcion' => "Pago recibido {$numero}",            'third_id' => $bill->arrendatario_id],
+            ['account_id' => $cuentaBancos,        'debito' => $monto, 'credito' => 0,      'descripcion' => $nombreBanco ? "Pago recibido {$numero} — {$nombreBanco}" : "Pago recibido {$numero}", 'third_id' => $bill->arrendatario_id],
             ['account_id' => $cuentaArrendatarios, 'debito' => 0,      'credito' => $monto, 'descripcion' => "Cancelación cartera {$bill->numero}", 'third_id' => $bill->arrendatario_id],
         ];
 
         // Si el pago incluye mora, reconocer el ingreso por interés
         if ($payment && $payment->valor_mora > 0) {
-            $cuentaMora = static::cuentaId('421010');
+            $cuentaMora = static::cuentaId('42100505');
             if ($cuentaMora) {
                 $mora = (float) $payment->valor_mora;
                 $lineas[0]['debito']  = round($monto, 2);
@@ -232,8 +235,8 @@ class ContabilidadService
         $tipo = 'mora_rent_bill_' . now()->format('Ym');
         if (static::yaExiste($bill->id, $tipo)) return null;
 
-        $cuentaArrendatarios = static::cuentaId('130505');
-        $cuentaMora          = static::cuentaId('421010');
+        $cuentaArrendatarios = static::cuentaId('13050501');
+        $cuentaMora          = static::cuentaId('42100505');
 
         if (!$cuentaArrendatarios || !$cuentaMora) return null;
 
@@ -262,8 +265,8 @@ class ContabilidadService
         $tipoRef = "deposito_{$tipo}_contrato";
         if (static::yaExiste($contrato->id, $tipoRef)) return null;
 
-        $cuentaBancos   = static::cuentaId('111005');
-        $cuentaDeposito = static::cuentaId('281505');
+        $cuentaBancos   = static::cuentaId('11100502');
+        $cuentaDeposito = static::cuentaId('28150503');
 
         if (!$cuentaBancos || !$cuentaDeposito) return null;
 
@@ -311,8 +314,8 @@ class ContabilidadService
         $otrosDesc = (float) $liq->otros_descuentos;
         if ($otrosDesc <= 0) return null;
 
-        $cuentaXPagarProp = static::cuentaId('233510');
-        $cuentaIngresos   = static::cuentaId('413510'); // Administración de inmuebles
+        $cuentaXPagarProp = static::cuentaId('23354001');
+        $cuentaIngresos   = static::cuentaId('42959501'); // Administración de inmuebles
 
         if (!$cuentaXPagarProp || !$cuentaIngresos) return null;
 
@@ -342,8 +345,8 @@ class ContabilidadService
         $monto = (float) $liq->total_giro;
         if ($monto <= 0) return null;
 
-        $cuentaXPagarProp = static::cuentaId('233510');
-        $cuentaBancos     = static::cuentaId('111005');
+        $cuentaXPagarProp = static::cuentaId('23354001');
+        $cuentaBancos     = static::cuentaId('11100502');
 
         if (!$cuentaXPagarProp || !$cuentaBancos) return null;
 
