@@ -19,11 +19,17 @@ class GenerarFacturasMensuales implements ShouldQueue
 
     public int $tries = 3;
 
+    public function __construct(
+        private ?int $mesParam = null,
+        private ?int $anioParam = null,
+        private ?int $businessOriginId = null,
+    ) {}
+
     public function handle(): void
     {
         $this->iniciarLog('Generar Facturas Mensuales');
-        $mes     = now()->month;
-        $anio    = now()->year;
+        $mes     = $this->mesParam ?? now()->month;
+        $anio    = $this->anioParam ?? now()->year;
         $company = Company::first();
         $wap     = app(WhatsAppService::class);
 
@@ -31,13 +37,16 @@ class GenerarFacturasMensuales implements ShouldQueue
         $tasaMora   = $company?->tasa_mora_mensual ?? 1.5441;
         $tasaDiaria = round($tasaMora / 30, 6);
 
+        $periodoBase = \Carbon\Carbon::create($anio, $mes, 1);
+
         // fecha límite = día de corte mensual (ej. día 5 del mes)
         $diaCorte     = $company?->dia_corte_mensual ?? 5;
-        $fechaLimite  = now()->startOfMonth()->addDays($diaCorte - 1)->toDateString();
-        $periodoInicio = now()->startOfMonth()->toDateString();
-        $periodoFin    = now()->endOfMonth()->toDateString();
+        $fechaLimite  = $periodoBase->copy()->addDays($diaCorte - 1)->toDateString();
+        $periodoInicio = $periodoBase->copy()->startOfMonth()->toDateString();
+        $periodoFin    = $periodoBase->copy()->endOfMonth()->toDateString();
 
         $contratos = RentalContract::where('estado', 'activo')
+            ->when($this->businessOriginId, fn ($q) => $q->whereHas('property', fn ($p) => $p->where('business_origin_id', $this->businessOriginId)))
             ->with(['property', 'arrendatario'])
             ->get();
 
@@ -109,7 +118,7 @@ class GenerarFacturasMensuales implements ShouldQueue
                     $msg = "🏠 *Factura de Arrendamiento*\n\n"
                         . "Estimad@ {$nombre},\n\n"
                         . "📋 *{$bill->numero}*\n"
-                        . "📅 Período: " . now()->translatedFormat('F Y') . "\n"
+                        . "📅 Período: " . $periodoBase->translatedFormat('F Y') . "\n"
                         . "🏠 Inmueble: {$inmueble}\n\n"
                         . "💰 Canon: \$" . number_format($canonBase, 0, ',', '.') . " COP\n"
                         . ($admin > 0
@@ -139,7 +148,7 @@ class GenerarFacturasMensuales implements ShouldQueue
         $this->finalizarLog($generadas, [
             'contratos_activos' => $contratos->count(),
             'facturas_generadas' => $generadas,
-            'mes' => now()->format('F Y'),
+            'mes' => $periodoBase->translatedFormat('F Y'),
         ]);
     }
 }

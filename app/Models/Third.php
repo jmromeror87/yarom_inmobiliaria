@@ -51,7 +51,7 @@ class Third extends Model
 
     protected $fillable = [
         'es_propietario','es_arrendatario','es_cliente_compra','es_fiador','es_proveedor',
-        'tipo_persona','tipo_documento','numero_documento','digito_verificacion',
+        'business_origin_id','tipo_persona','tipo_documento','numero_documento','digito_verificacion',
         'primer_nombre','segundo_nombre','primer_apellido','segundo_apellido',
         'razon_social','nombre_comercial','nombre_completo',
         'genero','estado_civil','fecha_nacimiento','lugar_nacimiento','nacionalidad',
@@ -152,6 +152,7 @@ class Third extends Model
     public function departamento(): BelongsTo { return $this->belongsTo(Departamento::class); }
     public function pais(): BelongsTo         { return $this->belongsTo(Pais::class); }
     public function asesor(): BelongsTo       { return $this->belongsTo(User::class, 'asesor_id'); }
+    public function businessOrigin(): BelongsTo { return $this->belongsTo(BusinessOrigin::class); }
 
     // Relaciones financieras
     public function rentBills()           { return $this->hasMany(RentBill::class, 'arrendatario_id'); }

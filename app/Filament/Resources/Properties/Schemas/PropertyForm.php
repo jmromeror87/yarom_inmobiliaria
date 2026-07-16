@@ -165,6 +165,13 @@ class PropertyForm
                             ->label('Código')
                             ->disabled()->placeholder('Auto: INM-2026-0001'),
 
+                        Select::make('business_origin_id')
+                            ->label('Origen del negocio')
+                            ->relationship('businessOrigin', 'nombre')
+                            ->default(fn () => \App\Models\BusinessOrigin::where('nombre', 'Serviarrendar')->value('id'))
+                            ->searchable()->preload()
+                            ->helperText('Identifica de qué negocio proviene este inmueble (útil para inmuebles recién incorporados de otra inmobiliaria)'),
+
                         Select::make('estado')
                             ->label('Estado')
                             ->options([

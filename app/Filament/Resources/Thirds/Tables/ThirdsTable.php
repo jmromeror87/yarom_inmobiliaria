@@ -46,6 +46,12 @@ class ThirdsTable
                         return $badges ? '<div style="display:flex;flex-wrap:wrap;gap:4px;">' . implode('', $badges) . '</div>' : '<span style="color:#94a3b8;font-size:12px;">—</span>';
                     }),
 
+                TextColumn::make('businessOrigin.nombre')
+                    ->label('Origen')
+                    ->badge()
+                    ->color(fn ($record) => $record->businessOrigin?->color ? \Filament\Support\Colors\Color::hex($record->businessOrigin->color) : 'gray')
+                    ->toggleable(),
+
                 // ── Contacto ─────────────────────────────────────
                 TextColumn::make('celular')
                     ->label('Contacto')
@@ -104,6 +110,9 @@ class ThirdsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
+                SelectFilter::make('business_origin_id')
+                    ->label('Origen')
+                    ->relationship('businessOrigin', 'nombre'),
                 TernaryFilter::make('is_active')->label('Activos'),
                 TernaryFilter::make('es_propietario')->label('Propietarios'),
                 TernaryFilter::make('es_arrendatario')->label('Arrendatarios'),

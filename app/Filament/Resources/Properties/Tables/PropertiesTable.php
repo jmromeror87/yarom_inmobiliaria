@@ -36,7 +36,12 @@ class PropertiesTable
     ->searchable()->sortable()
     ->weight('bold')->color('primary'),
 
-            
+
+                TextColumn::make('businessOrigin.nombre')
+                    ->label('Origen')
+                    ->badge()
+                    ->color(fn ($record) => $record->businessOrigin?->color ? \Filament\Support\Colors\Color::hex($record->businessOrigin->color) : 'gray')
+                    ->toggleable(),
 
                 TextColumn::make('propietario.nombre_completo')
                     ->label('Propietario')
@@ -128,6 +133,9 @@ class PropertiesTable
                 SelectFilter::make('property_type_id')
                     ->label('Tipo de inmueble')
                     ->relationship('tipo', 'nombre'),
+                SelectFilter::make('business_origin_id')
+                    ->label('Origen')
+                    ->relationship('businessOrigin', 'nombre'),
             ])
             ->recordActions([
                 EditAction::make()->label('Editar'),

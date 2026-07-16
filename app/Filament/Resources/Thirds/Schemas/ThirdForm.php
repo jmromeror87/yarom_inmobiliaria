@@ -61,6 +61,13 @@ class ThirdForm
                             ->label('Es proveedor')
                             ->helperText('Presta servicios a la inmobiliaria'),
 
+                        Select::make('business_origin_id')
+                            ->label('Origen del negocio')
+                            ->relationship('businessOrigin', 'nombre')
+                            ->default(fn () => \App\Models\BusinessOrigin::where('nombre', 'Serviarrendar')->value('id'))
+                            ->searchable()->preload()
+                            ->helperText('Identifica de qué negocio proviene este tercero (útil para terceros recién incorporados de otra inmobiliaria)'),
+
                         Select::make('tipo_persona')
                             ->label('Tipo de persona')
                             ->options(['natural' => 'Persona Natural', 'juridica' => 'Persona Jurídica'])

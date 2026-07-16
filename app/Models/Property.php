@@ -42,7 +42,7 @@ class Property extends Model
     }
     protected $table = 'properties';
     protected $fillable = [
-        'codigo','property_type_id','destinacion','propietario_id',
+        'codigo','property_type_id','destinacion','propietario_id','business_origin_id',
         'direccion','barrio','conjunto_edificio','apto_casa_oficina',
         'municipio_id','departamento_id','latitud','longitud',
         'estrato','area_construida_m2','area_privada_m2','area_total_m2',
@@ -150,6 +150,7 @@ class Property extends Model
 
     public function tipo(): BelongsTo       { return $this->belongsTo(PropertyType::class, 'property_type_id'); }
     public function propietario(): BelongsTo { return $this->belongsTo(Third::class, 'propietario_id'); }
+    public function businessOrigin(): BelongsTo { return $this->belongsTo(BusinessOrigin::class); }
     public function municipio(): BelongsTo  { return $this->belongsTo(Municipio::class); }
     public function departamento(): BelongsTo { return $this->belongsTo(Departamento::class); }
     public function images() { return $this->hasMany(PropertyImage::class)->orderBy('orden'); }
