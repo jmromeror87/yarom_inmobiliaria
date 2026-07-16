@@ -108,8 +108,9 @@ class AdministrationContract extends Model
             $c->autoriza_venta             = $c->autoriza_venta ?? false;
 
             if (empty($c->numero_contrato)) {
-                $year  = now()->year;
-                $ultimo = static::whereYear('created_at', $year)->max('numero_contrato'); $count = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
+                $year   = now()->year;
+                $ultimo = static::withTrashed()->whereYear('created_at', $year)->max('numero_contrato');
+                $count  = $ultimo ? ((int) substr($ultimo, -4)) + 1 : 1;
                 $c->numero_contrato = 'CAD-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
             }
         });
