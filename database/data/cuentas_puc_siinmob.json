@@ -1,0 +1,2396 @@
+[
+  {
+    "codigo": "1",
+    "nombre": "Activo",
+    "nivel": 1,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2",
+    "nombre": "Pasivo",
+    "nivel": 1,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "3",
+    "nombre": "Patrimonio",
+    "nivel": 1,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "4",
+    "nombre": "INGRESOS",
+    "nivel": 1,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5",
+    "nombre": "GASTOS",
+    "nivel": 1,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "11",
+    "nombre": "Disponible",
+    "nivel": 2,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "12",
+    "nombre": "Inversiones",
+    "nivel": 2,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "13",
+    "nombre": "Deudores",
+    "nivel": 2,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "15",
+    "nombre": "Propiedades, planta y equipo",
+    "nivel": 2,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "17",
+    "nombre": "Difereridos",
+    "nivel": 2,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "21",
+    "nombre": "Obligaciones financieras",
+    "nivel": 2,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "23",
+    "nombre": "Cuentas por pagar",
+    "nivel": 2,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "24",
+    "nombre": "Impuestos, gravámenes y tasas",
+    "nivel": 2,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "25",
+    "nombre": "Obligaciones laborales",
+    "nivel": 2,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "26",
+    "nombre": "Pasivos estimados y provisiones",
+    "nivel": 2,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "28",
+    "nombre": "Otros pasivos",
+    "nivel": 2,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "31",
+    "nombre": "Capital social",
+    "nivel": 2,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "36",
+    "nombre": "Resultados del ejercicio",
+    "nivel": 2,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "41",
+    "nombre": "OPERACIONALES",
+    "nivel": 2,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42",
+    "nombre": "NO OPERACIONALES",
+    "nivel": 2,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51",
+    "nombre": "OPERACIONALES DE ADMINISTRACIÓN",
+    "nivel": 2,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "52",
+    "nombre": "OPERACIONALES DE VENTAS",
+    "nivel": 2,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53",
+    "nombre": "NO OPERACIONALES",
+    "nivel": 2,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "54",
+    "nombre": "IMPUESTO DE RENTA Y COMPLEMENTARIOS",
+    "nivel": 2,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1105",
+    "nombre": "Caja",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1110",
+    "nombre": "Bancos",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1295",
+    "nombre": "Otras inversiones",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1305",
+    "nombre": "Clientes",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "1328",
+    "nombre": "Aportes por cobrar",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "1330",
+    "nombre": "Anticipos y avances",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "1345",
+    "nombre": "Ingresos por cobrar",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "1355",
+    "nombre": "Anticipo de impuestos y contribuciones o saldos a favor",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "1508",
+    "nombre": "Construcciones en curso",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1520",
+    "nombre": "Maquinaria y equipo",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1524",
+    "nombre": "Equipo de oficina",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1528",
+    "nombre": "Equipo de computación y comunicación",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1540",
+    "nombre": "Flota y equipo de transporte",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "1710",
+    "nombre": "Cargos diferidos",
+    "nivel": 3,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2105",
+    "nombre": "Bancos nacionales",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2335",
+    "nombre": "Costos y gastos por pagar",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "2355",
+    "nombre": "Deudas con accionistas o socios",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "2370",
+    "nombre": "Retenciones y aportes de nómina",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "2375",
+    "nombre": "Cuotas por devolver",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "2380",
+    "nombre": "Acreedores varios",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "2408",
+    "nombre": "Impuesto sobre las ventas por pagar",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2505",
+    "nombre": "Salarios por pagar",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2610",
+    "nombre": "Para obligaciones laborales",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2815",
+    "nombre": "Ingresos recibidos para terceros",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "2830",
+    "nombre": "Embargos judiciales",
+    "nivel": 3,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "3115",
+    "nombre": "Aportes sociales",
+    "nivel": 3,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "3605",
+    "nombre": "Utilidad del ejercicio",
+    "nivel": 3,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "4155",
+    "nombre": "ACTIVIDADES INMOBILIARIAS, EMPRESARIALES Y DE ALQUILER",
+    "nivel": 3,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "4210",
+    "nombre": "FINANCIEROS",
+    "nivel": 3,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "4250",
+    "nombre": "RECUPERACIONES",
+    "nivel": 3,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "4295",
+    "nombre": "DIVERSOS",
+    "nivel": 3,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5105",
+    "nombre": "GASTOS DE PERSONAL",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5110",
+    "nombre": "HONORARIOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5115",
+    "nombre": "IMPUESTOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5120",
+    "nombre": "ARRENDAMIENTOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5130",
+    "nombre": "SEGUROS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5135",
+    "nombre": "SERVICIOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5145",
+    "nombre": "MANTENIMIENTO Y REPARACIONES",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5195",
+    "nombre": "DIVERSOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5235",
+    "nombre": "SERVICIOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5305",
+    "nombre": "FINANCIEROS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5395",
+    "nombre": "GASTOS DIVERSOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "5405",
+    "nombre": "IMPUESTO DE RENTA Y COMPLEMENTARIOS",
+    "nivel": 3,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "110505",
+    "nombre": "Caja general",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "111005",
+    "nombre": "Moneda nacional",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "129505",
+    "nombre": "Aportes en cooperativas",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "130505",
+    "nombre": "Nacionales",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "132801",
+    "nombre": "A particulares",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "133015",
+    "nombre": "A trabajadores",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "134595",
+    "nombre": "Otros",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "135515",
+    "nombre": "Retencion en la fuente",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "150805",
+    "nombre": "Construcciones y edificaciones",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "152001",
+    "nombre": "Maquinaria y equipo",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "152405",
+    "nombre": "Muebles y enseres",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "152410",
+    "nombre": "Equipos",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "152805",
+    "nombre": "Equipos de procesamiento de datos",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "154030",
+    "nombre": "Motocicletas",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "171016",
+    "nombre": "Programas para computador (software)",
+    "nivel": 4,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "210510",
+    "nombre": "Pagares",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "233515",
+    "nombre": "Libros, suscripciones, periódicos y revistas",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233525",
+    "nombre": "Honorarios",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233530",
+    "nombre": "Servicios técnicos",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233535",
+    "nombre": "Servicios de mantenimiento",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233540",
+    "nombre": "Arrendamientos",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233545",
+    "nombre": "Transportes, fletes y acarreos",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233555",
+    "nombre": "Seguros",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "233575",
+    "nombre": "Servicios generales",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "235510",
+    "nombre": "Socios",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "237005",
+    "nombre": "Aportes a entidades promotoras de salud, eps",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "237006",
+    "nombre": "Aportes a fondos de pensiones afp",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "237501",
+    "nombre": "Depositos servicios publicos",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "238020",
+    "nombre": "Reintegros por pagar",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "238095",
+    "nombre": "Otros",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "240801",
+    "nombre": "Iva generado",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "250501",
+    "nombre": "Salarios por pagar inmobiliaria",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "261005",
+    "nombre": "Cesantías",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "261010",
+    "nombre": "Intereses sobre cesantías",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "261015",
+    "nombre": "Vacaciones",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "261020",
+    "nombre": "Prima de servicios",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "281505",
+    "nombre": "Valores recibidos para terceros",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "283010",
+    "nombre": "Depósitos judiciales",
+    "nivel": 4,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "311505",
+    "nombre": "Cuotas o partes de interés social",
+    "nivel": 4,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "360505",
+    "nombre": "Resultados del ejercico",
+    "nivel": 4,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "415510",
+    "nombre": "INMOBILIARIAS POR RETRIBUCIÓN O CONTRATA",
+    "nivel": 4,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "421005",
+    "nombre": "INTERESES",
+    "nivel": 4,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "425005",
+    "nombre": "DEUDAS MALAS",
+    "nivel": 4,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "429501",
+    "nombre": "CONEXION INTERNET",
+    "nivel": 4,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "429595",
+    "nombre": "OTROS",
+    "nivel": 4,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510506",
+    "nombre": "SUELDOS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510527",
+    "nombre": "AUXILIO DE TRANSPORTE",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510530",
+    "nombre": "CESANTÍAS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510533",
+    "nombre": "INTERESES SOBRE CESANTÍAS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510536",
+    "nombre": "PRIMA DE SERVICIOS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510539",
+    "nombre": "VACACIONES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510551",
+    "nombre": "DOTACIÓN Y SUMINISTRO A TRABAJADORES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510568",
+    "nombre": "APORTES A ADMINISTRADORAS DE RIESGOS PROFESIONALES, ARP",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510569",
+    "nombre": "APORTES A ENTIDADES PROMOTORAS DE SALUD, EPS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510570",
+    "nombre": "APORTES A FONDOS DE PENSIONES Y/O CESANTÍAS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "510572",
+    "nombre": "APORTES CAJAS DE COMPENSACIÓN FAMILIAR",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "511040",
+    "nombre": "ASESORIA CONTABLE",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "511505",
+    "nombre": "INDUSTRIA Y COMERCIO",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "512010",
+    "nombre": "CONSTRUCCIONES Y EDIFICACIONES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513010",
+    "nombre": "CUMPLIMIENTO",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513040",
+    "nombre": "FLOTA Y EQUIPO DE TRANSPORTE",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513095",
+    "nombre": "OTROS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513505",
+    "nombre": "ASEO Y VIGILANCIA",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513520",
+    "nombre": "PROCESAMIENTO ELECTRÓNICO DE DATOS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513525",
+    "nombre": "ACUEDUCTO Y ALCANTARILLADO",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513530",
+    "nombre": "ENERGIA ELECTRICA",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "513535",
+    "nombre": "TELEFONO",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "514525",
+    "nombre": "EQUIPO DE COMPUTACIÓN Y COMUNICACIÓN",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "519520",
+    "nombre": "GASTOS DE REPRESENTACIÓN Y RELACIONES PÚBLICAS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "519525",
+    "nombre": "ASEO Y VIGILANCIA",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "519530",
+    "nombre": "ÚTILES, PAPELERÍA Y FOTOCOPIAS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "519535",
+    "nombre": "COMBUSTIBLES Y LUBRICANTES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "519595",
+    "nombre": "OTROS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "523510",
+    "nombre": "TEMPORALES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "523560",
+    "nombre": "PUBLICIDAD, PROPAGANDA Y PROMOCIÓN",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "530505",
+    "nombre": "GASTOS BANCARIOS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "530515",
+    "nombre": "COMISIONES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "530520",
+    "nombre": "INTERESES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "539525",
+    "nombre": "DONACIONES",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "540505",
+    "nombre": "IMPUESTO DE RENTA Y COMPLEMENTARIOS",
+    "nivel": 4,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": false,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "11050501",
+    "nombre": "Caja General",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "11100502",
+    "nombre": "Bancolombia",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "11100503",
+    "nombre": "Banco agrario",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "11100507",
+    "nombre": "Crediservir - serviarrendar sas 2010122236",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "11100508",
+    "nombre": "Sudcuenta crediservir 3010001558",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "12950502",
+    "nombre": "Aportes crediservir",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "13050501",
+    "nombre": "Cxc inquilinos",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13050502",
+    "nombre": "Cxc a propietarios",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13050506",
+    "nombre": "Acuerdos de pago dra lizeth",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13050507",
+    "nombre": "Acuerdo de pago marina sanchez",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13280102",
+    "nombre": "Aportes por cobrar credicoop",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13301503",
+    "nombre": "Victoria eugenia yaruro",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13301504",
+    "nombre": "Elizabeth de la rosa",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13301511",
+    "nombre": "Yurley salazar martinez",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13301514",
+    "nombre": "Yaneth del carmen perez arevalo",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13459501",
+    "nombre": "Ingresos por cobrar acuerdo wilson serna",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13551501",
+    "nombre": "Retefuente x arrendamientos",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "13551502",
+    "nombre": "Autorretenciones cree",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "15080501",
+    "nombre": "Remodelaciones en propiedad ajena",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "15200101",
+    "nombre": "Equipo de oficina",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "15240501",
+    "nombre": "Muebles y enseres",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "15241001",
+    "nombre": "Celular",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "15280501",
+    "nombre": "Camaras de vigilancia",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "15280502",
+    "nombre": "Equipo de computo",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "15403001",
+    "nombre": "Motocicletas",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "17101605",
+    "nombre": "Programas para computador (software)",
+    "nivel": 5,
+    "clase": "1",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "21051009",
+    "nombre": "Obligacion no 22005019credicoop",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "21051010",
+    "nombre": "Cupo rotativo crediservir",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "21051013",
+    "nombre": "Cxp crediservir ly",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "23351502",
+    "nombre": "Publicidad rcn",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23352505",
+    "nombre": "Honorarios abogado proceso wilson serna",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23352506",
+    "nombre": "Asesorias externas",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23353001",
+    "nombre": "Dailyscript",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23353503",
+    "nombre": "Celaduria",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23354001",
+    "nombre": "Cxp a propietarios",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23354005",
+    "nombre": "Construcciones y edificaciones",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23354502",
+    "nombre": "Parqueadero",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23355501",
+    "nombre": "Sura",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23355502",
+    "nombre": "Estudios de arrendamiento servi",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23357501",
+    "nombre": "Aseo deisy sanchez",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23551003",
+    "nombre": "Asesorias contables dr victor",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23551009",
+    "nombre": "Prestamo dr victor",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23700501",
+    "nombre": "Salud",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23700601",
+    "nombre": "Pensiones",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23750101",
+    "nombre": "Depositos por servicios publicos",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23802001",
+    "nombre": "Consignación sin identificar",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "23809506",
+    "nombre": "Certificados libertad y tradiciion",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": true
+  },
+  {
+    "codigo": "24080101",
+    "nombre": "Iva de comisiones",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "25050105",
+    "nombre": "Sueldos",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "25050108",
+    "nombre": "Auxilio de transporte",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "26100501",
+    "nombre": "Provision cesantias",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "26101001",
+    "nombre": "Provision interes sobre cesantias",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "26101501",
+    "nombre": "Provision vacaciones",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "26102001",
+    "nombre": "Provision prima de servicios",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "28150503",
+    "nombre": "Cuentas por pagar a terceros",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "28301001",
+    "nombre": "Acuerdo de pago wilson serna",
+    "nivel": 5,
+    "clase": "2",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "31150507",
+    "nombre": "Yaneth del carmen perez arevalo",
+    "nivel": 5,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "36050501",
+    "nombre": "Utilidad del ejercicio",
+    "nivel": 5,
+    "clase": "3",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "41551001",
+    "nombre": "Comisiones",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "41551002",
+    "nombre": "Estudios solicitud de arrendamiento",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42100501",
+    "nombre": "Trans x incump",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42100503",
+    "nombre": "Intereses bancarios",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42500501",
+    "nombre": "Acuerdo de pago wilson serna",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42950101",
+    "nombre": "Otros ingresos",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42950102",
+    "nombre": "Otros ingresos por seguros sura",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42959501",
+    "nombre": "Ingresos varios",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "42959502",
+    "nombre": "Otros ingresos por seguros sura",
+    "nivel": 5,
+    "clase": "4",
+    "naturaleza": "credito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51050601",
+    "nombre": "Sueldos",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51050602",
+    "nombre": "Servicios temporales",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51052701",
+    "nombre": "Auxilio de transporte",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51053002",
+    "nombre": "Cesantias- provision",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51053302",
+    "nombre": "Intereses sobre cesantias- provision",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51053602",
+    "nombre": "Prima de servicios- provision",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51053902",
+    "nombre": "Vacaciones- provision",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51055101",
+    "nombre": "Dotación a trabajadores",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51056801",
+    "nombre": "Aportes a arp",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51056901",
+    "nombre": "Salud",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51057005",
+    "nombre": "Pensiones",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51057201",
+    "nombre": "Aportes caja de compensacion",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51104002",
+    "nombre": "Asesorias externa",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51150501",
+    "nombre": "Camara de comercio",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51150504",
+    "nombre": "Industria y comercio",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51201001",
+    "nombre": "Construcciones y edificaciones",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51301002",
+    "nombre": "Poliza bancaria",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51304001",
+    "nombre": "Soat moto",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51304002",
+    "nombre": "Mantenimiento moto",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51309501",
+    "nombre": "Seguro de vida",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51350501",
+    "nombre": "Elementos de aseo y suministros",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51350502",
+    "nombre": "Celaduria",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51352001",
+    "nombre": "Dailyscript",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51352005",
+    "nombre": "Documento soporte electronico",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51352501",
+    "nombre": "Acueducto y alcantarillado",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51353001",
+    "nombre": "Energia electrica",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51353501",
+    "nombre": "Telefono fijo e internet",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51353502",
+    "nombre": "Telefono celular",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51452502",
+    "nombre": "Mantenimiento impresora",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51452503",
+    "nombre": "Mantenimiento oficina",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51952001",
+    "nombre": "Gastos de representación y relaciones públicas",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51952502",
+    "nombre": "Cafeteria",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51952503",
+    "nombre": "Botellon de agua",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51953002",
+    "nombre": "Utiles de papeleria",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51953501",
+    "nombre": "Combustible y lubricantes",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51953502",
+    "nombre": "Parqueadero",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51959502",
+    "nombre": "Otros gastos diversos",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51959504",
+    "nombre": "Celebracion de fechas especiales",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "51959512",
+    "nombre": "Gastos por remodelacion oficina",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "52351001",
+    "nombre": "Auxilio practicantes",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "52356001",
+    "nombre": "Publicidad rcn",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53050501",
+    "nombre": "Gravamen movimiento financiero",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53050502",
+    "nombre": "Manejo de tarjeta",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53050508",
+    "nombre": "Cuota plan canal negocios",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53051501",
+    "nombre": "Comisiones bancarias",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53051502",
+    "nombre": "Iva",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53052004",
+    "nombre": "Interes bancarios credicoop",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53052006",
+    "nombre": "Intereses corriente",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53052008",
+    "nombre": "Intereses crediservir",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53052009",
+    "nombre": "Intereses moratorios dian",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "53952501",
+    "nombre": "Donaciones",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  },
+  {
+    "codigo": "54050501",
+    "nombre": "Impuesto de renta y complementarios",
+    "nivel": 5,
+    "clase": "5",
+    "naturaleza": "debito",
+    "acepta_movimiento": true,
+    "requiere_tercero": false
+  }
+]
