@@ -115,10 +115,9 @@
                 @endif
             </td>
             <td class="head-center" style="width:38%;">
-                <div class="head-company">{{ $company?->razon_social ?? 'INMOBILIARIA SERVIARRENDAR SAS' }}</div>
-                @if($company?->nombre_comercial)<div class="head-tagline">{{ $company->nombre_comercial }}</div>@endif
             </td>
             <td class="head-right" style="width:36%;">
+                @if($company?->nombre_comercial)<b>{{ $company->nombre_comercial }}</b><br>@endif
                 NIT: {{ $company?->nit_completo ?? $company?->nit }}<br>
                 Régimen: {{ $regimenTxt }}<br>
                 @if($company?->resolucion_facturacion)
