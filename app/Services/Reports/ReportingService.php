@@ -166,6 +166,28 @@ class ReportingService
         $patrimonio = static::saldosPorCuenta('3', Carbon::create(2000), $hasta, true)
             ->filter(fn($r) => $r['saldo'] != 0);
 
+        // Utilidad del ejercicio acumulada (ingresos - costos - gastos, clases 4/5/6
+        // desde el inicio hasta la fecha del corte). Sin esto, Activos = Pasivos +
+        // Patrimonio nunca cuadra: la comisión que ya está en la cartera/cxp
+        // (activos/pasivos) tiene su contrapartida en cuentas de resultado que jamás
+        // se cierran contra el patrimonio.
+        $ingresosAcum = static::saldosPorCuenta('4', Carbon::create(2000), $hasta, true)->sum('saldo');
+        $costosAcum   = static::saldosPorCuenta('6', Carbon::create(2000), $hasta, true)->sum('saldo');
+        $gastosAcum   = static::saldosPorCuenta('5', Carbon::create(2000), $hasta, true)->sum('saldo');
+        $utilidadEjercicio = round($ingresosAcum - $costosAcum - $gastosAcum, 2);
+
+        if ($utilidadEjercicio != 0) {
+            $patrimonio->push([
+                'codigo'     => '3705',
+                'nombre'     => 'Utilidad del ejercicio',
+                'naturaleza' => 'credito',
+                'clase'      => '3',
+                'debito'     => 0,
+                'credito'    => $utilidadEjercicio,
+                'saldo'      => $utilidadEjercicio,
+            ]);
+        }
+
         $totalActivos   = $activos->sum('saldo');
         $totalPasivos   = $pasivos->sum('saldo');
         $totalPatrimonio= $patrimonio->sum('saldo');
