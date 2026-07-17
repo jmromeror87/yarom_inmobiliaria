@@ -54,6 +54,13 @@ class GenerarFacturasMensuales implements ShouldQueue
         $generadas = 0;
 
         foreach ($contratos as $contrato) {
+            // Sin acta de entrega cerrada no hay desde cuándo cobrar —
+            // no se factura hasta que el inquilino reciba el inmueble.
+            if (! $contrato->fecha_entrega_efectiva) {
+                Log::info("Contrato {$contrato->numero_contrato} sin entrega registrada — no se factura todavía.");
+                continue;
+            }
+
             $existe = RentBill::where('rental_contract_id', $contrato->id)
                 ->where('mes', $mes)->where('anio', $anio)->exists();
             if ($existe) continue;
@@ -66,6 +73,15 @@ class GenerarFacturasMensuales implements ShouldQueue
             $diaPago     = $contrato->dia_pago ?: $diaCorteGlobal;
             $diaPago     = min($diaPago, $periodoBase->copy()->endOfMonth()->day); // por si el mes es más corto
             $fechaLimite = $periodoBase->copy()->startOfMonth()->addDays($diaPago - 1)->toDateString();
+
+            // Primera factura del contrato: si la entrega real ocurrió
+            // después del día de pago normal de este período, el cobro
+            // arranca desde la fecha de entrega (no se le cobra tiempo
+            // que todavía no tenía el inmueble).
+            $esPrimeraFactura = ! RentBill::where('rental_contract_id', $contrato->id)->exists();
+            if ($esPrimeraFactura && $contrato->fecha_entrega_efectiva->toDateString() > $fechaLimite) {
+                $fechaLimite = $contrato->fecha_entrega_efectiva->toDateString();
+            }
 
             // ── Seguro SURA: valores precalculados y guardados en el inmueble ──
             $tieneSeguroSura = (bool)($contrato->property?->tiene_seguro_sura);

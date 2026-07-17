@@ -85,7 +85,10 @@ class PropertyHandover extends Model
                 $h->acta_token_generado_at = null;
 
                 if ($h->tipo === 'entrega') {
-                    RentalContract::find($h->rental_contract_id)?->update(['estado' => 'activo']);
+                    RentalContract::find($h->rental_contract_id)?->update([
+                        'estado' => 'activo',
+                        'fecha_entrega_efectiva' => $h->fecha_firma ?? $h->fecha_acta ?? now()->toDateString(),
+                    ]);
                 }
             }
         });
