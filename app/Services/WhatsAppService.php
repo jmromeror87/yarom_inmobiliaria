@@ -61,14 +61,20 @@ class WhatsAppService
     public function enviarConArchivo(string $telefono, string $mensaje, string $rutaArchivo, string $nombreArchivo = ''): array
     {
         try {
-            $res = Http::timeout(30)->post($this->baseUrl . '/send-doc', [
+            $res  = Http::timeout(30)->post($this->baseUrl . '/send-doc', [
                 'telefono'       => $telefono,
                 'mensaje'        => $mensaje,
                 'archivo_path'   => $rutaArchivo,
                 'nombre_archivo' => $nombreArchivo,
             ]);
-            return $res->json();
+            $json = $res->json();
+            Log::info('WhatsApp enviado con archivo', ['tel' => $telefono, 'archivo' => $nombreArchivo, 'ok' => $json['ok'] ?? null, 'status' => $res->status()]);
+            if (!($json['ok'] ?? false)) {
+                Log::warning('WhatsApp send-doc respondió sin éxito', ['tel' => $telefono, 'status' => $res->status(), 'body' => $json]);
+            }
+            return $json;
         } catch (\Exception $e) {
+            Log::error('WhatsApp error enviando archivo', ['tel' => $telefono, 'error' => $e->getMessage()]);
             return ['ok' => false, 'error' => $e->getMessage()];
         }
     }

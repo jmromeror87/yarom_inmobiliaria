@@ -231,11 +231,17 @@ class EditRentBill extends EditRecord
                 file_put_contents($tmpPath, $pdf->output());
                 $res     = $wap->enviarConArchivo($celular, $msg, $tmpPath, 'Recibo-' . $payment->numero . '.pdf');
                 $enviado = $res['ok'] ?? false;
+                if (!$enviado) {
+                    \Illuminate\Support\Facades\Log::warning('WhatsApp recibo no enviado', ['payment' => $payment->numero, 'res' => $res]);
+                }
                 if (file_exists($tmpPath)) @unlink($tmpPath);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('WhatsApp recibo excepción', ['payment' => $payment->numero, 'error' => $e->getMessage()]);
                 $res     = $wap->enviar($celular, $msg);
                 $enviado = $res['ok'] ?? false;
             }
+        } else {
+            \Illuminate\Support\Facades\Log::warning('WhatsApp no conectado al intentar enviar recibo', ['payment' => $payment->numero]);
         }
 
         if ($enviado) {
