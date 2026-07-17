@@ -72,7 +72,7 @@ class Third extends Model
         'fuente_captacion','asesor_id','ultimo_contacto','notas_crm',
         'notas','is_active',
         'requiere_iva','requiere_retefuente','quiere_factura_electronica',
-        'tarifa_iva_pactada','tarifa_retefuente_pactada',
+        'tarifa_iva_pactada','tarifa_retefuente_pactada','dia_pago',
         'portal_token','portal_token_generado_at','portal_activo',
     ];
 

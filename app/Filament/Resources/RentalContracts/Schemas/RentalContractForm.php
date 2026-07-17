@@ -339,6 +339,14 @@ class RentalContractForm
                             ->label('Fecha de terminación')->required()
                             ->after('fecha_inicio')
                             ->helperText('Se calcula automáticamente — debe ser posterior al inicio.'),
+
+                        TextInput::make('dia_pago')
+                            ->label('Día de pago mensual')
+                            ->numeric()->minValue(1)->maxValue(31)
+                            ->default(fn (Get $get) => $get('arrendatario_id')
+                                ? \App\Models\Third::find($get('arrendatario_id'))?->dia_pago
+                                : null)
+                            ->helperText('Se trae del tercero por defecto — ajústalo aquí si este contrato en particular paga en otra fecha. La factura mensual y el cálculo de mora usan este día.'),
                     ])->columns(2),
 
                 // ── PASO 5: Deudores (auto desde solicitud) ──────

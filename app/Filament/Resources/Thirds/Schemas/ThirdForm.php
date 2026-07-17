@@ -51,6 +51,13 @@ class ThirdForm
                         Toggle::make('es_arrendatario')->live()
                             ->label('Es arrendatario')
                             ->helperText('Toma inmuebles en arriendo'),
+
+                        TextInput::make('dia_pago')
+                            ->label('Día de pago mensual')
+                            ->numeric()->minValue(1)->maxValue(31)
+                            ->placeholder('Ej: 5, 15, 28')
+                            ->visible(fn (Get $get) => $get('es_arrendatario'))
+                            ->helperText('Día del mes en que paga el canon. Se usa como valor por defecto al crear su contrato de arriendo — la mora se calcula desde esta fecha + días de gracia.'),
                         Toggle::make('es_cliente_compra')->live()
                             ->label('Es cliente comprador')
                             ->helperText('Interesado en compra de inmueble'),
