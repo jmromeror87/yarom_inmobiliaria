@@ -116,7 +116,7 @@ class GenerarFacturasMensuales implements ShouldQueue
                         : '';
 
                     $msg = "🏠 *Factura de Arrendamiento*\n\n"
-                        . "Estimad@ {$nombre},\n\n"
+                        . "Estimado(a) {$nombre},\n\n"
                         . "📋 *{$bill->numero}*\n"
                         . "📅 Período: " . $periodoBase->translatedFormat('F Y') . "\n"
                         . "🏠 Inmueble: {$inmueble}\n\n"

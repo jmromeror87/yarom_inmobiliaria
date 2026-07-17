@@ -87,7 +87,7 @@ class FacturasEnMoraWidget extends BaseWidget
                         $mora    = '$' . number_format($record->mora_acumulada, 0, ',', '.');
                         $total   = '$' . number_format($record->saldo_pendiente + $record->mora_acumulada, 0, ',', '.');
                         $msg = "⚠️ *Recordatorio de pago en mora*\n\n"
-                            . "Estimad@ {$record->arrendatario->nombre_completo},\n\n"
+                            . "Estimado(a) {$record->arrendatario->nombre_completo},\n\n"
                             . "Su factura *{$record->numero}* lleva *{$record->dias_mora} día(s)* de mora.\n\n"
                             . "💰 Saldo: {$saldo} COP\n"
                             . "📈 Mora: {$mora} COP\n"

@@ -150,7 +150,7 @@ class RequestsTable
                         $empresa  = \App\Models\Company::first()?->razon_social ?? 'Serviarrendar S.A.S';
 
                         $msg = "📋 *Solicitud de Estudio de Crédito*\n\n"
-                            . ($data['contacto_sura'] ? "Estimad@ {$data['contacto_sura']},\n\n" : '')
+                            . ($data['contacto_sura'] ? "Estimado(a) {$data['contacto_sura']},\n\n" : '')
                             . "Le enviamos la solicitud *{$record->numero}* para evaluación.\n\n"
                             . "🏠 Inmueble: {$inmueble}\n"
                             . "💰 Canon: {$canon} COP\n"

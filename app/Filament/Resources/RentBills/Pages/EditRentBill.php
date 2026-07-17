@@ -168,7 +168,7 @@ class EditRentBill extends EditRecord
                     $saldo = '$' . number_format($r->saldo_pendiente + $r->mora_acumulada, 0, ',', '.');
                     $mora  = $r->mora_acumulada > 0 ? "\n📈 Mora: $" . number_format($r->mora_acumulada, 0, ',', '.') : '';
                     $msg   = "Recordatorio de pago — Serviarrendar S.A.S\n\n" .
-                             "Estimad@ {$r->arrendatario->nombre_completo},\n\n" .
+                             "Estimado(a) {$r->arrendatario->nombre_completo},\n\n" .
                              "📋 Factura: {$r->numero}\n" .
                              "💵 Saldo pendiente: {$saldo}{$mora}\n" .
                              "📆 Venció: {$r->fecha_limite_pago->format('d/m/Y')}\n\n" .
@@ -207,7 +207,7 @@ class EditRentBill extends EditRecord
         $bill    = $payment->bill;
 
         $msg = "🧾 *Recibo de pago*\n\n"
-            . "Estimad@ {$payment->arrendatario?->nombre_completo},\n\n"
+            . "Estimado(a) {$payment->arrendatario?->nombre_completo},\n\n"
             . "Hemos registrado tu pago correspondiente a la factura {$bill?->numero}.\n\n"
             . "💵 Valor: \$" . number_format((float) $payment->total_pagado, 0, ',', '.') . " COP\n"
             . "📆 Fecha: {$payment->fecha_pago->format('d/m/Y')}\n"

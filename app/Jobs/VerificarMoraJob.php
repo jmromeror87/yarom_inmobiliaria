@@ -75,7 +75,7 @@ class VerificarMoraJob implements ShouldQueue
                     $totalFmt = '$' . number_format($bill->saldo_pendiente + $mora, 0, ',', '.');
 
                     $msg = "⚠️ *AVISO DE MORA*\n\n"
-                        . "Estimad@ {$nombre},\n\n"
+                        . "Estimado(a) {$nombre},\n\n"
                         . "Su factura *{$bill->numero}* lleva *{$diasMora} día(s) en mora*.\n\n"
                         . "💰 Saldo pendiente: {$saldoFmt} COP\n"
                         . "📈 Mora acumulada: {$moraFmt} COP\n"

@@ -176,7 +176,7 @@ class EditPropertyHandover extends EditRecord
                     \Filament\Forms\Components\Textarea::make('mensaje')
                         ->label('Mensaje')
                         ->default(
-                            "Estimad@ {$record->arrendatario?->nombre_completo},\n\n" .
+                            "Estimado(a) {$record->arrendatario?->nombre_completo},\n\n" .
                             "Le informamos que el acta de entrega del inmueble ha sido cerrada exitosamente:\n\n" .
                             "📋 N° Acta: {$record->numero}\n" .
                             "🏠 Inmueble: {$record->property?->codigo} — {$record->property?->direccion}\n" .
@@ -262,7 +262,7 @@ class EditPropertyHandover extends EditRecord
                     Textarea::make('mensaje')
                         ->label('Mensaje')
                         ->default(
-                            "Estimad@ {$record->arrendatario?->nombre_completo},\n\n" .
+                            "Estimado(a) {$record->arrendatario?->nombre_completo},\n\n" .
                             "Le informamos que el acta de entrega del inmueble ha sido cerrada exitosamente:\n\n" .
                             "📋 N° Acta: {$record->numero}\n" .
                             "🏠 Inmueble: {$record->property?->codigo} — {$record->property?->direccion}\n" .
