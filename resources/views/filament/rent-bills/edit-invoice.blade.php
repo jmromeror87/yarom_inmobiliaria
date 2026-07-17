@@ -66,7 +66,10 @@
   $r        = $this->record->load(['rentalContract','arrendatario','property.tipo','property.municipio','payments.registradoPor']);
   $company  = \App\Models\Company::with(['municipio'])->first();
   $mesAnio  = \Carbon\Carbon::create($r->anio, $r->mes, 1)->translatedFormat('F Y');
-  $rtefonte = round($r->canon_base * 0.035, 2);
+  // La retefuente solo la practica un arrendatario persona jurídica — igual que
+  // ContabilidadService::generarParaFactura y la plantilla del PDF.
+  $aplicaRete = $r->arrendatario?->tipo_persona === 'juridica';
+  $rtefonte = $aplicaRete ? round($r->canon_base * 0.035, 2) : 0;
   $netoPagar = $r->total_factura + $r->mora_acumulada - $rtefonte;
   $logoBase64 = null;
   if ($company?->logo_path) {
@@ -218,10 +221,12 @@
     <div class="fac-totales">
       <div class="fac-tot-row"><label>Subtotal</label><span>${{ number_format($r->total_factura, 0, ',', '.') }}</span></div>
       <div class="fac-tot-row"><label>IVA (0% — Arrendamiento vivienda)</label><span>$0</span></div>
+      @if($aplicaRete)
       <div class="fac-tot-row" style="color:var(--color-text-warning);">
         <label style="color:var(--color-text-warning);">ReteFuente arrendamiento 3.5% (Cód. 06)</label>
         <span style="color:var(--color-text-warning);">-${{ number_format($rtefonte, 0, ',', '.') }}</span>
       </div>
+      @endif
       @if($r->mora_acumulada > 0)
       <div class="fac-tot-row" style="color:var(--color-text-danger);">
         <label style="color:var(--color-text-danger);">Intereses de mora ({{ $r->dias_mora }} días · {{ $r->tasa_mora_diaria }}% diario)</label>
