@@ -131,7 +131,8 @@ class ContabilidadService
         // 136515 = Anticipo impuestos (activo deudor) — retención practicada A FAVOR
         // 236515 era incorrecto: es "retenciones por pagar" (pasivo, lo que nosotros practicamos a otros)
         $cuentaRete          = static::cuentaId('136515');
-        $cuentaAutoRete      = static::cuentaId('13551502');  // Anticipo autorretención
+        $cuentaAutoRete      = static::cuentaId('13551502');  // Anticipo autorretención (activo)
+        $cuentaAutoRetePorPagar = static::cuentaId('236525'); // Autorretención a título de renta por pagar (pasivo)
 
         if (!$cuentaArrendatarios || !$cuentaComision || !$cuentaIva || !$cuentaXPagarProp) return null;
 
@@ -151,10 +152,12 @@ class ContabilidadService
             $lineas[] = ['account_id' => $cuentaRete, 'debito' => $rete, 'credito' => 0, 'descripcion' => "Anticipo retefuente {$retePct}% s/canon", 'third_id' => $bill->arrendatario_id];
         }
 
-        // Autorretención que practica la inmobiliaria sobre su comisión
-        if ($cuentaAutoRete && $autoRete > 0) {
-            $lineas[] = ['account_id' => $cuentaAutoRete, 'debito' => $autoRete, 'credito' => 0,         'descripcion' => 'Autorretención renta 3.5% comisión', 'third_id' => null];
-            $lineas[] = ['account_id' => $cuentaComision, 'debito' => 0,         'credito' => $autoRete, 'descripcion' => 'Autorretención renta — ajuste ingreso','third_id' => null];
+        // Autorretención que practica la inmobiliaria sobre su comisión (Decreto 2418/2013).
+        // Es un anticipo de impuesto (activo) contra un pasivo por pagar a la DIAN — NO afecta
+        // el ingreso: la comisión ya quedó reconocida íntegra en la línea de arriba.
+        if ($cuentaAutoRete && $cuentaAutoRetePorPagar && $autoRete > 0) {
+            $lineas[] = ['account_id' => $cuentaAutoRete,          'debito' => $autoRete, 'credito' => 0,         'descripcion' => 'Autorretención renta 3.5% comisión', 'third_id' => null];
+            $lineas[] = ['account_id' => $cuentaAutoRetePorPagar,  'debito' => 0,         'credito' => $autoRete, 'descripcion' => 'Autorretención a título de renta por pagar', 'third_id' => null];
         }
 
         return static::crearComprobante([
