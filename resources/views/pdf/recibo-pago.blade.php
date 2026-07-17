@@ -27,13 +27,14 @@
     table.concepto th { border: 0.75pt solid #000; padding: 2.5pt 5pt; text-align: left; font-size: 6.6pt; font-weight: bold; }
     table.concepto th.val, table.concepto td.val { text-align: right; }
     table.concepto td { border: 0.75pt solid #000; padding: 2.5pt 5pt; font-size: 7pt; }
-    table.concepto td.desc-sub { padding-left: 14pt; font-size: 6pt; color: #333; }
+    table.concepto td.desc-sub { padding-left: 14pt; font-size: 5.6pt; color: #333; }
     table.concepto tr.neto td { font-weight: bold; }
+    table.concepto td .cuenta-cod { font-weight: bold; }
 
-    .notas { border: 0.75pt solid #000; border-top: none; padding: 3pt 5pt; font-size: 6.4pt; min-height: 20pt; }
+    .notas { border: 0.75pt solid #000; border-top: none; padding: 2.5pt 5pt; font-size: 6pt; min-height: 16pt; }
 
     table.firmas { width: 100%; border-collapse: collapse; margin-top: -0.75pt; }
-    table.firmas td { border: 0.75pt solid #000; border-top: none; padding: 14pt 5pt 3pt 5pt; text-align: center; font-size: 6.2pt; width: 50%; }
+    table.firmas td { border: 0.75pt solid #000; border-top: none; padding: 12pt 5pt 3pt 5pt; text-align: center; font-size: 6pt; width: 50%; }
 </style>
 </head>
 <body>
@@ -109,6 +110,15 @@
         <tr><th>POR CONCEPTO DE</th><th class="val" style="width:26%;">VALOR</th></tr>
     </thead>
     <tbody>
+        @forelse($lineasContables ?? [] as $linea)
+        <tr>
+            <td>
+                <span class="cuenta-cod">{{ $linea->account?->codigo }}</span> {{ mb_strtoupper($linea->account?->nombre ?? '', 'UTF-8') }}
+                @if($linea->descripcion)<span class="desc-sub"><br>{{ mb_strtoupper($linea->descripcion, 'UTF-8') }}</span>@endif
+            </td>
+            <td class="val">{{ $money($linea->credito) }}</td>
+        </tr>
+        @empty
         @if($payment->valor_canon > 0)
         <tr>
             <td>
@@ -127,6 +137,7 @@
         @if($payment->otros_valores > 0)
         <tr><td>OTROS VALORES</td><td class="val">{{ $money($payment->otros_valores) }}</td></tr>
         @endif
+        @endforelse
         <tr class="neto"><td>NETO</td><td class="val">{{ $money($payment->total_pagado) }}</td></tr>
     </tbody>
 </table>
