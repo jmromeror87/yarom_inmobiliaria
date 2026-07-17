@@ -39,9 +39,9 @@ class GenerarFacturasMensuales implements ShouldQueue
 
         $periodoBase = \Carbon\Carbon::create($anio, $mes, 1);
 
-        // fecha límite = día de corte mensual (ej. día 5 del mes)
-        $diaCorte     = $company?->dia_corte_mensual ?? 5;
-        $fechaLimite  = $periodoBase->copy()->addDays($diaCorte - 1)->toDateString();
+        // Día de corte global de la empresa (respaldo cuando el contrato no
+        // tiene un día de pago propio pactado).
+        $diaCorteGlobal = $company?->dia_corte_mensual ?? 5;
         $periodoInicio = $periodoBase->copy()->startOfMonth()->toDateString();
         $periodoFin    = $periodoBase->copy()->endOfMonth()->toDateString();
 
@@ -60,6 +60,12 @@ class GenerarFacturasMensuales implements ShouldQueue
 
             $canonBase = (float)$contrato->canon_mensual;
             $admin     = (float)($contrato->cuota_administracion ?? 0);
+
+            // Fecha límite: día de pago propio del contrato si está pactado,
+            // si no, el día de corte global de la empresa.
+            $diaPago     = $contrato->dia_pago ?: $diaCorteGlobal;
+            $diaPago     = min($diaPago, $periodoBase->copy()->endOfMonth()->day); // por si el mes es más corto
+            $fechaLimite = $periodoBase->copy()->startOfMonth()->addDays($diaPago - 1)->toDateString();
 
             // ── Seguro SURA: valores precalculados y guardados en el inmueble ──
             $tieneSeguroSura = (bool)($contrato->property?->tiene_seguro_sura);

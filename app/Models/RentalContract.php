@@ -35,7 +35,7 @@ class RentalContract extends Model
         'numero_contrato','property_id','administration_contract_id','request_id',
         'contract_template_id','asesor_id','tipo','lugar_contrato','fecha_contrato',
         'destinacion','actividad_comercial','folio_inmobiliario','arrendatario_id',
-        'canon_mensual','deposito','cuota_administracion','fecha_inicio','fecha_fin',
+        'canon_mensual','deposito','cuota_administracion','fecha_inicio','fecha_fin','dia_pago',
         'duracion_meses','tipo_incremento','porcentaje_incremento','meses_preaviso',
         'servicios_cargo_arrendatario','tipo_garantia','estado','fecha_firma',
         'firmado_por','path_contrato_firmado','fecha_terminacion','causal_terminacion','notas',
