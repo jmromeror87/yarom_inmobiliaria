@@ -312,8 +312,24 @@
                 <div class="yr-card-body" style="padding:12px 16px;">
                     @forelse($contratosPorVencer as $c)
                     @php
-                        $dias = now()->diffInDays($c->fecha_fin, false);
-                        $color = $dias <= 15 ? '#dc2626' : ($dias <= 30 ? '#d97706' : '#2563EB');
+                        $segundos = now()->diffInSeconds($c->fecha_fin, false);
+                        $dias     = intdiv(abs($segundos), 86400);
+                        $horas    = intdiv(abs($segundos) % 86400, 3600);
+                        $vencido  = $segundos < 0;
+
+                        if ($vencido) {
+                            $color   = '#dc2626';
+                            $icono   = '⛔';
+                            $texto   = 'Vencido hace ' . $dias . ($dias == 1 ? ' día' : ' días');
+                        } elseif ($dias < 1) {
+                            $color   = '#dc2626';
+                            $icono   = '⏰';
+                            $texto   = $horas . ($horas == 1 ? ' hora' : ' horas');
+                        } else {
+                            $color   = $dias <= 15 ? '#dc2626' : ($dias <= 30 ? '#d97706' : '#2563EB');
+                            $icono   = '📅';
+                            $texto   = $dias . ($dias == 1 ? ' día' : ' días');
+                        }
                         $ini = strtoupper(substr($c->arrendatario?->nombre_completo ?? 'N', 0, 1));
                     @endphp
                     <div class="yr-vencer-item">
@@ -323,7 +339,7 @@
                             <div style="font-size:0.68rem;color:#94a3b8;">{{ $c->property?->codigo ?? '—' }}</div>
                         </div>
                         <div style="text-align:right;flex-shrink:0;">
-                            <div style="font-size:0.72rem;font-weight:800;color:{{ $color }};">{{ $dias }}d</div>
+                            <div style="font-size:0.72rem;font-weight:800;color:{{ $color }};white-space:nowrap;">{{ $icono }} {{ $texto }}</div>
                             <div style="font-size:0.65rem;color:#94a3b8;">{{ $c->fecha_fin?->format('d/m/y') }}</div>
                         </div>
                     </div>
