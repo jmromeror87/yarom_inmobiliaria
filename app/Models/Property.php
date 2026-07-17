@@ -54,6 +54,7 @@ class Property extends Model
         'precio_venta',
         'avaluo_catastral','avaluo_comercial','anio_avaluo',
         'disponible_arriendo','disponible_venta','estado',
+        'requiere_iva_override','requiere_retefuente_override',
         'doc_escritura','doc_certificado_libertad','doc_certificado_libertad_fecha',
         'ctl_tiene_limitacion','ctl_tipo_limitacion','ctl_observacion_limitacion',
         'doc_predial','doc_paz_salvo_admin','doc_documento_propietario',
@@ -75,6 +76,8 @@ class Property extends Model
         'amoblado'             => 'boolean',
         'disponible_arriendo'      => 'boolean',
         'disponible_venta'         => 'boolean',
+        'requiere_iva_override'         => 'boolean',
+        'requiere_retefuente_override'  => 'boolean',
         'tiene_seguro_sura'        => 'boolean',
         'canon_cobrado_inquilino'  => 'decimal:2',
         'valor_seguro_sura'        => 'decimal:2',
@@ -150,6 +153,25 @@ class Property extends Model
 
     public function tipo(): BelongsTo       { return $this->belongsTo(PropertyType::class, 'property_type_id'); }
     public function propietario(): BelongsTo { return $this->belongsTo(Third::class, 'propietario_id'); }
+
+    /**
+     * ¿Se debe cargar/retener IVA sobre la comisión en la liquidación de este inmueble?
+     * Prioridad: excepción propia del inmueble > comportamiento fiscal declarado del
+     * propietario > false por defecto (un propietario puede tener 5 inmuebles y solo
+     * declarar IVA en 3 — el override existe justo para esos casos puntuales).
+     */
+    public function requiereIva(): bool
+    {
+        if (!is_null($this->requiere_iva_override)) return $this->requiere_iva_override;
+        return (bool) ($this->propietario?->requiere_iva ?? false);
+    }
+
+    /** ¿Se debe practicar retención en la fuente sobre lo que se le gira al propietario de este inmueble? */
+    public function requiereRetefuente(): bool
+    {
+        if (!is_null($this->requiere_retefuente_override)) return $this->requiere_retefuente_override;
+        return (bool) ($this->propietario?->requiere_retefuente ?? false);
+    }
     public function businessOrigin(): BelongsTo { return $this->belongsTo(BusinessOrigin::class); }
     public function municipio(): BelongsTo  { return $this->belongsTo(Municipio::class); }
     public function departamento(): BelongsTo { return $this->belongsTo(Departamento::class); }

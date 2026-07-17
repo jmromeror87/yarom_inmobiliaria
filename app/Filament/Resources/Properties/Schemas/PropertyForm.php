@@ -204,6 +204,29 @@ class PropertyForm
                             ->label('Fecha de captación')->default(now()),
                     ])->columns(2),
 
+                // ── PASO 1B: Comportamiento fiscal DIAN (excepción por inmueble) ──
+                Step::make('Fiscal DIAN')
+                    ->description('Solo si este inmueble se comporta distinto al resto de los del propietario')
+                    ->icon('heroicon-o-receipt-percent')
+                    ->schema([
+                        Placeholder::make('fiscal_info')
+                            ->hiddenLabel()
+                            ->columnSpanFull()
+                            ->content('Por defecto, cada inmueble hereda el comportamiento fiscal declarado en la ficha del propietario (IVA / retención en la fuente). Usa estos campos SOLO cuando este inmueble en particular deba tratarse distinto — por ejemplo, un propietario que declara IVA en unos inmuebles pero no en otros.'),
+
+                        Select::make('requiere_iva_override')
+                            ->label('¿Aplica IVA en la liquidación de este inmueble?')
+                            ->options(['1' => 'Sí, aplica para este inmueble', '0' => 'No aplica para este inmueble'])
+                            ->placeholder('Heredar del propietario (por defecto)')
+                            ->native(false),
+
+                        Select::make('requiere_retefuente_override')
+                            ->label('¿Aplica retención en la fuente en este inmueble?')
+                            ->options(['1' => 'Sí, aplica para este inmueble', '0' => 'No aplica para este inmueble'])
+                            ->placeholder('Heredar del propietario (por defecto)')
+                            ->native(false),
+                    ])->columns(2),
+
                 // ── PASO 2: Ubicación ────────────────────────────
                 Step::make('Ubicación')
                     ->description('Dirección y localización del inmueble')

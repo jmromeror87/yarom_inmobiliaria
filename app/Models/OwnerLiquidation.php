@@ -98,11 +98,17 @@ class OwnerLiquidation extends Model
         $comisionPct = $contrato->administrationContract?->comision_porcentaje
             ?? $company?->comision_administracion ?? 10;
 
-        $ivaPct  = (float)($company?->tarifa_iva ?? 19);
-        $retePct = (float)($company?->tarifa_retefuente_arrendamiento ?? 3.5);
+        $propietario = $contrato->property->propietario;
 
-        // Retefuente aplica solo si el arrendatario es agente retenedor (persona jurídica)
-        $aplicaRete = $contrato->arrendatario?->tipo_persona === 'juridica';
+        // Comportamiento fiscal DIAN del propietario para ESTE inmueble en particular
+        // (un propietario puede declarar IVA/retefuente en unos inmuebles y en otros no —
+        // Property::requiereIva()/requiereRetefuente() resuelven la excepción por inmueble
+        // antes de caer al comportamiento general del tercero).
+        $aplicaIva  = $contrato->property->requiereIva();
+        $aplicaRete = $contrato->property->requiereRetefuente();
+
+        $ivaPct  = (float)($propietario?->tarifa_iva_pactada ?: $company?->tarifa_iva ?? 19);
+        $retePct = (float)($propietario?->tarifa_retefuente_pactada ?: $company?->tarifa_retefuente_arrendamiento ?? 3.5);
 
         // Canon base del propietario: lo que pagó el inquilino menos el seguro SURA
         // Si el contrato tiene canon_cobrado_inquilino (SURA), la base del propietario =
@@ -118,7 +124,7 @@ class OwnerLiquidation extends Model
         }
 
         $comisionValor = round($canon * ($comisionPct / 100), 2);
-        $ivaComision   = round($comisionValor * ($ivaPct  / 100), 2);
+        $ivaComision   = $aplicaIva ? round($comisionValor * ($ivaPct / 100), 2) : 0;
         $retefuente    = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
 
         // Seguro SURA: se cobró al inquilino pero la inmobiliaria lo paga a ASURA — no va al propietario
