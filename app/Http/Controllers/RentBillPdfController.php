@@ -9,8 +9,8 @@ class RentBillPdfController extends Controller
 {
     public function download(RentBill $bill)
     {
-        $bill->load(['rentalContract','arrendatario','property.tipo','property.municipio','payments']);
-        $company    = Company::with(['municipio'])->first();
+        $bill->load(['rentalContract','arrendatario','property.tipo','property.municipio','payments.bank']);
+        $company    = Company::with(['municipio.departamento'])->first();
         $logoBase64 = null;
         if ($company?->logo_path) {
             $path = storage_path('app/public/' . $company->logo_path);

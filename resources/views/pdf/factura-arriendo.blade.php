@@ -2,234 +2,296 @@
 <html lang="es">
 <head><meta charset="UTF-8">
 <style>
-    @page { margin:1.5cm 2cm 1.8cm; }
-    body { font-family:'DejaVu Sans',sans-serif; font-size:9.5pt; color:#000; line-height:1.5; }
-    .footer-fijo { position:fixed; bottom:-1.3cm; left:0; right:0; text-align:center; font-size:7pt; color:#555; border-top:0.5pt solid #ccc; padding-top:3pt; }
+    @page { margin:1cm 1.4cm 1.6cm; }
+    * { box-sizing:border-box; }
+    body { font-family:'DejaVu Sans',sans-serif; font-size:7.6pt; color:#111827; line-height:1.4; }
+    .footer-fijo { position:fixed; bottom:-1.3cm; left:0; right:0; text-align:center; font-size:6.2pt; color:#94a3b8; border-top:0.5pt solid #e2e8f0; padding-top:4pt; }
 
-    /* Encabezado oscuro */
-    .head { background:#0A192F; padding:14pt 16pt; margin-bottom:0; }
-    .head-grid { width:100%; }
-    .head-logo { color:#fff; font-size:14pt; font-weight:bold; }
-    .head-logo span { color:#E24B4A; }
-    .head-sub { color:#94a3b8; font-size:7.5pt; margin-top:2pt; }
-    .head-num-label { color:#64748b; font-size:7.5pt; text-align:right; }
-    .head-num-val { color:#fff; font-size:16pt; font-weight:bold; text-align:right; }
-    .head-num-tipo { color:#94a3b8; font-size:7.5pt; text-align:right; }
+    /* ── Encabezado ── */
+    .head table { width:100%; border-collapse:collapse; }
+    .head td { vertical-align:top; padding:0; }
+    .head-logo img { max-height:40pt; max-width:130pt; }
+    .head-logo-fallback { color:#0A192F; font-size:14pt; font-weight:bold; }
+    .head-logo-fallback span { color:#E24B4A; }
+    .head-center { text-align:center; padding-top:4pt; }
+    .head-company { font-size:9.5pt; font-weight:bold; color:#0A192F; }
+    .head-tagline { font-size:6.4pt; color:#64748b; font-style:italic; margin-top:1pt; }
+    .head-right { text-align:right; font-size:6.2pt; color:#374151; line-height:1.35; }
+    .head-right b { color:#0A192F; }
 
-    /* Barra DIAN */
-    .dian-bar { background:#0d2340; padding:5pt 16pt; border-bottom:0.5pt solid #1e3a5f; }
-    .dian-bar table { margin:0; }
-    .dian-bar td { border:none; padding:0 4pt; font-size:7.5pt; }
-    .dian-label { color:#64748b; }
-    .dian-res { color:#378ADD; font-weight:bold; }
+    hr.sep { border:none; border-top:1pt solid #0A192F; margin:8pt 0 0 0; }
 
-    /* Body */
-    .body { padding:12pt 16pt; }
+    /* ── Barra de identificación del documento ── */
+    .id-bar { width:100%; border-collapse:collapse; margin-top:6pt; table-layout:fixed; }
+    .id-bar td { vertical-align:middle; }
+    .id-bar .dep-fecha { background:#0A192F; color:#fff; border-radius:4pt 0 0 4pt; padding:6pt 10pt; }
+    .id-bar .dep-fecha .k { font-size:5.8pt; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; }
+    .id-bar .dep-fecha .v { font-size:7.4pt; font-weight:bold; margin-top:1pt; }
+    .id-bar .titulo { text-align:center; padding:6pt 10pt; }
+    .id-bar .titulo .t1 { font-size:9.5pt; font-weight:bold; color:#E24B4A; letter-spacing:.02em; }
+    .id-bar .numero { border:1.25pt solid #0A192F; border-radius:4pt; text-align:center; padding:6pt 12pt; }
+    .id-bar .numero .k { font-size:5.8pt; text-transform:uppercase; letter-spacing:.05em; color:#64748b; }
+    .id-bar .numero .v { font-size:11pt; font-weight:bold; color:#0A192F; }
 
-    /* Grilla cliente */
-    .info-grid { width:100%; margin-bottom:10pt; border-collapse:collapse; }
-    .info-grid td { vertical-align:top; width:50%; padding:0 4pt 0 0; }
-    .info-block { border:0.5pt solid #e2e8f0; border-radius:3pt; padding:8pt; }
-    .block-title { font-size:7.5pt; font-weight:bold; text-transform:uppercase; color:#94a3b8; letter-spacing:0.05em; margin-bottom:5pt; padding-bottom:4pt; border-bottom:0.5pt solid #e2e8f0; }
-    .info-row { display:flex; width:100%; font-size:8.5pt; margin-bottom:2pt; }
-    .info-lbl { color:#64748b; width:40%; }
-    .info-val { font-weight:bold; color:#000; width:60%; text-align:right; }
+    /* ── Bloque de datos del adquirente / documento ── */
+    .datos-box { border:0.75pt solid #0A192F; border-radius:4pt; margin-top:6pt; padding:6pt 12pt; }
+    .datos-box table { width:100%; border-collapse:collapse; }
+    .datos-box td { vertical-align:top; padding:0.8pt 6pt 0.8pt 0; font-size:7.1pt; }
+    .datos-box .k { color:#64748b; display:inline-block; min-width:80pt; }
+    .datos-box .v { font-weight:bold; color:#0f172a; }
 
-    /* Tabla ítems */
-    .items-table { width:100%; border-collapse:collapse; margin-bottom:10pt; }
-    .items-table th { background:#f1f5f9; padding:5pt 6pt; text-align:left; font-size:8pt; font-weight:bold; color:#475569; border:0.5pt solid #cbd5e1; text-transform:uppercase; letter-spacing:0.04em; }
+    /* ── Tabla ítems ── */
+    .items-table { width:100%; border-collapse:collapse; margin-top:7pt; }
+    .items-table th { background:#0A192F; color:#fff; padding:4pt 5pt; text-align:left; font-size:6.2pt; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; border:0.5pt solid #0A192F; }
     .items-table th.right,.items-table td.right { text-align:right; }
-    .items-table td { padding:7pt 6pt; border:0.5pt solid #e2e8f0; font-size:8.5pt; vertical-align:top; }
+    .items-table th.center,.items-table td.center { text-align:center; }
+    .items-table td { padding:3.5pt 5pt; border:0.5pt solid #e2e8f0; font-size:7.1pt; vertical-align:top; }
     .items-table .desc-main { font-weight:bold; }
-    .items-table .desc-sub { color:#64748b; font-size:7.5pt; margin-top:2pt; }
-    .unspsc { color:#94a3b8; font-size:7pt; }
+    .items-table .desc-sub { color:#64748b; font-size:6.4pt; margin-top:1.5pt; }
 
-    /* Totales */
-    .totales { width:100%; margin-bottom:10pt; border-collapse:collapse; border:0.5pt solid #e2e8f0; border-radius:3pt; }
-    .totales td { padding:5pt 10pt; font-size:8.5pt; border-bottom:0.5pt solid #f1f5f9; }
+    /* ── Notas / SON + Totales ── */
+    .foot-grid { width:100%; border-collapse:collapse; margin-top:6pt; }
+    .foot-grid td { vertical-align:top; padding:0; }
+    .foot-left { width:62%; padding-right:10pt; font-size:7pt; }
+    .foot-left .lbl { font-size:6.2pt; font-weight:bold; text-transform:uppercase; color:#64748b; letter-spacing:.05em; }
+    .totales { width:100%; border-collapse:collapse; border:0.75pt solid #0A192F; border-radius:3pt; }
+    .totales td { padding:3pt 9pt; font-size:7.1pt; border-bottom:0.5pt solid #e2e8f0; }
     .totales .lbl { color:#64748b; }
     .totales .val { text-align:right; font-weight:bold; }
     .totales .mora { color:#dc2626; }
-    .totales .rte { color:#d97706; }
+    .totales .rte { color:#b45309; }
     .totales .desc { color:#15803d; }
-    .total-final { background:#0A192F; }
-    .total-final td { border:none; padding:10pt; }
-    .total-final .lbl { color:#94a3b8; font-size:10pt; font-weight:bold; }
-    .total-final .val { color:#fff; font-size:14pt; font-weight:bold; text-align:right; }
+    .total-final td { background:#0A192F; border-bottom:none; }
+    .total-final .lbl { color:#94a3b8; font-size:8.3pt; font-weight:bold; }
+    .total-final .val { color:#fff; font-size:11pt; font-weight:bold; }
 
-    /* Pagos */
-    .pagos-table { width:100%; border-collapse:collapse; margin-bottom:10pt; }
-    .pagos-table th { background:#f0fdf4; padding:4pt 6pt; font-size:7.5pt; font-weight:bold; color:#15803d; border:0.5pt solid #bbf7d0; }
-    .pagos-table td { padding:5pt 6pt; font-size:8pt; border:0.5pt solid #e2e8f0; }
+    /* ── Pagos ── */
+    .pagos-table { width:100%; border-collapse:collapse; margin-top:10pt; }
+    .pagos-table th { background:#f0fdf4; padding:3pt 6pt; font-size:6.4pt; font-weight:bold; color:#15803d; border:0.5pt solid #bbf7d0; }
+    .pagos-table td { padding:3.5pt 6pt; font-size:7pt; border:0.5pt solid #e2e8f0; }
 
-    /* Datos pago */
-    .datos-pago { background:#eff6ff; border:0.5pt solid #bfdbfe; border-radius:3pt; padding:8pt 10pt; margin-bottom:10pt; font-size:8.5pt; }
+    /* ── Datos de pago ── */
+    .datos-pago { background:#eff6ff; border:0.5pt solid #bfdbfe; border-radius:3pt; padding:4pt 10pt; margin-top:6pt; font-size:7.1pt; }
     .datos-pago strong { color:#1e40af; }
 
-    /* CUFE */
-    .cufe-box { background:#f8fafc; border:0.5pt solid #e2e8f0; border-radius:3pt; padding:6pt 10pt; margin-bottom:10pt; }
-    .cufe-label { font-size:7pt; font-weight:bold; text-transform:uppercase; color:#94a3b8; margin-bottom:3pt; }
-    .cufe-val { font-size:7pt; color:#64748b; word-break:break-all; }
+    /* ── CUFE ── */
+    .cufe-box { border-top:0.5pt solid #e2e8f0; margin-top:6pt; padding-top:4pt; }
+    .cufe-label { font-size:6pt; font-weight:bold; text-transform:uppercase; color:#94a3b8; }
+    .cufe-val { font-size:6.2pt; color:#64748b; word-break:break-all; font-family:'DejaVu Sans Mono',monospace; margin-top:1pt; }
 
-    /* Pie */
-    .pie-legal { background:#f8fafc; border:0.5pt solid #e2e8f0; border-radius:3pt; padding:8pt 10pt; font-size:7pt; color:#64748b; line-height:1.5; }
-    .pie-grid { width:100%; }
-    .pie-txt { width:75%; vertical-align:top; }
-    .pie-plat { width:25%; text-align:right; vertical-align:top; color:#94a3b8; }
+    /* ── Pie legal ── */
+    .pie-legal { margin-top:5pt; font-size:6pt; color:#64748b; line-height:1.35; }
+    .pie-legal b { color:#374151; }
 </style>
 </head>
 <body>
 
 <div class="footer-fijo">
-    {{ $company?->razon_social }} · NIT {{ $company?->nit_completo }} | {{ $company?->direccion }}, {{ $company?->municipio?->nombre }} N/S | {{ $company?->email }} · {{ $company?->celular }}
+    {{ $company?->razon_social }} · NIT {{ $company?->nit_completo }} · Software: YarOM ERP
 </div>
 
 @php
-    $arr      = $bill->arrendatario;
-    $mesAnio  = \Carbon\Carbon::create($bill->anio, $bill->mes, 1)->translatedFormat('F Y');
-    $rtefonte = round($bill->canon_base * 0.035, 2);
-    $neto     = $bill->total_factura + $bill->mora_acumulada - $rtefonte;
+    $arr        = $bill->arrendatario;
+    $mesAnio    = \Carbon\Carbon::create($bill->anio, $bill->mes, 1)->translatedFormat('F Y');
+    $rtefonte   = round($bill->canon_base * 0.035, 2);
+    $neto       = $bill->total_factura + $bill->mora_acumulada - $rtefonte;
+    $emision    = $bill->created_at ?? now();
+    $tituloDoc  = $bill->tipo_documento === 'factura_electronica' ? 'FACTURA ELECTRÓNICA DE VENTA' : 'DOCUMENTO EQUIVALENTE DE ARRENDAMIENTO';
+    $departamento = $company?->municipio?->departamento?->nombre ?? 'Norte de Santander';
+    $regimenTxt = $company?->responsable_iva ? 'Responsable del impuesto sobre las ventas IVA' : 'No responsable de IVA';
+
+    $totalLineas = 1 + ($bill->cuota_administracion > 0 ? 1 : 0) + ($bill->otros_cobros > 0 ? 1 : 0);
 @endphp
 
-{{-- ENCABEZADO OSCURO --}}
+{{-- ENCABEZADO --}}
 <div class="head">
-    <table class="head-grid" cellpadding="0" cellspacing="0">
+    <table>
         <tr>
-            <td style="width:55%;vertical-align:top;">
+            <td class="head-logo" style="width:26%;">
                 @if($logoBase64)
-                <img src="{{ $logoBase64 }}" style="max-height:32pt;max-width:120pt;display:block;margin-bottom:6pt;">
+                    <img src="{{ $logoBase64 }}">
                 @else
-                <div class="head-logo">YAROM<span>INMOBILIARIA</span></div>
+                    <div class="head-logo-fallback">YAROM<span>INMOBILIARIA</span></div>
                 @endif
-                <div class="head-sub">{{ $company?->razon_social ?? 'Inmobiliaria Serviarrendar S.A.S' }}</div>
-                <div class="head-sub">NIT {{ $company?->nit_completo ?? '807.005.762-8' }} · {{ $company?->direccion }}, {{ $company?->municipio?->nombre ?? 'Ocaña' }} N/S</div>
-                <div class="head-sub">{{ $company?->email }} · {{ $company?->celular }}</div>
             </td>
-            <td style="width:45%;vertical-align:top;">
-                <div class="head-num-label">{{ $bill->tipo_documento === 'factura_electronica' ? 'Factura de venta electrónica' : 'Documento equivalente de arrendamiento' }}</div>
-                <div class="head-num-val">{{ $bill->numero_dian ?? $bill->numero }}</div>
-                <div class="head-num-tipo">{{ ucfirst($mesAnio) }}</div>
-                <div style="text-align:right;margin-top:4pt;">
-                    <span style="background:#1e3a5f;color:#94a3b8;padding:2pt 8pt;border-radius:20pt;font-size:7.5pt;font-weight:bold;">
-                        {{ strtoupper($bill->estado) }}
-                    </span>
-                </div>
+            <td class="head-center" style="width:38%;">
+                <div class="head-company">{{ $company?->razon_social ?? 'INMOBILIARIA SERVIARRENDAR SAS' }}</div>
+                @if($company?->nombre_comercial)<div class="head-tagline">{{ $company->nombre_comercial }}</div>@endif
+            </td>
+            <td class="head-right" style="width:36%;">
+                NIT: {{ $company?->nit_completo ?? $company?->nit }}<br>
+                Régimen: {{ $regimenTxt }}<br>
+                @if($company?->resolucion_facturacion)
+                Resolución DIAN N° {{ $company->resolucion_facturacion }}<br>
+                Fecha {{ $company?->fecha_resolucion?->format('d/m/Y') }} - {{ $company?->fecha_vencimiento_resolucion?->format('d/m/Y') }}<br>
+                Autorización del {{ $company?->prefijo_factura ?? 'FEFE' }}{{ str_pad($company?->consecutivo_desde ?? 1001, 4, '0', STR_PAD_LEFT) }} al {{ $company?->prefijo_factura ?? 'FEFE' }}{{ str_pad($company?->consecutivo_hasta ?? 2000, 4, '0', STR_PAD_LEFT) }}<br>
+                @endif
+                Email: {{ $company?->email }}<br>
+                Teléfono: {{ $company?->celular }}
             </td>
         </tr>
     </table>
 </div>
+<hr class="sep">
 
-{{-- BARRA DIAN --}}
-<div class="dian-bar">
-    <table cellpadding="0" cellspacing="0" style="width:100%;">
-        <tr>
-            <td class="dian-label">Autorización DIAN:</td>
-            <td class="dian-res">Res. {{ $company?->resolucion_facturacion ?? '18760000001' }} · Rango {{ $company?->prefijo_factura ?? 'FEFE' }}{{ str_pad($company?->consecutivo_desde ?? 1001, 4, '0', STR_PAD_LEFT) }}–{{ $company?->prefijo_factura ?? 'FEFE' }}{{ str_pad($company?->consecutivo_hasta ?? 2000, 4, '0', STR_PAD_LEFT) }}</td>
-            <td class="dian-label" style="text-align:right;">Emisión: {{ $bill->created_at?->format('d/m/Y H:i') }}</td>
-        </tr>
-    </table>
-</div>
-
-<div class="body">
-
-{{-- GRILLA ARRENDATARIO / CONDICIONES --}}
-<table class="info-grid" cellpadding="4" cellspacing="0">
+{{-- BARRA DE IDENTIFICACIÓN --}}
+<table class="id-bar">
     <tr>
-        <td style="padding-right:6pt;">
-            <div class="info-block">
-                <div class="block-title">Adquirente / Arrendatario</div>
-                <table style="width:100%;border:none;margin:0;" cellpadding="1">
-                    <tr><td class="info-lbl" style="border:none;">Nombre</td><td class="info-val" style="border:none;">{{ mb_strtoupper($arr?->nombre_completo ?? '', 'UTF-8') }}</td></tr>
-                    <tr><td class="info-lbl" style="border:none;">{{ $arr?->tipo_documento ?? 'CC' }}</td><td class="info-val" style="border:none;">{{ number_format((float)($arr?->numero_documento ?? 0), 0, ',', '.') }}</td></tr>
-                    @if($arr?->celular)<tr><td class="info-lbl" style="border:none;">Celular</td><td class="info-val" style="border:none;">{{ $arr->celular }}</td></tr>@endif
-                    @if($arr?->email)<tr><td class="info-lbl" style="border:none;">Correo</td><td class="info-val" style="border:none;">{{ $arr->email }}</td></tr>@endif
-                </table>
-            </div>
+        <td class="dep-fecha" style="width:34%;">
+            <table style="width:100%;">
+                <tr>
+                    <td style="width:58%;">
+                        <div class="k">Departamento</div>
+                        <div class="v" style="white-space:nowrap;">{{ $departamento }}</div>
+                    </td>
+                    <td style="width:42%;">
+                        <div class="k">Fecha</div>
+                        <div class="v" style="white-space:nowrap;">{{ $emision->format('d/m/Y') }}</div>
+                    </td>
+                </tr>
+            </table>
         </td>
-        <td>
-            <div class="info-block">
-                <div class="block-title">Condiciones de pago</div>
-                <table style="width:100%;border:none;margin:0;" cellpadding="1">
-                    <tr><td class="info-lbl" style="border:none;">Contrato</td><td class="info-val" style="border:none;">{{ $bill->rentalContract?->numero_contrato }}</td></tr>
-                    <tr><td class="info-lbl" style="border:none;">Período</td><td class="info-val" style="border:none;">{{ ucfirst($mesAnio) }}</td></tr>
-                    <tr><td class="info-lbl" style="border:none;">Fecha límite</td><td class="info-val" style="border:none;">{{ $bill->fecha_limite_pago?->format('d/m/Y') }}</td></tr>
-                    <tr><td class="info-lbl" style="border:none;">Días gracia</td><td class="info-val" style="border:none;">{{ $bill->dias_gracia }} días</td></tr>
-                    <tr><td class="info-lbl" style="border:none;">Forma pago</td><td class="info-val" style="border:none;">Transferencia / Consignación</td></tr>
-                </table>
+        <td class="titulo" style="width:38%;">
+            <div class="t1">{{ $tituloDoc }}</div>
+        </td>
+        <td style="width:28%;">
+            <div class="numero">
+                <div class="k">N°</div>
+                <div class="v" style="white-space:nowrap;">{{ $bill->numero_dian ?? $bill->numero }}</div>
             </div>
         </td>
     </tr>
 </table>
 
+{{-- DATOS DEL ADQUIRENTE / DOCUMENTO --}}
+<div class="datos-box">
+    <table>
+        <tr>
+            <td style="width:40%;">
+                <span class="k">Nombre/Razón Social:</span><br>
+                <span class="v">{{ mb_strtoupper($arr?->nombre_completo ?? '', 'UTF-8') }}</span>
+            </td>
+            <td style="width:30%;">
+                <span class="k">NIT/CC:</span> <span class="v">{{ $arr?->numero_documento }}</span>
+            </td>
+            <td style="width:30%;">
+                <span class="k">Fecha de firmado:</span><br>
+                <span class="v">{{ $emision->format('d/m/Y H:i:s') }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <span class="k">Dirección:</span> <span class="v">{{ $bill->property?->direccion }}</span>
+            </td>
+            <td>
+                <span class="k">Departamento:</span><br>
+                <span class="v">{{ $departamento }}</span>
+            </td>
+            <td>
+                <span class="k">Medio de pago:</span><br>
+                <span class="v">Transferencia / Consignación</span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                @if($arr?->email)<span class="k">Email:</span> <span class="v">{{ $arr->email }}</span>@endif
+            </td>
+            <td>
+                <span class="k">Forma de Pago:</span> <span class="v">Contado</span><br>
+                <span class="k">Hora emisión:</span> <span class="v">{{ $emision->format('H:i:s') }}</span><br>
+                <span class="k">Total de Líneas:</span> <span class="v">{{ $totalLineas }}</span>
+            </td>
+            <td>
+                <span class="k">Moneda:</span><br>
+                <span class="v">COP, Peso colombiano</span>
+            </td>
+        </tr>
+    </table>
+</div>
+
 {{-- TABLA ÍTEMS --}}
 <table class="items-table">
     <thead>
         <tr>
-            <th style="width:8%;">Cód.</th>
-            <th style="width:54%;">Descripción del servicio</th>
-            <th style="width:7%;" class="right">Cant.</th>
-            <th style="width:15%;" class="right">Vr. unitario</th>
-            <th style="width:16%;" class="right">Total</th>
+            <th style="width:6%;">#</th>
+            <th style="width:9%;">Código</th>
+            <th style="width:6%;" class="center">Cant.</th>
+            <th style="width:41%;">Descripción</th>
+            <th style="width:6%;" class="center">U.M</th>
+            <th style="width:14%;" class="right">Vr. Unit.</th>
+            <th style="width:18%;" class="right">Total</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td><div style="font-weight:bold;">001</div><div class="unspsc">UNSPSC<br>70330000-3</div></td>
+            <td class="center">1</td>
+            <td>CDA</td>
+            <td class="center">1,00</td>
             <td>
-                <div class="desc-main">Canon de arrendamiento — {{ ucfirst($mesAnio) }}</div>
-                <div class="desc-sub">{{ $bill->property?->tipo?->nombre }} · {{ $bill->property?->codigo }} — {{ $bill->property?->direccion }}</div>
+                <div class="desc-main">CANON DE ARRENDAMIENTO</div>
+                <div class="desc-sub">Canon de arrendamiento correspondiente {{ ucfirst($mesAnio) }} — {{ $bill->property?->codigo }} — {{ $bill->property?->direccion }}</div>
                 <div class="desc-sub">Contrato: {{ $bill->rentalContract?->numero_contrato }}</div>
             </td>
-            <td class="right">1</td>
-            <td class="right">${{ number_format($bill->canon_base, 0, ',', '.') }}</td>
-            <td class="right">${{ number_format($bill->canon_base, 0, ',', '.') }}</td>
+            <td class="center">94</td>
+            <td class="right">${{ number_format($bill->canon_base, 2, ',', '.') }}</td>
+            <td class="right">${{ number_format($bill->canon_base, 2, ',', '.') }}</td>
         </tr>
         @if($bill->cuota_administracion > 0)
         <tr>
-            <td><div style="font-weight:bold;">002</div><div class="unspsc">UNSPSC<br>72100000</div></td>
-            <td><div class="desc-main">Cuota de administración — {{ ucfirst($mesAnio) }}</div><div class="desc-sub">{{ $bill->property?->conjunto_edificio ?? 'Conjunto residencial' }}</div></td>
-            <td class="right">1</td>
-            <td class="right">${{ number_format($bill->cuota_administracion, 0, ',', '.') }}</td>
-            <td class="right">${{ number_format($bill->cuota_administracion, 0, ',', '.') }}</td>
+            <td class="center">2</td>
+            <td>ADM</td>
+            <td class="center">1,00</td>
+            <td>
+                <div class="desc-main">CUOTA DE ADMINISTRACIÓN</div>
+                <div class="desc-sub">Cuota de administración — {{ ucfirst($mesAnio) }}</div>
+            </td>
+            <td class="center">94</td>
+            <td class="right">${{ number_format($bill->cuota_administracion, 2, ',', '.') }}</td>
+            <td class="right">${{ number_format($bill->cuota_administracion, 2, ',', '.') }}</td>
         </tr>
         @endif
         @if($bill->otros_cobros > 0)
         <tr>
-            <td><div style="font-weight:bold;">003</div></td>
-            <td><div class="desc-main">{{ $bill->descripcion_otros_cobros ?? 'Otros cobros' }}</div></td>
-            <td class="right">1</td>
-            <td class="right">${{ number_format($bill->otros_cobros, 0, ',', '.') }}</td>
-            <td class="right">${{ number_format($bill->otros_cobros, 0, ',', '.') }}</td>
+            <td class="center">{{ $totalLineas }}</td>
+            <td>OTR</td>
+            <td class="center">1,00</td>
+            <td><div class="desc-main">{{ mb_strtoupper($bill->descripcion_otros_cobros ?? 'OTROS COBROS', 'UTF-8') }}</div></td>
+            <td class="center">94</td>
+            <td class="right">${{ number_format($bill->otros_cobros, 2, ',', '.') }}</td>
+            <td class="right">${{ number_format($bill->otros_cobros, 2, ',', '.') }}</td>
         </tr>
         @endif
     </tbody>
 </table>
 
-{{-- TOTALES --}}
-<table class="totales" cellpadding="0" cellspacing="0">
-    <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($bill->total_factura, 0, ',', '.') }}</td></tr>
-    <tr><td class="lbl">IVA (0% — Arrendamiento vivienda)</td><td class="val">$0</td></tr>
-    <tr class="rte"><td class="lbl rte">ReteFuente arrendamiento 3.5% (Cód. 06)</td><td class="val rte">-${{ number_format($rtefonte, 0, ',', '.') }}</td></tr>
-    @if($bill->mora_acumulada > 0)
-    <tr class="mora"><td class="lbl mora">Intereses de mora ({{ $bill->dias_mora }} días · {{ $bill->tasa_mora_diaria }}% diario)</td><td class="val mora">+${{ number_format($bill->mora_acumulada, 0, ',', '.') }}</td></tr>
-    @endif
-    @if($bill->descuentos > 0)
-    <tr class="desc"><td class="lbl desc">Descuentos</td><td class="val desc">-${{ number_format($bill->descuentos, 0, ',', '.') }}</td></tr>
-    @endif
-    @if($bill->total_pagado > 0)
-    <tr><td class="lbl" style="color:#15803d;">Total pagado</td><td class="val" style="color:#15803d;">-${{ number_format($bill->total_pagado, 0, ',', '.') }}</td></tr>
-    @endif
-    <tr class="total-final"><td class="lbl">Neto a pagar</td><td class="val">${{ number_format($neto, 0, ',', '.') }} COP</td></tr>
+{{-- NOTAS/SON + TOTALES --}}
+<table class="foot-grid">
+    <tr>
+        <td class="foot-left">
+            <div class="lbl">Notas</div>
+            <div style="margin-bottom:6pt;">{{ $bill->notas ?: '—' }}</div>
+            <div class="lbl">Son</div>
+            <div>{{ \App\Helpers\NumeroALetras::convertir((float) $neto) }}</div>
+        </td>
+        <td>
+            <table class="totales">
+                <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($bill->total_factura, 2, ',', '.') }}</td></tr>
+                <tr><td class="lbl">IVA (0% — Arrendamiento vivienda)</td><td class="val">$0,00</td></tr>
+                <tr><td class="lbl rte">ReteFuente arrendamiento 3.5% (Cód. 06)</td><td class="val rte">-${{ number_format($rtefonte, 2, ',', '.') }}</td></tr>
+                @if($bill->mora_acumulada > 0)
+                <tr><td class="lbl mora">Intereses de mora ({{ $bill->dias_mora }} días)</td><td class="val mora">+${{ number_format($bill->mora_acumulada, 2, ',', '.') }}</td></tr>
+                @endif
+                @if($bill->descuentos > 0)
+                <tr><td class="lbl desc">Descuentos</td><td class="val desc">-${{ number_format($bill->descuentos, 2, ',', '.') }}</td></tr>
+                @endif
+                @if($bill->total_pagado > 0)
+                <tr><td class="lbl" style="color:#15803d;">Total pagado</td><td class="val" style="color:#15803d;">-${{ number_format($bill->total_pagado, 2, ',', '.') }}</td></tr>
+                @endif
+                <tr class="total-final"><td class="lbl">Total</td><td class="val">${{ number_format($neto, 2, ',', '.') }}</td></tr>
+            </table>
+        </td>
+    </tr>
 </table>
-
-{{-- DATOS PARA PAGO --}}
-<div class="datos-pago">
-    <strong>Datos para consignación o transferencia:</strong><br>
-    Banco: {{ $company?->banco ?? 'Bancolombia' }} &nbsp;·&nbsp;
-    Cta. ahorros: {{ $company?->numero_cuenta ?? 'N/A' }} &nbsp;·&nbsp;
-    Titular: {{ $company?->razon_social ?? 'Inmobiliaria Serviarrendar S.A.S' }}<br>
-    Referencia de pago: <strong>{{ $bill->numero }} — {{ mb_strtoupper($arr?->nombre_completo ?? '', 'UTF-8') }}</strong>
-</div>
 
 {{-- PAGOS REGISTRADOS --}}
 @if($bill->payments->isNotEmpty())
@@ -243,7 +305,7 @@
             <td>{{ $p->numero }}</td>
             <td>{{ $p->fecha_pago?->format('d/m/Y') }}</td>
             <td>{{ ucfirst(str_replace('_',' ',$p->forma_pago)) }}</td>
-            <td>{{ $p->banco_origen ?? '—' }}{{ $p->referencia_pago ? ' · ' . $p->referencia_pago : '' }}</td>
+            <td>{{ $p->bank?->nombre ?? $p->banco_origen ?? '—' }}{{ $p->referencia_pago ? ' · ' . $p->referencia_pago : '' }}</td>
             <td style="text-align:right;font-weight:bold;color:#15803d;">${{ number_format($p->total_pagado, 0, ',', '.') }}</td>
         </tr>
         @endforeach
@@ -251,33 +313,29 @@
 </table>
 @endif
 
+{{-- DATOS PARA PAGO --}}
+<div class="datos-pago">
+    <strong>Datos para consignación o transferencia:</strong><br>
+    Banco: {{ $company?->banco ?? 'Bancolombia' }} &nbsp;·&nbsp;
+    Cuenta: {{ $company?->numero_cuenta ?? 'N/A' }} &nbsp;·&nbsp;
+    Titular: {{ $company?->razon_social ?? 'Inmobiliaria Serviarrendar S.A.S' }}<br>
+    Referencia de pago: <strong>{{ $bill->numero }} — {{ mb_strtoupper($arr?->nombre_completo ?? '', 'UTF-8') }}</strong>
+</div>
+
 {{-- CUFE --}}
 @if($bill->cufe)
 <div class="cufe-box">
-    <div class="cufe-label">CUFE — Código único de factura electrónica</div>
+    <div class="cufe-label">CUFE</div>
     <div class="cufe-val">{{ $bill->cufe }}</div>
 </div>
 @endif
 
 {{-- PIE LEGAL --}}
 <div class="pie-legal">
-    <table class="pie-grid" cellpadding="0" cellspacing="0">
-        <tr>
-            <td class="pie-txt">
-                Factura electrónica de venta generada automáticamente de acuerdo al art. 774 del C.C.
-                Una vez aceptada, el adquirente declara haber recibido el servicio a satisfacción.
-                Representación gráfica de la Factura de Venta Electrónica.
-                Documento generado el {{ now()->format('d/m/Y H:i') }}.
-            </td>
-            <td class="pie-plat">
-                Plataforma: ServiCore ERP<br>
-                NIT {{ $company?->nit_completo ?? '807.005.762-8' }}<br>
-                Software: Yarom Inmobiliaria
-            </td>
-        </tr>
-    </table>
+    Esta {{ $bill->tipo_documento === 'factura_electronica' ? 'factura' : 'documento' }} es un título valor de acuerdo al art. 774 del C.C. y una vez aceptado(a) declara haber recibido los bienes y servicios a satisfacción.<br>
+    <b>Representación gráfica de la {{ $tituloDoc }}.</b><br>
+    Software: YarOM ERP · Desarrollado por Ing. Jhoan Romero Rivera.
 </div>
 
-</div>
 </body>
 </html>
