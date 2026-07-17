@@ -79,6 +79,17 @@ class RentBill extends Model
         });
 
         // Contabilización manejada exclusivamente por RentBillObserver — no duplicar aquí
+
+        // Blindaje: generar la liquidación al propietario en CUALQUIER
+        // punto donde la factura pase a estado "pagada" — no solo cuando
+        // se registra un pago (ver RentPayment::created). Comandos de
+        // corrección/reversión de mora u otros procesos que actualizan
+        // el estado directamente también deben disparar la liquidación.
+        static::updated(function (RentBill $b) {
+            if ($b->wasChanged('estado') && $b->estado === 'pagada') {
+                OwnerLiquidation::generarDesdeFact($b);
+            }
+        });
     }
 
     // ── Payment token ────────────────────────────────────
