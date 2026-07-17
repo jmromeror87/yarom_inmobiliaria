@@ -1,179 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8">
+<head>
+<meta charset="utf-8">
+<title>Egreso {{ $liquidation->numero }}</title>
 <style>
-    @page { margin:1.5cm 2cm 1.8cm; }
-    body { font-family:'DejaVu Sans',sans-serif; font-size:9.5pt; color:#000; line-height:1.5; }
-    .footer-fijo { position:fixed; bottom:-1.3cm; left:0; right:0; text-align:center; font-size:7pt; color:#555; border-top:0.5pt solid #ccc; padding-top:3pt; }
-    .head { background:#0A192F; padding:14pt 16pt; }
-    .head-logo { color:#fff; font-size:14pt; font-weight:bold; }
-    .head-logo span { color:#E24B4A; }
-    .head-sub { color:#94a3b8; font-size:7.5pt; margin-top:2pt; }
-    .head-num-label { color:#64748b; font-size:7.5pt; text-align:right; }
-    .head-num-val { color:#fff; font-size:16pt; font-weight:bold; text-align:right; }
-    .body { padding:12pt 16pt; }
-    .info-grid { width:100%; margin-bottom:10pt; border-collapse:collapse; }
-    .info-grid td { vertical-align:top; width:50%; padding:0 4pt 0 0; }
-    .info-block { border:0.5pt solid #e2e8f0; border-radius:3pt; padding:8pt; }
-    .block-title { font-size:7.5pt; font-weight:bold; text-transform:uppercase; color:#94a3b8; letter-spacing:0.05em; margin-bottom:5pt; padding-bottom:4pt; border-bottom:0.5pt solid #e2e8f0; }
-    .info-row { width:100%; font-size:8.5pt; margin-bottom:2pt; display:table; }
-    .info-lbl { color:#64748b; display:table-cell; width:45%; }
-    .info-val { font-weight:bold; color:#000; display:table-cell; width:55%; text-align:right; }
-    .items-table { width:100%; border-collapse:collapse; margin-bottom:10pt; }
-    .items-table th { background:#f1f5f9; padding:5pt 6pt; text-align:left; font-size:8pt; font-weight:bold; color:#475569; border:0.5pt solid #cbd5e1; text-transform:uppercase; }
-    .items-table td { padding:7pt 6pt; border:0.5pt solid #e2e8f0; font-size:8.5pt; }
-    .items-table .r { text-align:right; }
-    .totales { width:100%; margin-bottom:10pt; border-collapse:collapse; border:0.5pt solid #e2e8f0; }
-    .totales td { padding:5pt 10pt; font-size:8.5pt; border-bottom:0.5pt solid #f1f5f9; }
-    .totales .lbl { color:#64748b; }
-    .totales .val { text-align:right; font-weight:bold; }
-    .totales .desc { color:#dc2626; }
-    .total-final { background:#0A192F; }
-    .total-final td { border:none; padding:10pt; }
-    .total-final .lbl { color:#94a3b8; font-size:10pt; font-weight:bold; }
-    .total-final .val { color:#fff; font-size:14pt; font-weight:bold; text-align:right; }
-    .giro-box { background:#f0fdf4; border:0.5pt solid #bbf7d0; border-radius:3pt; padding:8pt 10pt; margin-bottom:10pt; font-size:8.5pt; }
-    .pie-legal { background:#f8fafc; border:0.5pt solid #e2e8f0; border-radius:3pt; padding:8pt 10pt; font-size:7pt; color:#64748b; line-height:1.5; }
+    @page { margin: 8pt 10pt; }
+    * { box-sizing: border-box; }
+    body { font-family: 'DejaVu Sans', sans-serif; font-size: 6pt; color: #000; margin: 0; }
+
+    .top table { width: 100%; border-collapse: collapse; }
+    .razon { font-size: 8pt; font-weight: bold; color: #000; }
+    .datos-empresa { font-size: 5.4pt; color: #000; line-height: 1.35; }
+    .doctitle { text-align: right; font-size: 7pt; font-weight: bold; color: #000; }
+    .docnum { text-align: right; font-size: 5.8pt; font-weight: bold; color: #000; }
+    .top-sep { border-bottom: 1pt solid #000; margin-top: 3pt; }
+
+    table.datos { width: 100%; border-collapse: collapse; margin-top: 4pt; border: 0.9pt solid #000; }
+    table.datos td { border: 0.9pt solid #000; padding: 1.5pt 4pt; font-size: 6.2pt; font-weight: bold; vertical-align: top; line-height: 1.15; color: #000; }
+    table.datos td.lbl { width: 24%; white-space: nowrap; font-weight: bold; }
+    table.datos td.val { font-weight: bold; width: 26%; }
+
+    .suma-row td { padding: 2pt 4pt; }
+    .suma-row .lbl { width: 24%; }
+    .suma-row .txt { font-weight: bold; }
+
+    table.concepto { width: 100%; border-collapse: collapse; margin-top: -0.9pt; border: 0.9pt solid #000; border-top: none; }
+    table.concepto th { border: 0.9pt solid #000; padding: 1.5pt 4pt; text-align: left; font-size: 6pt; font-weight: bold; color: #000; }
+    table.concepto th.val, table.concepto td.val { text-align: right; }
+    table.concepto td { border: 0.9pt solid #000; padding: 1.5pt 4pt; font-size: 6.2pt; font-weight: bold; line-height: 1.15; color: #000; }
+    table.concepto td.desc-sub { padding-left: 10pt; font-size: 5pt; font-weight: normal; color: #000; }
+    table.concepto tr.neto td { font-weight: bold; }
+    table.concepto tr.deduccion td { font-weight: normal; }
+
+    .notas { border: 0.9pt solid #000; border-top: none; padding: 1.5pt 4pt; font-size: 5.4pt; font-weight: bold; min-height: 10pt; line-height: 1.15; color: #000; }
+
+    table.firmas { width: 100%; border-collapse: collapse; margin-top: -0.9pt; }
+    table.firmas td { border: 0.9pt solid #000; border-top: none; padding: 6pt 4pt 2pt 4pt; text-align: center; font-size: 5.4pt; font-weight: bold; width: 50%; color: #000; }
+
+    .pie { margin-top: 5pt; text-align: center; }
+    .pie-linea { border-top: 0.75pt solid #000; margin-bottom: 3pt; }
+    .pie-texto { font-size: 4.6pt; color: #000; line-height: 1.4; }
 </style>
 </head>
 <body>
 
-<div class="footer-fijo">
-    YarOM ERP — Liquidación generada el {{ now()->format('d/m/Y H:i') }} — Documento confidencial
-</div>
+@php
+    $money = fn ($v) => number_format((float) $v, 0, ',', '.');
+    $periodoTexto = $liquidation->periodoLabel;
+@endphp
 
-{{-- Encabezado --}}
-<div class="head">
-    <table style="width:100%">
+<div class="top">
+    <table>
         <tr>
-            <td>
-                @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" style="height:36pt;margin-bottom:4pt;"><br>
-                @endif
-                <div class="head-logo">YAROM <span>INMO</span>BILIARIA</div>
-                <div class="head-sub">{{ $company?->razon_social ?? 'Serviarrendar S.A.S' }} · NIT: {{ $company?->nit ?? '' }}</div>
-                <div class="head-sub">{{ $company?->direccion ?? '' }} · {{ $company?->telefono ?? '' }}</div>
-            </td>
-            <td style="text-align:right;">
-                <div class="head-num-label">LIQUIDACIÓN PROPIETARIO</div>
-                <div class="head-num-val">{{ $liquidation->numero }}</div>
-                <div class="head-num-label">{{ $liquidation->periodoLabel }}</div>
-            </td>
-        </tr>
-    </table>
-</div>
-
-<div class="body">
-
-    {{-- Partes --}}
-    <table class="info-grid">
-        <tr>
-            <td>
-                <div class="info-block">
-                    <div class="block-title">Propietario</div>
-                    <div class="info-row">
-                        <span class="info-lbl">Nombre:</span>
-                        <span class="info-val">{{ $liquidation->propietario?->nombre_completo }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-lbl">Documento:</span>
-                        <span class="info-val">{{ $liquidation->propietario?->tipo_documento }} {{ $liquidation->propietario?->numero_documento }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-lbl">Celular:</span>
-                        <span class="info-val">{{ $liquidation->propietario?->celular }}</span>
-                    </div>
+            <td style="width:58%;">
+                <div class="razon">{{ mb_strtoupper($company?->razon_social ?? 'SERVIARRENDAR SAS', 'UTF-8') }}</div>
+                <div class="datos-empresa">
+                    NIT: {{ $company?->nit_completo ?? $company?->nit }}<br>
+                    Tel: {{ $company?->telefono ?? $company?->celular ?? '—' }} &nbsp;·&nbsp; {{ $company?->email ?? '—' }}<br>
+                    {{ mb_strtoupper($company?->direccion ?? '—', 'UTF-8') }}
                 </div>
             </td>
-            <td>
-                <div class="info-block">
-                    <div class="block-title">Inmueble</div>
-                    <div class="info-row">
-                        <span class="info-lbl">Código:</span>
-                        <span class="info-val">{{ $liquidation->property?->codigo }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-lbl">Dirección:</span>
-                        <span class="info-val">{{ $liquidation->property?->direccion }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-lbl">Arrendatario:</span>
-                        <span class="info-val">{{ $liquidation->rentalContract?->arrendatario?->nombre_completo }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-lbl">Contrato:</span>
-                        <span class="info-val">{{ $liquidation->rentalContract?->numero_contrato }}</span>
-                    </div>
-                </div>
+            <td style="width:42%;">
+                <div class="doctitle">EGRESO: {{ $liquidation->numero }}</div>
+                <div class="docnum">FECHA: {{ ($liquidation->fecha_giro ?? $liquidation->created_at)->format('Y-m-d') }}</div>
             </td>
         </tr>
     </table>
+    <div class="top-sep"></div>
+</div>
 
-    {{-- Detalle liquidación --}}
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th style="width:60%">Concepto</th>
-                <th class="r" style="width:20%">Valor</th>
-                <th class="r" style="width:20%">Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Canon de arrendamiento cobrado — {{ $liquidation->periodoLabel }}</td>
-                <td class="r">${{ number_format($liquidation->canon_cobrado, 0, ',', '.') }}</td>
-                <td class="r">${{ number_format($liquidation->canon_cobrado, 0, ',', '.') }}</td>
-            </tr>
-        </tbody>
-    </table>
+<table class="datos">
+    <tr>
+        <td class="lbl">PAGADO A</td>
+        <td class="val" colspan="3">{{ mb_strtoupper($liquidation->propietario?->nombre_completo ?? '', 'UTF-8') }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">C.C.</td>
+        <td class="val">{{ $liquidation->propietario?->numero_documento }}</td>
+        <td class="lbl">CONTRATO</td>
+        <td class="val">{{ $liquidation->rentalContract?->numero_contrato }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">DIRECCION</td>
+        <td class="val" colspan="3">{{ mb_strtoupper($liquidation->property?->direccion ?? '', 'UTF-8') }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">INM</td>
+        <td class="val">{{ $liquidation->property?->codigo }}</td>
+        <td class="lbl">PERIODO</td>
+        <td class="val">{{ $periodoTexto }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">ARRENDATARIO</td>
+        <td class="val" colspan="3">{{ mb_strtoupper($liquidation->rentalContract?->arrendatario?->nombre_completo ?? '', 'UTF-8') }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">FORMA PAGO</td>
+        <td class="val">{{ $liquidation->forma_giro ? ucfirst($liquidation->forma_giro) : '—' }}</td>
+        <td class="lbl">REF</td>
+        <td class="val">{{ $liquidation->referencia_giro ?: '—' }}</td>
+    </tr>
+    <tr class="suma-row">
+        <td class="lbl">LA SUMA DE</td>
+        <td class="txt" colspan="3">{{ \App\Helpers\NumeroALetras::convertir((float) $liquidation->total_giro) }}</td>
+    </tr>
+</table>
 
-    {{-- Descuentos --}}
-    <table class="totales">
+<table class="concepto">
+    <thead>
+        <tr><th>POR CONCEPTO DE</th><th class="val" style="width:26%;">VALOR</th></tr>
+    </thead>
+    <tbody>
         <tr>
-            <td class="lbl">(-) Comisión de administración ({{ $liquidation->comision_porcentaje }}%)</td>
-            <td class="val desc">-${{ number_format($liquidation->comision_valor, 0, ',', '.') }}</td>
+            <td>
+                CANON DE ARRIENDO COBRADO
+                <span class="desc-sub"><br>PERIODO: {{ $periodoTexto }}</span>
+            </td>
+            <td class="val">{{ $money($liquidation->canon_cobrado) }}</td>
         </tr>
-        <tr>
-            <td class="lbl">(-) IVA sobre comisión (19%)</td>
-            <td class="val desc">-${{ number_format($liquidation->iva_comision, 0, ',', '.') }}</td>
+        <tr class="deduccion">
+            <td>(-) COMISION DE ADMINISTRACION ({{ rtrim(rtrim(number_format($liquidation->comision_porcentaje, 2), '0'), '.') }}%)</td>
+            <td class="val">-{{ $money($liquidation->comision_valor) }}</td>
         </tr>
+        @if($liquidation->iva_comision > 0)
+        <tr class="deduccion">
+            <td>(-) IVA SOBRE COMISION (19%)</td>
+            <td class="val">-{{ $money($liquidation->iva_comision) }}</td>
+        </tr>
+        @endif
         @if($liquidation->retefuente_valor > 0)
-        <tr>
-            <td class="lbl">(-) Retención en la fuente arrendamientos</td>
-            <td class="val desc">-${{ number_format($liquidation->retefuente_valor, 0, ',', '.') }}</td>
+        <tr class="deduccion">
+            <td>(-) RETENCION EN LA FUENTE ARRENDAMIENTOS</td>
+            <td class="val">-{{ $money($liquidation->retefuente_valor) }}</td>
+        </tr>
+        @endif
+        @if($liquidation->seguro_sura_deducido > 0)
+        <tr class="deduccion">
+            <td>(-) SEGURO SURA</td>
+            <td class="val">-{{ $money($liquidation->seguro_sura_deducido) }}</td>
         </tr>
         @endif
         @if($liquidation->otros_descuentos > 0)
-        <tr>
-            <td class="lbl">(-) Otros descuentos: {{ $liquidation->descripcion_descuentos }}</td>
-            <td class="val desc">-${{ number_format($liquidation->otros_descuentos, 0, ',', '.') }}</td>
+        <tr class="deduccion">
+            <td>(-) OTROS DESCUENTOS
+                @if($liquidation->descripcion_descuentos)<span class="desc-sub"><br>{{ mb_strtoupper($liquidation->descripcion_descuentos, 'UTF-8') }}</span>@endif
+            </td>
+            <td class="val">-{{ $money($liquidation->otros_descuentos) }}</td>
         </tr>
         @endif
-        <tr class="total-final">
-            <td class="lbl">TOTAL A GIRAR AL PROPIETARIO</td>
-            <td class="val">${{ number_format($liquidation->total_giro, 0, ',', '.') }} COP</td>
-        </tr>
-    </table>
+        <tr class="neto"><td>NETO A GIRAR AL PROPIETARIO</td><td class="val">{{ $money($liquidation->total_giro) }}</td></tr>
+    </tbody>
+</table>
 
-    {{-- Información del giro --}}
-    @if($liquidation->estado === 'pagada' && $liquidation->fecha_giro)
-    <div class="giro-box">
-        <strong style="color:#166534;">✓ Giro realizado</strong><br>
-        Fecha: <strong>{{ $liquidation->fecha_giro->format('d/m/Y') }}</strong> &nbsp;|&nbsp;
-        Forma: <strong>{{ ucfirst($liquidation->forma_giro) }}</strong>
-        @if($liquidation->referencia_giro)
-        &nbsp;|&nbsp; Ref: <strong>{{ $liquidation->referencia_giro }}</strong>
-        @endif
-    </div>
-    @endif
-
-    {{-- Pie legal --}}
-    <div class="pie-legal">
-        Este documento es un comprobante de liquidación de arrendamiento generado por el sistema YarOM ERP.
-        Los valores reflejan los cánones cobrados, las comisiones de administración y las deducciones legales correspondientes.
-        {{ $company?->razon_social }} — Matrícula Arrendador N° {{ $company?->matricula_arrendador ?? '002' }}.
-    </div>
-
+<div class="notas">
+    SE LIQUIDA EL CANON DEL PERIODO {{ $periodoTexto }} AL PROPIETARIO DEL INMUEBLE {{ $liquidation->property?->codigo }}.
+    {{ $liquidation->notas }}
 </div>
+
+<table class="firmas">
+    <tr>
+        <td>ELABORA<br>&nbsp;</td>
+        <td>FIRMA Y SELLO — {{ mb_strtoupper($company?->razon_social ?? 'SERVIARRENDAR SAS', 'UTF-8') }}</td>
+    </tr>
+</table>
+
+<div class="pie">
+    <div class="pie-linea"></div>
+    <div class="pie-texto">
+        Documento generado electrónicamente por ServiArrendar ERP v1.0.0 &bull; Desarrollado por YarOM Technology &bull;<br>
+        www.serviarrendar.com &bull; &copy; {{ now()->format('Y') }} Todos los derechos reservados.
+    </div>
+</div>
+
 </body>
 </html>

@@ -17,7 +17,7 @@ class OwnerLiquidationPdfController extends Controller
         $logoBase64 = $this->logoBase64($company);
 
         $pdf = Pdf::loadView('pdf.liquidacion-propietario', compact('liquidation', 'company', 'logoBase64'))
-            ->setPaper('letter', 'portrait');
+            ->setPaper([0, 0, 396, 612], 'portrait');
 
         return response($pdf->output(), 200, [
             'Content-Type'        => 'application/pdf',
