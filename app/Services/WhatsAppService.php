@@ -33,6 +33,16 @@ class WhatsAppService
         }
     }
 
+    public function reiniciar(): array
+    {
+        try {
+            $res = Http::timeout(15)->post($this->baseUrl . '/reiniciar');
+            return $res->json();
+        } catch (\Exception $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
     public function enviar(string $telefono, string $mensaje): array
     {
         try {

@@ -36,6 +36,18 @@ class WhatsAppStatus extends Page
         Notification::make()->title('Estado actualizado')->success()->duration(2000)->send();
     }
 
+    public function reiniciar(): void
+    {
+        $res = app(WhatsAppService::class)->reiniciar();
+        $this->wapStatus = app(WhatsAppService::class)->getStatus();
+
+        if ($res['ok'] ?? false) {
+            Notification::make()->title('Sesión reiniciada — escanea el nuevo QR')->success()->send();
+        } else {
+            Notification::make()->title('No se pudo reiniciar la sesión')->body($res['error'] ?? '')->danger()->send();
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [

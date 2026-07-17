@@ -4,6 +4,9 @@
     $qr      = $wapStatus['qr']     ?? null;
     $estado  = $wapStatus['estado'] ?? null;
     $error   = $wapStatus['error']  ?? null;
+    $numero  = $wapStatus['numero'] ?? null;
+    $desde   = $wapStatus['conectado_desde'] ?? null;
+    $desdeTexto = $desde ? \Carbon\Carbon::parse($desde)->translatedFormat('d/m/Y, h:i a') : null;
 
     $estadoLabel = match($estado) {
         'conectado'    => 'Conectado',
@@ -45,15 +48,45 @@
 
     {{-- ── CONECTADO ────────────────────────────── --}}
     @if($ready)
+    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px;
+                display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;">
+        <div style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; color:#0f172a;">
+            📶 Estado
+        </div>
+        <span style="background:#dcfce7; color:#15803d; font-weight:700; font-size:12px; padding:5px 14px; border-radius:99px;">
+            ✓ Conectado
+        </span>
+    </div>
+
     <div style="background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 20px;
-                padding: 40px 32px; text-align: center; margin-bottom: 24px;">
-        <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
-        <div style="font-size: 22px; font-weight: 900; color: #15803d; margin-bottom: 8px;">
-            WhatsApp Conectado
+                padding: 36px 32px; text-align: center; margin-bottom: 24px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;
+                    justify-content:center;margin:0 auto 16px;font-size:32px;">✅</div>
+        <div style="font-size: 20px; font-weight: 900; color: #15803d; margin-bottom: 8px;">
+            Sesión activa
         </div>
-        <div style="font-size: 14px; color: #16a34a;">
-            Los mensajes se enviarán automáticamente desde el sistema
+        <div style="font-size: 13px; color: #16a34a; margin-bottom: 18px;">
+            WhatsApp conectado y listo para enviar mensajes a clientes.
         </div>
+
+        <div style="background:#fff; border:1px solid #bbf7d0; border-radius:10px; padding:14px 18px; text-align:left; max-width:360px; margin:0 auto;">
+            <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:13px;">
+                <span style="color:#64748b;">📱 Número conectado</span>
+                <span style="font-weight:700; color:#0f172a;">{{ $numero ? '+' . $numero : '—' }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:13px;">
+                <span style="color:#64748b;">🕒 Vinculado el</span>
+                <span style="font-weight:700; color:#0f172a;">{{ $desdeTexto ?? '—' }}</span>
+            </div>
+        </div>
+
+        <button
+            wire:click="reiniciar"
+            wire:confirm="¿Reiniciar la sesión de WhatsApp? Se cerrará la conexión actual y tendrás que escanear un nuevo QR."
+            style="margin-top:20px; background:#16a34a; color:#fff; border:none; border-radius:10px;
+                   padding:10px 22px; font-size:13px; font-weight:700; cursor:pointer;">
+            🔄 Reiniciar y generar QR
+        </button>
     </div>
 
     {{-- ── QR VISIBLE — escanear ───────────────── --}}
