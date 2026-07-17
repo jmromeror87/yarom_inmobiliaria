@@ -4,37 +4,37 @@
 <meta charset="utf-8">
 <title>Recibo {{ $payment->numero }}</title>
 <style>
-    @page { margin: 16pt 18pt; }
+    @page { margin: 8pt 10pt; }
     * { box-sizing: border-box; }
-    body { font-family: 'DejaVu Sans', sans-serif; font-size: 7pt; color: #000; margin: 0; }
+    body { font-family: 'DejaVu Sans', sans-serif; font-size: 6pt; color: #000; margin: 0; }
 
     .top table { width: 100%; border-collapse: collapse; }
-    .razon { font-size: 8.3pt; font-weight: bold; }
-    .nit { font-size: 6.5pt; }
-    .doctitle { text-align: right; font-size: 7.4pt; font-weight: bold; }
-    .docnum { text-align: right; font-size: 6.5pt; }
+    .razon { font-size: 7.4pt; font-weight: bold; }
+    .nit { font-size: 5.6pt; }
+    .doctitle { text-align: right; font-size: 6.6pt; font-weight: bold; }
+    .docnum { text-align: right; font-size: 5.6pt; }
 
-    table.datos { width: 100%; border-collapse: collapse; margin-top: 6pt; border: 0.75pt solid #000; }
-    table.datos td { border: 0.75pt solid #000; padding: 2.5pt 5pt; font-size: 7pt; vertical-align: top; }
+    table.datos { width: 100%; border-collapse: collapse; margin-top: 3pt; border: 0.6pt solid #000; }
+    table.datos td { border: 0.6pt solid #000; padding: 1.3pt 4pt; font-size: 6pt; vertical-align: top; line-height: 1.15; }
     table.datos td.lbl { width: 24%; white-space: nowrap; }
     table.datos td.val { font-weight: bold; width: 26%; }
 
-    .suma-row td { padding: 4pt 5pt; }
+    .suma-row td { padding: 2pt 4pt; }
     .suma-row .lbl { width: 24%; }
     .suma-row .txt { font-weight: bold; }
 
-    table.concepto { width: 100%; border-collapse: collapse; margin-top: -0.75pt; border: 0.75pt solid #000; border-top: none; }
-    table.concepto th { border: 0.75pt solid #000; padding: 2.5pt 5pt; text-align: left; font-size: 6.6pt; font-weight: bold; }
+    table.concepto { width: 100%; border-collapse: collapse; margin-top: -0.6pt; border: 0.6pt solid #000; border-top: none; }
+    table.concepto th { border: 0.6pt solid #000; padding: 1.3pt 4pt; text-align: left; font-size: 5.6pt; font-weight: bold; }
     table.concepto th.val, table.concepto td.val { text-align: right; }
-    table.concepto td { border: 0.75pt solid #000; padding: 2.5pt 5pt; font-size: 7pt; }
-    table.concepto td.desc-sub { padding-left: 14pt; font-size: 5.6pt; color: #333; }
+    table.concepto td { border: 0.6pt solid #000; padding: 1.3pt 4pt; font-size: 6pt; line-height: 1.15; }
+    table.concepto td.desc-sub { padding-left: 10pt; font-size: 4.8pt; color: #333; }
     table.concepto tr.neto td { font-weight: bold; }
     table.concepto td .cuenta-cod { font-weight: bold; }
 
-    .notas { border: 0.75pt solid #000; border-top: none; padding: 2.5pt 5pt; font-size: 6pt; min-height: 16pt; }
+    .notas { border: 0.6pt solid #000; border-top: none; padding: 1.3pt 4pt; font-size: 5.2pt; min-height: 10pt; line-height: 1.15; }
 
-    table.firmas { width: 100%; border-collapse: collapse; margin-top: -0.75pt; }
-    table.firmas td { border: 0.75pt solid #000; border-top: none; padding: 12pt 5pt 3pt 5pt; text-align: center; font-size: 6pt; width: 50%; }
+    table.firmas { width: 100%; border-collapse: collapse; margin-top: -0.6pt; }
+    table.firmas td { border: 0.6pt solid #000; border-top: none; padding: 6pt 4pt 2pt 4pt; text-align: center; font-size: 5.2pt; width: 50%; }
 </style>
 </head>
 <body>
