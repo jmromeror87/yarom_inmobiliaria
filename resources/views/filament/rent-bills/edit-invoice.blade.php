@@ -36,8 +36,15 @@
   .fac-cufe-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-text-tertiary);margin-bottom:4px;}
   .fac-cufe-val{font-size:10px;color:var(--color-text-secondary);font-family:monospace;word-break:break-all;}
   .fac-pagos{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden;margin-bottom:16px;}
-  .fac-pago-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;}
+  .fac-pago-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;}
   .fac-pago-row:last-child{border-bottom:none;}
+  .fac-pago-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;background:var(--color-background-success);color:var(--color-text-success);margin-left:6px;}
+  .fac-pago-links{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:4px;}
+  .fac-pago-link{font-size:11px;color:var(--color-text-info);text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:3px;}
+  .fac-pago-link:hover{text-decoration:underline;}
+  .fac-pago-link-wap{color:#16a34a;background:none;border:none;cursor:pointer;padding:0;font:inherit;}
+  .fac-pago-link-wap:hover{text-decoration:underline;}
+  .fac-pago-link-wap:disabled{color:var(--color-text-tertiary);cursor:not-allowed;}
   .fac-acciones{display:flex;gap:8px;align-items:center;padding:14px 24px;border-top:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);}
   .fac-footer{background:var(--color-background-secondary);padding:10px 24px;border-top:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:center;}
   .fac-footer-txt{font-size:10px;color:var(--color-text-tertiary);max-width:420px;line-height:1.5;}
@@ -251,22 +258,39 @@
       @foreach($r->payments as $p)
       <div class="fac-pago-row">
         <div>
-          <div style="font-weight:500;font-size:13px;color:var(--color-text-primary);">{{ $p->numero }}</div>
-          <div style="font-size:11px;color:var(--color-text-secondary);">
-            {{ $p->fecha_pago?->format('d/m/Y') }} ·
-            {{ ucfirst(str_replace('_',' ',$p->forma_pago)) }}
-            @if($p->banco_origen) · {{ $p->banco_origen }}@endif
+          <div style="font-weight:500;font-size:13px;color:var(--color-text-primary);">
+            {{ $p->numero }}<span class="fac-pago-badge">{{ ucfirst(str_replace('_',' ',$p->forma_pago)) }}</span>
+          </div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">
+            📆 {{ $p->fecha_pago?->format('d/m/Y') }}
+            @if($p->bank) · 🏦 {{ $p->bank->nombre }}@elseif($p->banco_origen) · {{ $p->banco_origen }}@endif
             @if($p->referencia_pago) · Ref: {{ $p->referencia_pago }}@endif
           </div>
-          <div style="font-size:11px;color:var(--color-text-tertiary);">{{ $p->registradoPor?->name ?? 'Sistema' }}</div>
+          <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:1px;">Registrado por {{ $p->registradoPor?->name ?? 'Sistema' }}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:15px;font-weight:500;color:var(--color-text-success);">${{ number_format($p->total_pagado, 0, ',', '.') }}</div>
+          <div style="font-size:16px;font-weight:600;color:var(--color-text-success);">${{ number_format($p->total_pagado, 0, ',', '.') }}</div>
           @if($p->valor_mora > 0)<div style="font-size:11px;color:var(--color-text-danger);">Mora: ${{ number_format($p->valor_mora, 0, ',', '.') }}</div>@endif
-          <div style="margin-top:2px;">
-            <a href="{{ route('pago.pdf', $p) }}" target="_blank" style="font-size:11px;color:var(--color-text-info);">🧾 Recibo</a>
+          <div class="fac-pago-links">
+            <a href="{{ route('pago.pdf', $p) }}" target="_blank" class="fac-pago-link">🧾 Recibo</a>
             @if($p->comprobante_path)
-            &nbsp;·&nbsp;<a href="{{ asset('storage/'.$p->comprobante_path) }}" target="_blank" style="font-size:11px;color:var(--color-text-info);">Ver comprobante</a>
+            <a href="{{ asset('storage/'.$p->comprobante_path) }}" target="_blank" class="fac-pago-link">📎 Comprobante</a>
+            @endif
+            @if($p->arrendatario?->celular)
+            <button
+              type="button"
+              wire:click="enviarReciboWhatsapp({{ $p->id }})"
+              wire:loading.attr="disabled"
+              wire:target="enviarReciboWhatsapp({{ $p->id }})"
+              class="fac-pago-link-wap"
+            >
+              <span wire:loading.remove wire:target="enviarReciboWhatsapp({{ $p->id }})">📲 Enviar por WhatsApp</span>
+              <span wire:loading wire:target="enviarReciboWhatsapp({{ $p->id }})">Enviando…</span>
+            </button>
+            @else
+            <span class="fac-pago-link-wap" style="color:var(--color-text-tertiary);cursor:default;" title="El arrendatario no tiene celular registrado">
+              📲 Sin celular
+            </span>
             @endif
           </div>
         </div>

@@ -4,8 +4,11 @@ namespace App\Filament\Resources\RentBills\Pages;
 
 use App\Filament\Resources\RentBills\RentBillResource;
 use App\Models\Bank;
+use App\Models\Company;
 use App\Models\RentPayment;
 use App\Helpers\WhatsApp;
+use App\Services\WhatsAppService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -186,6 +189,64 @@ class EditRentBill extends EditRecord
             ->openUrlInNewTab();
 
         return $acciones;
+    }
+
+    public function enviarReciboWhatsapp(int $paymentId): void
+    {
+        $payment = RentPayment::with(['bill.property', 'bill.rentalContract', 'arrendatario', 'bank', 'registradoPor'])
+            ->findOrFail($paymentId);
+
+        $celular = $payment->arrendatario?->celular;
+
+        if (!$celular) {
+            Notification::make()->title('El arrendatario no tiene celular registrado')->danger()->send();
+            return;
+        }
+
+        $company = Company::with('municipio')->first();
+        $bill    = $payment->bill;
+
+        $msg = "🧾 *Recibo de pago*\n\n"
+            . "Estimad@ {$payment->arrendatario?->nombre_completo},\n\n"
+            . "Hemos registrado tu pago correspondiente a la factura {$bill?->numero}.\n\n"
+            . "💵 Valor: \$" . number_format((float) $payment->total_pagado, 0, ',', '.') . " COP\n"
+            . "📆 Fecha: {$payment->fecha_pago->format('d/m/Y')}\n"
+            . "🏠 Inmueble: {$bill?->property?->codigo} — {$bill?->property?->direccion}\n\n"
+            . "Adjuntamos el recibo en PDF.\n\n"
+            . '— ' . ($company?->razon_social ?? 'Serviarrendar S.A.S') . "\n☎️ " . ($company?->celular ?? '318 693 4710');
+
+        $wap     = app(WhatsAppService::class);
+        $enviado = false;
+
+        if ($wap->isConnected()) {
+            try {
+                $logoBase64 = null;
+                if ($company?->logo_path) {
+                    $p = storage_path('app/public/' . $company->logo_path);
+                    if (file_exists($p)) $logoBase64 = 'data:' . mime_content_type($p) . ';base64,' . base64_encode(file_get_contents($p));
+                }
+                $pdf     = Pdf::loadView('pdf.recibo-pago', compact('payment', 'company', 'logoBase64'))->setPaper('a5', 'landscape');
+                $tmpPath = storage_path('app/tmp/recibo-' . $payment->numero . '-' . time() . '.pdf');
+                if (!is_dir(dirname($tmpPath))) mkdir(dirname($tmpPath), 0755, true);
+                file_put_contents($tmpPath, $pdf->output());
+                $res     = $wap->enviarConArchivo($celular, $msg, $tmpPath, 'Recibo-' . $payment->numero . '.pdf');
+                $enviado = $res['ok'] ?? false;
+                if (file_exists($tmpPath)) @unlink($tmpPath);
+            } catch (\Throwable) {
+                $res     = $wap->enviar($celular, $msg);
+                $enviado = $res['ok'] ?? false;
+            }
+        }
+
+        if ($enviado) {
+            Notification::make()->title('✅ Recibo enviado por WhatsApp')->success()->send();
+        } else {
+            $fallback = WhatsApp::urlFallback($celular, $msg);
+            Notification::make()
+                ->title('WhatsApp no disponible — abra el enlace manualmente')
+                ->body($fallback)
+                ->warning()->send();
+        }
     }
 
     /**
