@@ -6,7 +6,7 @@
     $error   = $wapStatus['error']  ?? null;
     $numero  = $wapStatus['numero'] ?? null;
     $desde   = $wapStatus['conectado_desde'] ?? null;
-    $desdeTexto = $desde ? \Carbon\Carbon::parse($desde)->translatedFormat('d/m/Y, h:i a') : null;
+    $desdeTexto = $desde ? \Carbon\Carbon::parse($desde)->setTimezone(config('app.timezone'))->translatedFormat('d/m/Y, h:i a') : null;
 
     $estadoLabel = match($estado) {
         'conectado'    => 'Conectado',
