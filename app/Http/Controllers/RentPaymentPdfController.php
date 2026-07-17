@@ -10,7 +10,7 @@ class RentPaymentPdfController extends Controller
 {
     public function download(RentPayment $payment)
     {
-        $payment->load(['bill.property', 'bill.rentalContract', 'arrendatario', 'bank', 'registradoPor']);
+        $payment->load(['bill.property.municipio', 'bill.rentalContract', 'arrendatario', 'bank', 'registradoPor']);
 
         $company    = Company::with('municipio')->first();
         $logoBase64 = null;
@@ -22,7 +22,7 @@ class RentPaymentPdfController extends Controller
         }
 
         $pdf = Pdf::loadView('pdf.recibo-pago', compact('payment', 'company', 'logoBase64'))
-            ->setPaper('a5', 'landscape') // 21cm x 14.85cm
+            ->setPaper('letter', 'portrait') // tamaño carta estándar: imprime bien en cualquier impresora
             ->setOptions(['defaultFont' => 'DejaVu Sans', 'isHtml5ParserEnabled' => true, 'dpi' => 150]);
 
         return $pdf->download('Recibo-' . $payment->numero . '.pdf');
