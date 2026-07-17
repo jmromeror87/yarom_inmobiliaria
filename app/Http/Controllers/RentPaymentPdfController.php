@@ -22,7 +22,7 @@ class RentPaymentPdfController extends Controller
         }
 
         $pdf = Pdf::loadView('pdf.recibo-pago', compact('payment', 'company', 'logoBase64'))
-            ->setPaper('letter', 'portrait') // tamaño carta estándar: imprime bien en cualquier impresora
+            ->setPaper([0, 0, 396, 612], 'portrait') // media carta exacta: 5.5" x 8.5"
             ->setOptions(['defaultFont' => 'DejaVu Sans', 'isHtml5ParserEnabled' => true, 'dpi' => 150]);
 
         return $pdf->download('Recibo-' . $payment->numero . '.pdf');
