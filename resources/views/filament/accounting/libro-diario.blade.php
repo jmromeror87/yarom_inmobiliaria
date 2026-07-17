@@ -3,8 +3,9 @@
 @php
     $entries  = $this->getEntries();
     $periodos = $this->getPeriodos();
-    $totalDeb = $entries->sum(fn($e) => $e->total_debitos);
-    $totalCre = $entries->sum(fn($e) => $e->total_creditos);
+    $totales  = $this->getTotales();
+    $totalDeb = $totales['debitos'];
+    $totalCre = $totales['creditos'];
     $fmt = fn($v) => '$' . number_format($v, 2, ',', '.');
     $tipoLabels = [
         'CC'=>'Cont.','CI'=>'Ingreso','CE'=>'Egreso','ND'=>'N.Déb','NC'=>'N.Cre','CA'=>'Ajuste',
@@ -19,9 +20,17 @@
 .acc-filter{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
 .acc-filter select{padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;font-weight:600;color:#0f172a;background:#fff;cursor:pointer;}
 .acc-table{width:100%;border-collapse:collapse;font-size:13px;}
-.acc-table th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:2px solid #e2e8f0;}
+.acc-table th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:1;}
 .acc-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
 .acc-table tr:hover td{background:#f8fafc;}
+.acc-scroll{max-height:70vh;overflow-y:auto;}
+.acc-pagination{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin:12px 0;}
+.acc-pagination a,.acc-pagination span{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 8px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;}
+.acc-pagination a{color:#334155;background:#fff;border:1px solid #e2e8f0;}
+.acc-pagination a:hover{background:#f1f5f9;}
+.acc-pagination span.acc-page-current{background:#0f172a;color:#fff;}
+.acc-pagination span.acc-page-disabled{color:#cbd5e1;background:#f8fafc;border:1px solid #f1f5f9;}
+.acc-pagination .acc-page-info{font-size:12px;color:#94a3b8;margin-left:8px;white-space:nowrap;}
 .acc-num{font-family:monospace;font-weight:700;}
 .acc-badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:800;}
 .acc-deb{color:#2563eb;font-family:monospace;font-weight:700;}
@@ -40,7 +49,13 @@
             <option value="{{ $id }}" @selected($this->periodo_id == $id)>{{ $nombre }}</option>
             @endforeach
         </select>
-        <span style="font-size:12px;color:#94a3b8;">{{ $entries->count() }} comprobantes contabilizados</span>
+        <label style="font-size:12px;font-weight:700;color:#64748b;margin-left:8px;">Por página:</label>
+        <select wire:model.live="perPage">
+            @foreach([25, 50, 100, 200] as $n)
+            <option value="{{ $n }}" @selected($this->perPage == $n)>{{ $n }}</option>
+            @endforeach
+        </select>
+        <span style="font-size:12px;color:#94a3b8;">{{ $totales['count'] }} comprobantes contabilizados</span>
     </div>
 
     @if($entries->isEmpty())
@@ -50,8 +65,12 @@
     </div>
     @else
 
+    {{-- Paginación (arriba) --}}
+    @include('filament.accounting.partials.paginacion')
+
     {{-- Tabla --}}
     <div class="acc-card" style="padding:0;overflow:hidden;">
+        <div class="acc-scroll">
         <table class="acc-table">
             <thead>
                 <tr>
@@ -95,24 +114,32 @@
                 </tr>
                 @endforeach
                 @endforeach
+            </tbody>
+        </table>
+        </div>
 
-                {{-- Totales --}}
+        {{-- Totales del período completo (no solo la página actual) --}}
+        <table class="acc-table" style="margin:0;">
+            <tbody>
                 <tr class="acc-total">
-                    <td colspan="4" style="padding:12px 14px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;color:#0f172a;">TOTALES</td>
-                    <td class="acc-deb" style="text-align:right;padding:12px 14px;font-size:14px;">{{ $fmt($totalDeb) }}</td>
-                    <td class="acc-cre" style="text-align:right;padding:12px 14px;font-size:14px;">{{ $fmt($totalCre) }}</td>
+                    <td style="padding:12px 14px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;color:#0f172a;width:100%;">TOTALES DEL PERÍODO</td>
+                    <td class="acc-deb" style="text-align:right;padding:12px 14px;font-size:14px;white-space:nowrap;">{{ $fmt($totalDeb) }}</td>
+                    <td class="acc-cre" style="text-align:right;padding:12px 14px;font-size:14px;white-space:nowrap;">{{ $fmt($totalCre) }}</td>
                 </tr>
 
                 {{-- Verificación cuadre --}}
                 @php $diff = abs($totalDeb - $totalCre); $cuadrado = $diff < 0.01; @endphp
                 <tr>
-                    <td colspan="6" style="text-align:center;padding:12px;background:{{ $cuadrado ? '#f0fdf4' : '#fef2f2' }};color:{{ $cuadrado ? '#15803d' : '#dc2626' }};font-weight:900;font-size:13px;">
+                    <td colspan="3" style="text-align:center;padding:12px;background:{{ $cuadrado ? '#f0fdf4' : '#fef2f2' }};color:{{ $cuadrado ? '#15803d' : '#dc2626' }};font-weight:900;font-size:13px;">
                         {{ $cuadrado ? '✅ Libro cuadrado — Débitos = Créditos' : '❌ DESCUADRE: ' . $fmt($diff) }}
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
+
+    {{-- Paginación (abajo) --}}
+    @include('filament.accounting.partials.paginacion')
     @endif
 </div>
 

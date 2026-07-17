@@ -1,0 +1,1902 @@
+[
+  {
+    "codigo": "INM-2026-0001",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0002",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0003",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0004",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0005",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0006",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0007",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0008",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0009",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0010",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0011",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0012",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0013",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0014",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0015",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0016",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0017",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0018",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0019",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0020",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0021",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0022",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0023",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0024",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0025",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0026",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0027",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0028",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0029",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0030",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0031",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0032",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0033",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0034",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0035",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0036",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0037",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0038",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0039",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0040",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0041",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0042",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0043",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0044",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0045",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0046",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0047",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0048",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0049",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0050",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0051",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0052",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0053",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0054",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0055",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0056",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0057",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0058",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0059",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0060",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0061",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0062",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0063",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0064",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0065",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0066",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0067",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0068",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0069",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0070",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0071",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0072",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0073",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0074",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0075",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0076",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0077",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0078",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0079",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0080",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0081",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0082",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0083",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0084",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0085",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0086",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0087",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0088",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0089",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0090",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0091",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0092",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0093",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0094",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0095",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0096",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0097",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0098",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0099",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0100",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0101",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0102",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0103",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0104",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0105",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0106",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0107",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0108",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0109",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0110",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0111",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0112",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0113",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0114",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0115",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0116",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0117",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0118",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0119",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0120",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0121",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0122",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0123",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0124",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0125",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0126",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0127",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0128",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0129",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0130",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0131",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0132",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0133",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0134",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0135",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0136",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0137",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0138",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0139",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0140",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0141",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0142",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0143",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0144",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0145",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0146",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0147",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0148",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0149",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0150",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0151",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0152",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0153",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0154",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0155",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0156",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0157",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0158",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0159",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0160",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0161",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0162",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0163",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0164",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0165",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0166",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0167",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0168",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0169",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0170",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0171",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0172",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0173",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0174",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0175",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0176",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0177",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0178",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0179",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0180",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0181",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0182",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0183",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0184",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0185",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0186",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0187",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0188",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0189",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0190",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0191",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0192",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0193",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0194",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0195",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0196",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0197",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0198",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0199",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0200",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0201",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0202",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0203",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0204",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0205",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0206",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0207",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0208",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0209",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0210",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0211",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0212",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0213",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0214",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0215",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0216",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0217",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0218",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0219",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0220",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0221",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0222",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0223",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0224",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0225",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0226",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0227",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0228",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0229",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0230",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0231",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0232",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0233",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0234",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0235",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0236",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0237",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0238",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0239",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0240",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0241",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0242",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0243",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0244",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0245",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0246",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0247",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0248",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0249",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0250",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0251",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0252",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0253",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0254",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0255",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0256",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0257",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0258",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0259",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0260",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0261",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0262",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0263",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0264",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0265",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0266",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0267",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0268",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0269",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0270",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0271",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0272",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0273",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0274",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0275",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0276",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0277",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0278",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0279",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0280",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0281",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0282",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0283",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0284",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0285",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0286",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0287",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0288",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0289",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0290",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0291",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0292",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0293",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0294",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0295",
+    "estado_siinmob": "Inactivo",
+    "estado_propuesto": "inactivo"
+  },
+  {
+    "codigo": "INM-2026-0296",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0297",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0298",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0299",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0300",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0301",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0302",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0303",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0304",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0305",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0306",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0307",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0308",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0309",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0310",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0311",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0312",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0313",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0314",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0315",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0316",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0317",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0318",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0319",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0320",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0321",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0322",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0323",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0324",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0325",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0326",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0327",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0328",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0329",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0330",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0331",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0332",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0333",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0334",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0335",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0336",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0337",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0338",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0339",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0340",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0341",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0342",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0343",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0344",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0345",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0346",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0347",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0348",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0349",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0350",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0351",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0352",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0353",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0354",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0355",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0356",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0357",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0358",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0359",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0360",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0361",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0362",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0363",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0364",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0365",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0366",
+    "estado_siinmob": "En mora",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0367",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0368",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0369",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0370",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0371",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0372",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0373",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0374",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0375",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0376",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0377",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0378",
+    "estado_siinmob": "Desocupado",
+    "estado_propuesto": "disponible"
+  },
+  {
+    "codigo": "INM-2026-0379",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  },
+  {
+    "codigo": "INM-2026-0380",
+    "estado_siinmob": "Arrendado",
+    "estado_propuesto": "arrendado"
+  }
+]
