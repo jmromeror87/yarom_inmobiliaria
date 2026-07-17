@@ -108,14 +108,21 @@ class ContabilidadService
         if ($total <= 0) return null;
 
         $company      = Company::first();
+        $property     = $bill->rentalContract?->property;
+        $propietario  = $property?->propietario;
         $comisionPct  = $bill->rentalContract?->administrationContract?->comision_porcentaje
                      ?? $company?->comision_administracion ?? 10;
-        $ivaPct       = (float) ($company?->tarifa_iva ?? 19);
+        // Comportamiento fiscal DIAN dinámico: si el propietario/inmueble no
+        // declara IVA, la comisión de administración no debe cobrarle IVA —
+        // debe coincidir exactamente con lo que ve en su liquidación
+        // (OwnerLiquidation::generarDesdeFact usa la misma resolución).
+        $aplicaIva    = (bool) $property?->requiereIva();
+        $ivaPct       = (float) ($propietario?->tarifa_iva_pactada ?: $company?->tarifa_iva ?? 19);
         $retePct      = (float) ($company?->tarifa_retefuente_arrendamiento ?? 3.5);
         $aplicaRete   = $bill->rentalContract?->arrendatario?->tipo_persona === 'juridica';
 
         $comision     = round($canon * ($comisionPct / 100), 2);
-        $iva          = round($comision * ($ivaPct / 100), 2);
+        $iva          = $aplicaIva ? round($comision * ($ivaPct / 100), 2) : 0;
         $rete         = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
         // netoProp NO descuenta rete: la retención es anticipo de impuesto de la inmobiliaria,
         // no un descuento al propietario. El propietario recibe (total - comision - iva).
@@ -139,9 +146,13 @@ class ContabilidadService
         $lineas = [
             ['account_id' => $cuentaArrendatarios, 'debito' => $total,    'credito' => 0,         'descripcion' => "Canon factura {$bill->numero}",           'third_id' => $bill->arrendatario_id],
             ['account_id' => $cuentaComision,       'debito' => 0,         'credito' => $comision, 'descripcion' => "Comisión adm. {$comisionPct}%",           'third_id' => null],
-            ['account_id' => $cuentaIva,            'debito' => 0,         'credito' => $iva,      'descripcion' => "IVA {$ivaPct}% sobre comisión",           'third_id' => null],
-            ['account_id' => $cuentaXPagarProp,     'debito' => 0,         'credito' => $netoProp, 'descripcion' => "Neto a girar propietario {$bill->numero}",'third_id' => $bill->rentalContract?->property?->propietario_id],
         ];
+
+        if ($iva > 0) {
+            $lineas[] = ['account_id' => $cuentaIva, 'debito' => 0, 'credito' => $iva, 'descripcion' => "IVA {$ivaPct}% sobre comisión", 'third_id' => null];
+        }
+
+        $lineas[] = ['account_id' => $cuentaXPagarProp, 'debito' => 0, 'credito' => $netoProp, 'descripcion' => "Neto a girar propietario {$bill->numero}", 'third_id' => $property?->propietario_id];
 
         // Retención practicada POR el arrendatario (persona jurídica) SOBRE la inmobiliaria.
         // El arrendatario paga menos (total - rete) y la diferencia queda como anticipo
