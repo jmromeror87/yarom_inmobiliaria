@@ -263,9 +263,12 @@
         <div style="text-align:right;">
           <div style="font-size:15px;font-weight:500;color:var(--color-text-success);">${{ number_format($p->total_pagado, 0, ',', '.') }}</div>
           @if($p->valor_mora > 0)<div style="font-size:11px;color:var(--color-text-danger);">Mora: ${{ number_format($p->valor_mora, 0, ',', '.') }}</div>@endif
-          @if($p->comprobante_path)
-          <a href="{{ asset('storage/'.$p->comprobante_path) }}" target="_blank" style="font-size:11px;color:var(--color-text-info);">Ver comprobante</a>
-          @endif
+          <div style="margin-top:2px;">
+            <a href="{{ route('pago.pdf', $p) }}" target="_blank" style="font-size:11px;color:var(--color-text-info);">🧾 Recibo</a>
+            @if($p->comprobante_path)
+            &nbsp;·&nbsp;<a href="{{ asset('storage/'.$p->comprobante_path) }}" target="_blank" style="font-size:11px;color:var(--color-text-info);">Ver comprobante</a>
+            @endif
+          </div>
         </div>
       </div>
       @endforeach

@@ -29,6 +29,7 @@ Route::get('/admin/contratos-arriendo/{contract}/pdf', [\App\Http\Controllers\Re
 Route::get('/admin/actas/{handover}/pdf', [\App\Http\Controllers\PropertyHandoverPdfController::class, 'download'])->name('acta.entrega.pdf');
 Route::post('/admin/actas/{handover}/firma', [App\Http\Controllers\HandoverSignatureController::class, 'store'])->name('acta.firma')->middleware('web');
 Route::get('/admin/facturas/{bill}/pdf', [App\Http\Controllers\RentBillPdfController::class, 'download'])->name('factura.pdf')->middleware('web');
+Route::get('/admin/pagos/{payment}/pdf', [App\Http\Controllers\RentPaymentPdfController::class, 'download'])->name('pago.pdf')->middleware('web');
 
 // ── Estudio de crédito Sudamericana (público, sin auth, throttled) ──────
 Route::middleware(['throttle:20,1'])->group(function () {
