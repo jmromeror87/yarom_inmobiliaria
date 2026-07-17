@@ -93,7 +93,11 @@
 @php
     $arr        = $bill->arrendatario;
     $mesAnio    = \Carbon\Carbon::create($bill->anio, $bill->mes, 1)->translatedFormat('F Y');
-    $rtefonte   = round($bill->canon_base * 0.035, 2);
+    // La retefuente solo la practica un arrendatario persona jurídica (agente
+    // retenedor obligado por ley) — igual que en ContabilidadService::generarParaFactura.
+    // Antes esta plantilla la restaba siempre, sin importar el tipo de persona.
+    $aplicaRete = $arr?->tipo_persona === 'juridica';
+    $rtefonte   = $aplicaRete ? round($bill->canon_base * 0.035, 2) : 0;
     $neto       = $bill->total_factura + $bill->mora_acumulada - $rtefonte;
     $emision    = $bill->created_at ?? now();
     $tituloDoc  = $bill->tipo_documento === 'factura_electronica' ? 'FACTURA ELECTRÓNICA DE VENTA' : 'DOCUMENTO EQUIVALENTE DE ARRENDAMIENTO';
@@ -276,7 +280,9 @@
             <table class="totales">
                 <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($bill->total_factura, 2, ',', '.') }}</td></tr>
                 <tr><td class="lbl">IVA (0% — Arrendamiento vivienda)</td><td class="val">$0,00</td></tr>
+                @if($aplicaRete)
                 <tr><td class="lbl rte">ReteFuente arrendamiento 3.5% (Cód. 06)</td><td class="val rte">-${{ number_format($rtefonte, 2, ',', '.') }}</td></tr>
+                @endif
                 @if($bill->mora_acumulada > 0)
                 <tr><td class="lbl mora">Intereses de mora ({{ $bill->dias_mora }} días)</td><td class="val mora">+${{ number_format($bill->mora_acumulada, 2, ',', '.') }}</td></tr>
                 @endif
