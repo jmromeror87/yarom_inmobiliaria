@@ -281,7 +281,7 @@
         @endforelse
         </tbody>
     </table>
-    <div class="xp-pagination">{{ $this->facturas->links() }}</div>
+    @include('filament.thirds.partials.paginacion', ['paginator' => $this->facturas, 'pageName' => 'facturas_page'])
 </div>
 @endif
 
@@ -304,7 +304,7 @@
         @endforeach
         </tbody>
     </table>
-    <div class="xp-pagination">{{ $this->historicoMensualCartera->links() }}</div>
+    @include('filament.thirds.partials.paginacion', ['paginator' => $this->historicoMensualCartera, 'pageName' => 'historico_cartera_page'])
 </div>
 @endif
 
@@ -325,7 +325,7 @@
         @endforeach
         </tbody>
     </table>
-    <div class="xp-pagination">{{ $this->historicoMensualCxp->links() }}</div>
+    @include('filament.thirds.partials.paginacion', ['paginator' => $this->historicoMensualCxp, 'pageName' => 'historico_cxp_page'])
 </div>
 @endif
 
@@ -402,7 +402,7 @@
         @endforelse
         </tbody>
     </table>
-    <div class="xp-pagination">{{ $this->liquidaciones->links() }}</div>
+    @include('filament.thirds.partials.paginacion', ['paginator' => $this->liquidaciones, 'pageName' => 'liquidaciones_page'])
 </div>
 @endif
 
@@ -429,7 +429,7 @@
         @endforelse
         </tbody>
     </table>
-    <div class="xp-pagination">{{ $this->movimientos->links() }}</div>
+    @include('filament.thirds.partials.paginacion', ['paginator' => $this->movimientos, 'pageName' => 'movimientos_page'])
 </div>
 @endif
 
