@@ -21,17 +21,19 @@ class CarteraTable
                 TextColumn::make('tipo')
                     ->label('Tipo')
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'deposito_arriendo' => 'Depósito arriendo',
-                        'mora'              => 'Mora',
-                        'dano'              => 'Daño inmueble',
-                        default             => ucfirst($state),
+                        'deposito_arriendo'     => 'Depósito arriendo',
+                        'mora'                  => 'Mora',
+                        'dano'                  => 'Daño inmueble',
+                        'saldo_inicial_siinmob' => 'Heredado Siinmob',
+                        default                 => ucfirst($state),
                     })
                     ->badge()
                     ->color(fn ($state) => match ($state) {
-                        'deposito_arriendo' => 'info',
-                        'mora'              => 'danger',
-                        'dano'              => 'warning',
-                        default             => 'gray',
+                        'deposito_arriendo'     => 'info',
+                        'mora'                  => 'danger',
+                        'dano'                  => 'warning',
+                        'saldo_inicial_siinmob' => 'purple',
+                        default                 => 'gray',
                     }),
 
                 TextColumn::make('third.nombre_completo')
@@ -91,10 +93,11 @@ class CarteraTable
                     ]),
                 SelectFilter::make('tipo')
                     ->options([
-                        'deposito_arriendo' => 'Depósito arriendo',
-                        'mora'              => 'Mora',
-                        'dano'              => 'Daño',
-                        'otro'              => 'Otro',
+                        'deposito_arriendo'     => 'Depósito arriendo',
+                        'mora'                  => 'Mora',
+                        'dano'                  => 'Daño',
+                        'otro'                  => 'Otro',
+                        'saldo_inicial_siinmob' => 'Heredado Siinmob',
                     ]),
             ])
             ->recordUrl(fn ($record) => CarteraResource::getUrl('view', ['record' => $record]));
