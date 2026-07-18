@@ -4,12 +4,33 @@
     $fmt    = fn($v) => '$' . number_format((float)$v, 0, ',', '.');
     $fmtDec = fn($v) => '$' . number_format((float)$v, 2, ',', '.');
 
+    $carteraHeredada         = $r->cuentasPorCobrar->where('tipo', 'saldo_inicial_siinmob');
+    $carteraHeredadaPendiente = $carteraHeredada->sum('saldo');
+    $otrasCuentasPorCobrar    = $r->cuentasPorCobrar->where('tipo', '!=', 'saldo_inicial_siinmob');
+
     $totalFacturado = $r->rentBills->sum('total_factura');
     $totalPagado    = $r->rentBills->sum('total_pagado');
-    $totalPendiente = $r->rentBills->sum('saldo_pendiente');
+    // El saldo pendiente real incluye lo que quedó heredado de Siinmob (y cualquier
+    // otra cuenta por cobrar aparte de las facturas del sistema nuevo), no solo
+    // las facturas generadas desde julio 2026 — si no, un inquilino que venía
+    // debiendo de antes aparecería "al día" sin estarlo.
+    $totalPendiente = $r->rentBills->sum('saldo_pendiente') + $r->cuentasPorCobrar->whereIn('estado', ['pendiente', 'parcial'])->sum('saldo');
     $totalLiquidado = $r->ownerLiquidations->sum('canon_cobrado');
-    $totalGirado    = $r->ownerLiquidations->sum('total_giro');
+    $totalGirado    = $r->ownerLiquidations->where('estado', 'pagada')->sum('total_giro');
     $totalComision  = $r->ownerLiquidations->sum('comision_valor');
+
+    // Cartera heredada de Siinmob (saldo que se le debe de antes de julio 2026)
+    $cxpHeredada          = $r->cuentasPorPagar->where('tipo', 'saldo_inicial_siinmob');
+    $cxpHeredadaPendiente = $cxpHeredada->sum('saldo');
+
+    // Liquidaciones aun sin girar (pendientes o aprobadas, no pagadas ni anuladas)
+    $liquidacionesSinGirar   = $r->ownerLiquidations->whereIn('estado', ['pendiente', 'aprobada']);
+    $totalLiquidacionesPorGirar = $liquidacionesSinGirar->sum('total_giro');
+
+    // Total unificado que realmente se le debe a este propietario HOY,
+    // sumando lo heredado del sistema viejo + lo pendiente del nuevo —
+    // para que quien vaya a pagarle vea un solo numero, no dos sueltos.
+    $totalPorGirarHoy = $totalLiquidacionesPorGirar + $cxpHeredadaPendiente;
 
     $initials = collect([$r->primer_nombre ?? $r->razon_social, $r->primer_apellido])
         ->filter()->map(fn($w) => \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($w,0,1)))->join('');
@@ -126,6 +147,7 @@
     @foreach([
         ['v'=>$totalLiquidado,'label'=>'Canon Liquidado','color'=>'#7c3aed','border'=>'#7c3aed'],
         ['v'=>$totalGirado,   'label'=>'Total Girado',   'color'=>'#16a34a','border'=>'#16a34a'],
+        ['v'=>$totalPorGirarHoy,'label'=>'Pendiente por Girar (HOY)','color'=>$totalPorGirarHoy>0?'#dc2626':'#64748b','border'=>$totalPorGirarHoy>0?'#dc2626':'#e2e8f0'],
         ['v'=>$totalComision, 'label'=>'Comisiones',     'color'=>'#E11D48','border'=>'#E11D48'],
     ] as $s)
     <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
@@ -170,6 +192,42 @@
             <td colspan="3" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($totalFacturado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($totalPagado) }}</td>
+            <td></td>
+        </tr></tfoot>
+    </table>
+</div>
+@endif
+
+{{-- Cartera heredada de Siinmob (deuda de antes de julio 2026) --}}
+@if($carteraHeredada->count())
+<div class="xp-card" style="border-left:4px solid #7c3aed;">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#fdf4ff;">📜</div>
+        <h3>Cartera Heredada — Sistema Anterior (Siinmob)</h3>
+    </div>
+    <div style="padding:12px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;border-bottom:1px solid #f1f5f9;">
+        ⚠️ Deuda pendiente de antes del 1 de julio de 2026, migrada del sistema anterior. Se suma al saldo pendiente total.
+    </div>
+    <table class="t-table">
+        <thead><tr>
+            <th>N° Cuenta</th><th>Concepto</th>
+            <th style="text-align:right;">Original</th><th style="text-align:right;">Pagado</th><th style="text-align:right;">Saldo</th><th>Estado</th>
+        </tr></thead>
+        <tbody>
+        @foreach($carteraHeredada as $cxc)
+        <tr>
+            <td class="t-num" style="color:#7c3aed;">{{ $cxc->numero }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ \Illuminate\Support\Str::limit($cxc->concepto, 30) }}</td>
+            <td class="t-num" style="text-align:right;">{{ $fmt($cxc->valor_original) }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($cxc->valor_pagado) }}</td>
+            <td class="t-num" style="text-align:right;color:{{ $cxc->saldo > 0 ? '#dc2626' : '#64748b' }};font-weight:900;">{{ $fmt($cxc->saldo) }}</td>
+            <td><span class="t-badge" style="background:{{ $cxc->estado === 'pagado' ? '#f0fdf4' : '#fef2f2' }};color:{{ $cxc->estado === 'pagado' ? '#166534' : '#991b1b' }};">{{ ucfirst($cxc->estado) }}</span></td>
+        </tr>
+        @endforeach
+        </tbody>
+        <tfoot><tr>
+            <td colspan="4" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Saldo heredado pendiente</td>
+            <td class="t-num" style="text-align:right;color:#dc2626;">{{ $fmt($carteraHeredadaPendiente) }}</td>
             <td></td>
         </tr></tfoot>
     </table>
@@ -222,6 +280,42 @@
 </div>
 <div>
 
+{{-- Cartera heredada de Siinmob - lo que se le debe al propietario --}}
+@if($cxpHeredada->count())
+<div class="xp-card" style="border-left:4px solid #dc2626;">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#fef2f2;">📜</div>
+        <h3>Por Pagar — Heredado Sistema Anterior</h3>
+    </div>
+    <div style="padding:12px 22px;font-size:12px;color:#991b1b;background:#fef2f2;border-bottom:1px solid #f1f5f9;">
+        ⚠️ Saldo pendiente de girarle de antes del 1 de julio de 2026 (Siinmob). Se suma a lo que le falta girar hoy — verifíquelo junto con sus liquidaciones antes de pagarle.
+    </div>
+    <table class="t-table">
+        <thead><tr>
+            <th>N° Cuenta</th><th>Concepto</th>
+            <th style="text-align:right;">Original</th><th style="text-align:right;">Pagado</th><th style="text-align:right;">Saldo</th><th>Estado</th>
+        </tr></thead>
+        <tbody>
+        @foreach($cxpHeredada as $cxp)
+        <tr>
+            <td class="t-num" style="color:#dc2626;">{{ $cxp->numero }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ \Illuminate\Support\Str::limit($cxp->concepto, 30) }}</td>
+            <td class="t-num" style="text-align:right;">{{ $fmt($cxp->valor_original) }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($cxp->valor_pagado) }}</td>
+            <td class="t-num" style="text-align:right;color:{{ $cxp->saldo > 0 ? '#dc2626' : '#64748b' }};font-weight:900;">{{ $fmt($cxp->saldo) }}</td>
+            <td><span class="t-badge" style="background:{{ $cxp->estado === 'pagado' ? '#f0fdf4' : '#fef2f2' }};color:{{ $cxp->estado === 'pagado' ? '#166534' : '#991b1b' }};">{{ ucfirst($cxp->estado) }}</span></td>
+        </tr>
+        @endforeach
+        </tbody>
+        <tfoot><tr>
+            <td colspan="4" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Saldo heredado pendiente</td>
+            <td class="t-num" style="text-align:right;color:#dc2626;">{{ $fmt($cxpHeredadaPendiente) }}</td>
+            <td></td>
+        </tr></tfoot>
+    </table>
+</div>
+@endif
+
 {{-- Liquidaciones --}}
 @if($r->ownerLiquidations->count())
 <div class="xp-card">
@@ -229,6 +323,11 @@
         <div class="icon" style="background:#fdf4ff;">💰</div>
         <h3>Liquidaciones al Propietario</h3>
     </div>
+    @if($totalLiquidacionesPorGirar > 0)
+    <div style="padding:10px 22px;font-size:12px;color:#92400e;background:#fffbeb;border-bottom:1px solid #f1f5f9;">
+        🕐 {{ $liquidacionesSinGirar->count() }} liquidación(es) del sistema nuevo sin girar todavía: {{ $fmt($totalLiquidacionesPorGirar) }}
+    </div>
+    @endif
     <table class="t-table">
         <thead><tr>
             <th>N° Liq.</th><th>Inmueble</th><th>Período</th>

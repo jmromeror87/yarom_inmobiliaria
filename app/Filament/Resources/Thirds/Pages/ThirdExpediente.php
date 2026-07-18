@@ -27,6 +27,8 @@ class ThirdExpediente extends Page
             'properties',
             'accountingLines.entry.period',
             'accountingLines.account',
+            'cuentasPorCobrar',
+            'cuentasPorPagar',
         ]);
     }
 

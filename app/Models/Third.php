@@ -161,6 +161,8 @@ class Third extends Model
     public function properties()          { return $this->hasMany(Property::class, 'propietario_id'); }
     public function requests()            { return $this->hasMany(Request::class, 'request_third_id'); }
     public function accountingLines()     { return $this->hasMany(AccountingEntryLine::class, 'third_id'); }
+    public function cuentasPorCobrar()    { return $this->hasMany(CuentaPorCobrar::class, 'third_id'); }
+    public function cuentasPorPagar()     { return $this->hasMany(CuentaPorPagarPropietario::class, 'third_id'); }
 
     public function scopePropietarios($q)  { return $q->where('es_propietario', true); }
     public function scopeArrendatarios($q) { return $q->where('es_arrendatario', true); }
