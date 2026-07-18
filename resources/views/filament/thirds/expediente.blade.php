@@ -290,16 +290,17 @@
 @if($this->historicoMensualCartera->count())
 <div class="xp-card" style="border-left:4px solid #7c3aed;">
     <div class="xp-card-head"><div class="icon" style="background:#fdf4ff;">🗓️</div><h3>Histórico Mensual — Cartera Arrendatario (Siinmob)</h3></div>
-    <div style="padding:10px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;">📜 Facturado y pagado mes a mes antes del 1 de julio de 2026.</div>
+    <div style="padding:10px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;">📜 Facturado y pagado mes a mes antes del 1 de julio de 2026. Haga clic en un mes para ver el detalle (fecha exacta, forma de pago y referencia).</div>
     <table class="t-table">
-        <thead><tr><th>Período</th><th style="text-align:right;">Facturado</th><th style="text-align:right;">Pagado</th></tr></thead>
+        <thead><tr><th>Período</th><th style="text-align:right;">Facturado</th><th style="text-align:right;">Pagado</th><th></th></tr></thead>
         <tbody>
         @foreach($this->historicoMensualCartera as $row)
         @php [$anioMes, $mesMes] = explode('-', $row->mes); @endphp
-        <tr>
+        <tr style="cursor:pointer;" wire:click="verDetalleMes('{{ $row->mes }}', 'cartera')" title="Ver detalle de {{ $mesesNombre[$mesMes] ?? $mesMes }} {{ $anioMes }}">
             <td style="font-weight:700;">{{ $mesesNombre[$mesMes] ?? $mesMes }} {{ $anioMes }}</td>
             <td class="t-num" style="text-align:right;">{{ $row->cargo > 0 ? $fmt($row->cargo) : '—' }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $row->pago > 0 ? $fmt($row->pago) : '—' }}</td>
+            <td style="text-align:right;color:#7c3aed;font-size:11px;font-weight:700;">Ver detalle →</td>
         </tr>
         @endforeach
         </tbody>
@@ -311,16 +312,17 @@
 @if($this->historicoMensualCxp->count())
 <div class="xp-card" style="border-left:4px solid #7c3aed;">
     <div class="xp-card-head"><div class="icon" style="background:#fdf4ff;">🗓️</div><h3>Histórico Mensual — Giros Propietario (Siinmob)</h3></div>
-    <div style="padding:10px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;">📜 Liquidado y girado mes a mes antes del 1 de julio de 2026.</div>
+    <div style="padding:10px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;">📜 Liquidado y girado mes a mes antes del 1 de julio de 2026. Haga clic en un mes para ver el detalle.</div>
     <table class="t-table">
-        <thead><tr><th>Período</th><th style="text-align:right;">Liquidado</th><th style="text-align:right;">Girado</th></tr></thead>
+        <thead><tr><th>Período</th><th style="text-align:right;">Liquidado</th><th style="text-align:right;">Girado</th><th></th></tr></thead>
         <tbody>
         @foreach($this->historicoMensualCxp as $row)
         @php [$anioMes, $mesMes] = explode('-', $row->mes); @endphp
-        <tr>
+        <tr style="cursor:pointer;" wire:click="verDetalleMes('{{ $row->mes }}', 'cxp')" title="Ver detalle de {{ $mesesNombre[$mesMes] ?? $mesMes }} {{ $anioMes }}">
             <td style="font-weight:700;">{{ $mesesNombre[$mesMes] ?? $mesMes }} {{ $anioMes }}</td>
             <td class="t-num" style="text-align:right;">{{ $row->liquidado > 0 ? $fmt($row->liquidado) : '—' }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $row->girado > 0 ? $fmt($row->girado) : '—' }}</td>
+            <td style="text-align:right;color:#7c3aed;font-size:11px;font-weight:700;">Ver detalle →</td>
         </tr>
         @endforeach
         </tbody>
@@ -374,6 +376,43 @@
 @if(!$this->historicoMensualCartera->count() && !$this->historicoMensualCxp->count())
 <div class="xp-card"><div style="padding:30px;text-align:center;color:#94a3b8;">Sin movimientos históricos de Siinmob vinculados a este tercero.</div></div>
 @endif
+
+{{-- Modal de detalle diario del mes seleccionado --}}
+<x-filament::modal id="modal-detalle-mes" width="2xl">
+    <x-slot name="heading">
+        @if($mesDetalleMes)
+            @php [$anioM, $mesM] = explode('-', $mesDetalleMes); @endphp
+            Detalle — {{ $mesesNombre[$mesM] ?? $mesM }} {{ $anioM }}
+        @endif
+    </x-slot>
+
+    <table class="t-table">
+        <thead><tr>
+            <th>Fecha</th><th>Comprobante</th><th>Concepto</th><th>Forma de pago</th>
+            <th style="text-align:right;">Cargo</th><th style="text-align:right;">Pago</th>
+        </tr></thead>
+        <tbody>
+        @forelse($this->detalleMesLineas as $linea)
+        <tr>
+            <td style="font-size:11.5px;font-weight:700;">{{ $linea['fecha']?->format('d/m/Y') }}</td>
+            <td style="font-size:11px;color:#2563eb;">{{ $linea['comprobante'] }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ \Illuminate\Support\Str::limit($linea['concepto'], 40) }}</td>
+            <td style="font-size:11px;">
+                @if($linea['forma_pago'])
+                    <span class="t-badge" style="background:#eff6ff;color:#1d4ed8;">{{ $linea['forma_pago'] }}</span>
+                @else
+                    <span style="color:#94a3b8;">—</span>
+                @endif
+            </td>
+            <td class="t-num" style="text-align:right;font-size:11px;">{{ $linea['debito'] > 0 ? $fmt($linea['debito']) : '—' }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;font-size:11px;">{{ $linea['credito'] > 0 ? $fmt($linea['credito']) : '—' }}</td>
+        </tr>
+        @empty
+        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px;">Sin movimientos para este período</td></tr>
+        @endforelse
+        </tbody>
+    </table>
+</x-filament::modal>
 @endif
 
 {{-- ═══════════════ TAB: LIQUIDACIONES ═══════════════ --}}

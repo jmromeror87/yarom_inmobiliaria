@@ -27,6 +27,9 @@ class ThirdExpediente extends Page
     #[Url]
     public string $tab = 'resumen';
 
+    public ?string $mesDetalleMes = null;
+    public ?string $mesDetalleTipo = null;
+
     public function mount(Third $record): void
     {
         $this->record = $record->load(['municipio.departamento', 'asesor']);
@@ -50,6 +53,68 @@ class ThirdExpediente extends Page
     public function setTab(string $tab): void
     {
         $this->tab = $tab;
+    }
+
+    public function verDetalleMes(string $mes, string $tipo): void
+    {
+        $this->mesDetalleMes = $mes;
+        $this->mesDetalleTipo = $tipo;
+        $this->dispatch('open-modal', id: 'modal-detalle-mes');
+    }
+
+    /**
+     * Detalle día a día de un mes puntual (siempre acotado a un mes, nunca
+     * a todo el historial) — aquí sí traemos las líneas completas del asiento
+     * para saber la fecha exacta, la cuenta destino (proxy de la forma de
+     * pago: caja = efectivo, banco = transferencia) y la referencia.
+     */
+    public function getDetalleMesLineasProperty(): \Illuminate\Support\Collection
+    {
+        if (!$this->mesDetalleMes) {
+            return collect();
+        }
+
+        $prefijo = $this->mesDetalleTipo === 'cxp' ? '23354' : '1305';
+
+        $entryIds = AccountingEntryLine::where('accounting_entry_lines.third_id', $this->record->id)
+            ->whereHas('account', fn ($q) => $q->where('codigo', 'like', "{$prefijo}%"))
+            ->whereHas('entry', function ($q) {
+                $q->where('estado', 'contabilizado')
+                    ->whereRaw("DATE_FORMAT(fecha, '%Y-%m') = ?", [$this->mesDetalleMes]);
+            })
+            ->pluck('entry_id')
+            ->unique();
+
+        $lineasCartera = AccountingEntryLine::whereIn('entry_id', $entryIds)
+            ->whereHas('account', fn ($q) => $q->where('codigo', 'like', "{$prefijo}%"))
+            ->with(['entry', 'account'])
+            ->get();
+
+        // Para cada linea de cartera, buscar en el mismo asiento la contrapartida
+        // en una cuenta de disponible (clase 11) para inferir la forma de pago.
+        $lineasDisponiblePorEntry = AccountingEntryLine::whereIn('entry_id', $entryIds)
+            ->whereHas('account', fn ($q) => $q->where('codigo', 'like', '11%'))
+            ->with('account')
+            ->get()
+            ->groupBy('entry_id');
+
+        return $lineasCartera->map(function ($linea) use ($lineasDisponiblePorEntry) {
+            $disponible = $lineasDisponiblePorEntry->get($linea->entry_id)?->first();
+            $formaPago = match (true) {
+                !$disponible => null,
+                str_contains(strtolower($disponible->account?->nombre ?? ''), 'caja') => 'Efectivo (Caja)',
+                default => 'Transferencia — ' . $disponible->account?->nombre,
+            };
+
+            return [
+                'fecha' => $linea->entry?->fecha,
+                'comprobante' => $linea->entry?->numero,
+                'concepto' => $linea->descripcion,
+                'forma_pago' => $formaPago,
+                'debito' => $linea->debito,
+                'credito' => $linea->credito,
+            ];
+        })->sortBy('fecha')->values();
     }
 
     // ── Conteos e indicadores (agregados vía SQL, nunca cargando colecciones completas) ──
