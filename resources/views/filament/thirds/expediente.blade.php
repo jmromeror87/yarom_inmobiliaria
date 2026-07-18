@@ -168,32 +168,133 @@
 <div class="xp-card">
     <div class="xp-card-head">
         <div class="icon" style="background:#eff6ff;">🧾</div>
-        <h3>Facturas de Arrendamiento</h3>
+        <h3>Historial de Pagos por Contrato</h3>
+    </div>
+    <div style="padding:10px 22px;font-size:12px;color:#1e40af;background:#eff6ff;border-bottom:1px solid #f1f5f9;">
+        📅 Mes a mes desde el inicio de cada contrato, con la fecha exacta en que pagó.
+    </div>
+    @php $facturasPorContrato = $r->rentBills->groupBy('rental_contract_id')->sortByDesc(fn($g) => $g->first()->rentalContract?->fecha_inicio); @endphp
+    @foreach($facturasPorContrato as $contratoId => $facturas)
+    @php $contrato = $facturas->first()->rentalContract; @endphp
+    <div style="padding:12px 22px 4px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+        <span style="font-weight:800;font-size:12.5px;color:#0f172a;">{{ $contrato?->numero_contrato ?? 'Sin contrato' }}</span>
+        <span style="font-size:11.5px;color:#64748b;"> — {{ $contrato?->property?->direccion }}</span>
+        <span style="font-size:11px;color:#94a3b8;"> · Inicio: {{ $contrato?->fecha_inicio?->format('d/m/Y') ?? '—' }} @if($contrato?->fecha_fin) · Fin: {{ $contrato->fecha_fin->format('d/m/Y') }} @endif</span>
     </div>
     <table class="t-table">
         <thead><tr>
-            <th>N° Factura</th><th>Inmueble</th><th>Período</th>
+            <th>N° Factura</th><th>Período</th><th>Fecha límite</th><th>Fecha de pago</th>
             <th style="text-align:right;">Total</th><th style="text-align:right;">Pagado</th><th>Estado</th>
         </tr></thead>
         <tbody>
-        @foreach($r->rentBills->sortByDesc('periodo_inicio') as $bill)
+        @foreach($facturas->sortByDesc('periodo_inicio') as $bill)
         @php [$bc,$bb] = $estadoBillColor[$bill->estado] ?? ['#64748b','#f8fafc']; @endphp
         <tr>
             <td class="t-num" style="color:#2563eb;">{{ $bill->numero }}</td>
-            <td style="font-size:11px;color:#64748b;">{{ \Illuminate\Support\Str::limit($bill->rentalContract?->property?->direccion ?? '—', 22) }}</td>
             <td style="font-size:11px;">{{ $bill->mes }}/{{ $bill->anio }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ $bill->fecha_limite_pago?->format('d/m/Y') ?? '—' }}</td>
+            <td style="font-size:11px;">
+                @forelse($bill->payments->sortBy('fecha_pago') as $pago)
+                    <div style="color:{{ $pago->fecha_pago?->gt($bill->fecha_limite_pago) ? '#dc2626' : '#16a34a' }};">
+                        {{ $pago->fecha_pago?->format('d/m/Y') }} <span style="color:#94a3b8;">({{ $fmt($pago->total_pagado) }})</span>
+                    </div>
+                @empty
+                    <span style="color:#94a3b8;">— sin pago</span>
+                @endforelse
+            </td>
             <td class="t-num" style="text-align:right;">{{ $fmt($bill->total_factura) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($bill->total_pagado) }}</td>
             <td><span class="t-badge" style="background:{{ $bb }};color:{{ $bc }};">{{ ucfirst($bill->estado) }}</span></td>
         </tr>
         @endforeach
         </tbody>
+    </table>
+    @endforeach
+    <table class="t-table">
         <tfoot><tr>
-            <td colspan="3" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales</td>
+            <td colspan="4" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales (todos los contratos)</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($totalFacturado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($totalPagado) }}</td>
             <td></td>
         </tr></tfoot>
+    </table>
+</div>
+@endif
+
+{{-- Histórico mensual de pagos ANTES de julio 2026 (sistema anterior) --}}
+@php
+    $mesesNombre = ['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril','05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto','09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'];
+
+    $lineasCarteraHistorico = $r->accountingLines
+        ->filter(fn($l) => $l->account && str_starts_with($l->account->codigo, '1305') && $l->entry?->fecha)
+        ->groupBy(fn($l) => $l->entry->fecha->format('Y-m'));
+
+    $lineasCxpHistorico = $r->accountingLines
+        ->filter(fn($l) => $l->account && str_starts_with($l->account->codigo, '23354') && $l->entry?->fecha)
+        ->groupBy(fn($l) => $l->entry->fecha->format('Y-m'));
+@endphp
+@if($lineasCarteraHistorico->count())
+<div class="xp-card" style="border-left:4px solid #7c3aed;">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#fdf4ff;">🗓️</div>
+        <h3>Histórico Mensual — Sistema Anterior (Siinmob)</h3>
+    </div>
+    <div style="padding:10px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;border-bottom:1px solid #f1f5f9;">
+        📜 Lo que se le facturó y pagó mes a mes antes del 1 de julio de 2026, migrado del sistema anterior.
+    </div>
+    <table class="t-table">
+        <thead><tr>
+            <th>Período</th><th style="text-align:right;">Facturado (cargo)</th><th style="text-align:right;">Pagado</th><th>Fechas de pago</th>
+        </tr></thead>
+        <tbody>
+        @foreach($lineasCarteraHistorico->sortKeysDesc() as $mes => $lineas)
+        @php
+            [$anioMes, $mesMes] = explode('-', $mes);
+            $cargo = $lineas->sum('debito');
+            $pago = $lineas->sum('credito');
+            $fechasPago = $lineas->filter(fn($l) => $l->credito > 0)->map(fn($l) => $l->entry->fecha->format('d/m'))->unique()->join(', ');
+        @endphp
+        <tr>
+            <td style="font-size:11.5px;font-weight:700;">{{ $mesesNombre[$mesMes] ?? $mesMes }} {{ $anioMes }}</td>
+            <td class="t-num" style="text-align:right;">{{ $cargo > 0 ? $fmt($cargo) : '—' }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;">{{ $pago > 0 ? $fmt($pago) : '—' }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ $fechasPago ?: '—' }}</td>
+        </tr>
+        @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
+
+@if($lineasCxpHistorico->count())
+<div class="xp-card" style="border-left:4px solid #7c3aed;">
+    <div class="xp-card-head">
+        <div class="icon" style="background:#fdf4ff;">🗓️</div>
+        <h3>Histórico Mensual de Giros — Sistema Anterior (Siinmob)</h3>
+    </div>
+    <div style="padding:10px 22px;font-size:12px;color:#7c3aed;background:#fdf4ff;border-bottom:1px solid #f1f5f9;">
+        📜 Lo que se le liquidó y giró mes a mes antes del 1 de julio de 2026, migrado del sistema anterior.
+    </div>
+    <table class="t-table">
+        <thead><tr>
+            <th>Período</th><th style="text-align:right;">Liquidado (a favor)</th><th style="text-align:right;">Girado</th><th>Fechas de giro</th>
+        </tr></thead>
+        <tbody>
+        @foreach($lineasCxpHistorico->sortKeysDesc() as $mes => $lineas)
+        @php
+            [$anioMes, $mesMes] = explode('-', $mes);
+            $liquidadoMes = $lineas->sum('credito');
+            $giradoMes = $lineas->sum('debito');
+            $fechasGiro = $lineas->filter(fn($l) => $l->debito > 0)->map(fn($l) => $l->entry->fecha->format('d/m'))->unique()->join(', ');
+        @endphp
+        <tr>
+            <td style="font-size:11.5px;font-weight:700;">{{ $mesesNombre[$mesMes] ?? $mesMes }} {{ $anioMes }}</td>
+            <td class="t-num" style="text-align:right;">{{ $liquidadoMes > 0 ? $fmt($liquidadoMes) : '—' }}</td>
+            <td class="t-num" style="text-align:right;color:#16a34a;">{{ $giradoMes > 0 ? $fmt($giradoMes) : '—' }}</td>
+            <td style="font-size:11px;color:#64748b;">{{ $fechasGiro ?: '—' }}</td>
+        </tr>
+        @endforeach
+        </tbody>
     </table>
 </div>
 @endif
@@ -331,7 +432,7 @@
     <table class="t-table">
         <thead><tr>
             <th>N° Liq.</th><th>Inmueble</th><th>Período</th>
-            <th style="text-align:right;">Canon</th><th style="text-align:right;">Giro neto</th><th>Estado</th>
+            <th style="text-align:right;">Canon</th><th style="text-align:right;">Giro neto</th><th>Fecha de giro</th><th>Estado</th>
         </tr></thead>
         <tbody>
         @foreach($r->ownerLiquidations->sortByDesc('anio') as $liq)
@@ -342,6 +443,7 @@
             <td style="font-size:11px;">{{ $liq->mes }}/{{ $liq->anio }}</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($liq->canon_cobrado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($liq->total_giro) }}</td>
+            <td style="font-size:11px;color:{{ $liq->fecha_giro ? '#16a34a' : '#dc2626' }};">{{ $liq->fecha_giro?->format('d/m/Y') ?? 'Sin girar' }}</td>
             <td><span class="t-badge" style="background:{{ $lb }};color:{{ $lc }};">{{ ucfirst($liq->estado) }}</span></td>
         </tr>
         @endforeach
@@ -350,7 +452,7 @@
             <td colspan="3" style="padding:10px 16px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">Totales</td>
             <td class="t-num" style="text-align:right;">{{ $fmt($totalLiquidado) }}</td>
             <td class="t-num" style="text-align:right;color:#16a34a;">{{ $fmt($totalGirado) }}</td>
-            <td></td>
+            <td colspan="2"></td>
         </tr></tfoot>
     </table>
 </div>
