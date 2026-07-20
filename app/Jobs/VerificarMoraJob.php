@@ -18,6 +18,10 @@ class VerificarMoraJob implements ShouldQueue
 
     public int $tries = 3;
 
+    public function __construct(private bool $enviarWhatsapp = true)
+    {
+    }
+
     public function handle(): void
     {
         $this->iniciarLog('Verificar Mora');
@@ -68,7 +72,7 @@ class VerificarMoraJob implements ShouldQueue
             }
 
             // Aviso WhatsApp solo la primera vez
-            if (!$bill->wap_mora_enviado && $bill->arrendatario?->celular) {
+            if ($this->enviarWhatsapp && !$bill->wap_mora_enviado && $bill->arrendatario?->celular) {
                 try {
                     $token    = $bill->generatePaymentToken();
                     $urlPago  = route('payment.show', ['token' => $token]);
