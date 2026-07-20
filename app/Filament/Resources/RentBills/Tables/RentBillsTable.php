@@ -38,6 +38,12 @@ class RentBillsTable
                 TextColumn::make('total_factura')
                     ->label('Total')->money('COP')->sortable(),
 
+                TextColumn::make('dias_mora')
+                    ->label('Días mora')->sortable()->alignCenter()
+                    ->badge()
+                    ->color(fn ($state) => $state > 0 ? 'danger' : 'gray')
+                    ->formatStateUsing(fn ($state) => $state > 0 ? $state . ' día' . ($state == 1 ? '' : 's') : '—'),
+
                 TextColumn::make('mora_acumulada')
                     ->label('Mora')->money('COP')
                     ->color(fn ($state) => $state > 0 ? 'danger' : null),

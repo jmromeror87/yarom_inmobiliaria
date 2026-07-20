@@ -142,7 +142,13 @@
         <tr><td>CUOTA DE ADMINISTRACIÓN</td><td class="val">{{ $money($payment->valor_administracion) }}</td></tr>
         @endif
         @if($payment->valor_mora > 0)
-        <tr><td>RECARGOS APLICADOS</td><td class="val">{{ $money($payment->valor_mora) }}</td></tr>
+        <tr>
+            <td>
+                RECARGOS APLICADOS
+                @if($bill?->dias_mora > 0)<span class="desc-sub"><br>{{ $bill->dias_mora }} DÍA{{ $bill->dias_mora == 1 ? '' : 'S' }} DE MORA</span>@endif
+            </td>
+            <td class="val">{{ $money($payment->valor_mora) }}</td>
+        </tr>
         @endif
         @if($payment->otros_valores > 0)
         <tr><td>OTROS VALORES</td><td class="val">{{ $money($payment->otros_valores) }}</td></tr>
