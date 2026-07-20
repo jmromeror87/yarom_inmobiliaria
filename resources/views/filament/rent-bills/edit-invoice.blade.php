@@ -249,8 +249,9 @@
     @if($r->estado !== 'pagada' && $r->estado !== 'anulada')
     <div class="fac-block" style="margin-bottom:16px;">
       <div class="fac-block-title">Datos para consignación o transferencia</div>
-      <div class="fac-row"><label>Banco</label><span>{{ $company?->banco ?? 'Bancolombia' }}</span></div>
-      <div class="fac-row"><label>Cuenta ahorros</label><span>{{ $company?->numero_cuenta ?? 'N/A' }}</span></div>
+      @foreach(\App\Models\Bank::where('is_active', true)->where('tipo_cuenta', '!=', 'caja')->orderBy('id')->get() as $banco)
+        <div class="fac-row"><label>{{ $banco->nombre }} ({{ ucfirst($banco->tipo_cuenta) }})</label><span>{{ $banco->numero_cuenta }}</span></div>
+      @endforeach
       <div class="fac-row"><label>Titular</label><span>{{ $company?->razon_social ?? 'Inmobiliaria Serviarrendar S.A.S' }}</span></div>
       <div class="fac-row"><label>Referencia</label><span>{{ $r->numero }} — {{ mb_strtoupper($r->arrendatario?->nombre_completo ?? '', 'UTF-8') }}</span></div>
     </div>

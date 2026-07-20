@@ -319,10 +319,15 @@
 @endif
 
 {{-- DATOS PARA PAGO --}}
+@php
+    $bancosPago = \App\Models\Bank::where('is_active', true)->where('tipo_cuenta', '!=', 'caja')->orderBy('id')->get();
+@endphp
 <div class="datos-pago">
     <strong>Datos para consignación o transferencia:</strong><br>
-    Banco: {{ $company?->banco ?? 'Bancolombia' }} &nbsp;·&nbsp;
-    Cuenta: {{ $company?->numero_cuenta ?? 'N/A' }} &nbsp;·&nbsp;
+    @foreach($bancosPago as $banco)
+        {{ $banco->nombre }} {{ ucfirst($banco->tipo_cuenta) }}: {{ $banco->numero_cuenta }}@if(!$loop->last) &nbsp;·&nbsp; @endif
+    @endforeach
+    <br>
     Titular: {{ $company?->razon_social ?? 'Inmobiliaria Serviarrendar S.A.S' }}<br>
     Referencia de pago: <strong>{{ $bill->numero }} — {{ mb_strtoupper($arr?->nombre_completo ?? '', 'UTF-8') }}</strong>
 </div>
