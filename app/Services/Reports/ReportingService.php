@@ -358,6 +358,94 @@ class ReportingService
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    // 4B. LIBRO MAYOR — saldo inicial + movimiento del período + saldo final
+    // ══════════════════════════════════════════════════════════════════════
+
+    public static function libroMayor(Carbon $desde, Carbon $hasta, bool $soloConMovimiento = true): array
+    {
+        $company = Company::first();
+
+        // Saldo inicial: todo lo contabilizado ANTES de $desde
+        $inicial = static::lineasHasta($desde->copy()->subDay())
+            ->join('accounting_accounts as aa', 'accounting_entry_lines.account_id', '=', 'aa.id')
+            ->selectRaw('aa.codigo, SUM(accounting_entry_lines.debito) as deb, SUM(accounting_entry_lines.credito) as cre')
+            ->groupBy('aa.codigo')
+            ->get()
+            ->keyBy('codigo');
+
+        // Movimiento del período + datos de la cuenta
+        $periodo = static::lineasPeriodo($desde, $hasta)
+            ->join('accounting_accounts as aa', 'accounting_entry_lines.account_id', '=', 'aa.id')
+            ->selectRaw('aa.codigo, aa.nombre, aa.naturaleza, aa.clase,
+                         SUM(accounting_entry_lines.debito) as deb, SUM(accounting_entry_lines.credito) as cre')
+            ->groupBy('aa.codigo', 'aa.nombre', 'aa.naturaleza', 'aa.clase')
+            ->orderBy('aa.codigo')
+            ->get();
+
+        // Incluir también cuentas con saldo inicial pero SIN movimiento en el período
+        // (si no se pide "solo con movimiento") para que el saldo final sea completo
+        $codigosConPeriodo = $periodo->pluck('codigo')->all();
+        $cuentasSoloConInicial = collect();
+        if (!$soloConMovimiento) {
+            $cuentasSoloConInicial = \App\Models\AccountingAccount::where('acepta_movimiento', true)
+                ->whereIn('codigo', $inicial->keys()->diff($codigosConPeriodo))
+                ->get()
+                ->map(fn ($a) => (object) ['codigo' => $a->codigo, 'nombre' => $a->nombre, 'naturaleza' => $a->naturaleza, 'clase' => $a->clase, 'deb' => 0, 'cre' => 0]);
+        }
+
+        $cuentas = $periodo->concat($cuentasSoloConInicial)->sortBy('codigo')->map(function ($r) use ($inicial) {
+            $ini = $inicial->get($r->codigo);
+            $iniDeb = (float) ($ini->deb ?? 0);
+            $iniCre = (float) ($ini->cre ?? 0);
+            $saldoInicial = $r->naturaleza === 'debito' ? ($iniDeb - $iniCre) : ($iniCre - $iniDeb);
+
+            $movDeb = round((float) $r->deb, 2);
+            $movCre = round((float) $r->cre, 2);
+            $saldoFinal = $r->naturaleza === 'debito'
+                ? $saldoInicial + $movDeb - $movCre
+                : $saldoInicial + $movCre - $movDeb;
+
+            return [
+                'codigo'        => $r->codigo,
+                'nombre'        => $r->nombre,
+                'clase'         => $r->clase,
+                'naturaleza'    => $r->naturaleza,
+                'saldo_inicial' => round($saldoInicial, 2),
+                'debito'        => $movDeb,
+                'credito'       => $movCre,
+                'saldo_final'   => round($saldoFinal, 2),
+            ];
+        })
+        ->when($soloConMovimiento, fn ($c) => $c->filter(fn ($r) => $r['debito'] > 0 || $r['credito'] > 0 || abs($r['saldo_inicial']) > 0.01))
+        ->values();
+
+        $totalDeb = $cuentas->sum('debito');
+        $totalCre = $cuentas->sum('credito');
+        $cuadra = abs($totalDeb - $totalCre) < 1;
+
+        return [
+            'tipo'          => 'libro_mayor',
+            'titulo'        => 'Libro Mayor',
+            'empresa'       => $company?->razon_social ?? 'Serviarrendar S.A.S',
+            'nit'           => $company?->nit_completo ?? '',
+            'desde'         => $desde->toDateString(),
+            'hasta'         => $hasta->toDateString(),
+            'periodo_label' => $desde->locale('es')->isoFormat('D MMM YYYY') . ' — ' . $hasta->locale('es')->isoFormat('D MMM YYYY'),
+            'cuentas'       => $cuentas->toArray(),
+            'total_debitos' => round($totalDeb, 2),
+            'total_creditos'=> round($totalCre, 2),
+            'cuadra'        => $cuadra,
+            'diferencia'    => round(abs($totalDeb - $totalCre), 2),
+            'kpis'          => [
+                ['label' => 'Mov. débitos',    'valor' => $totalDeb, 'color' => 'blue',   'icon' => '📥'],
+                ['label' => 'Mov. créditos',   'valor' => $totalCre, 'color' => 'purple', 'icon' => '📤'],
+                ['label' => 'Cuadre',          'valor' => $cuadra ? '✅ CUADRA' : '❌ DESCUADRE', 'color' => $cuadra ? 'green' : 'red', 'icon' => '⚖️', 'es_pct' => true],
+                ['label' => 'Cuentas activas', 'valor' => $cuentas->count(), 'color' => 'gray', 'icon' => '📋', 'es_pct' => true],
+            ],
+        ];
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     // 5. ANÁLISIS DE CARTERA POR ANTIGÜEDAD
     // ══════════════════════════════════════════════════════════════════════
 

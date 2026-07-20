@@ -51,6 +51,7 @@ class ExcelExporter
             'balance_general'   => $this->buildBalanceGeneral(),
             'flujo_efectivo'    => $this->buildFlujoEfectivo(),
             'balance_prueba'    => $this->buildBalancePrueba(),
+            'libro_mayor'       => $this->buildLibroMayor(),
             'analisis_cartera'  => $this->buildAnalisisCartera(),
             'informe_retenciones'  => $this->buildRetenciones(),
             'informe_comisiones'   => $this->buildComisiones(),
@@ -560,6 +561,47 @@ class ExcelExporter
             $this->money($this->data['total_creditos']),
             $cuadra ? '✅ CUADRA' : '❌ DESCUADRE $' . number_format($this->data['diferencia'] ?? 0, 0, ',', '.'),
             '',
+        ], $row);
+
+        $this->setColWidths($ws, [12, 40, 16, 16, 16, 16]);
+        return $this->spreadsheet;
+    }
+
+    private function buildLibroMayor(): Spreadsheet
+    {
+        $ws  = $this->sheet();
+        $ws->setTitle('Libro Mayor');
+        $row = 1;
+
+        $this->header($ws, $this->data['titulo'], 'Período: ' . ($this->data['periodo_label'] ?? ''), $row);
+        $this->kpis($ws, $this->data['kpis'] ?? [], $row);
+
+        $claseLabels = ['1'=>'ACTIVOS','2'=>'PASIVOS','3'=>'PATRIMONIO','4'=>'INGRESOS','5'=>'GASTOS','8'=>'CTA ORDEN DEB','9'=>'CTA ORDEN ACRE'];
+        $cuentasPorClase = collect($this->data['cuentas'] ?? [])->groupBy('clase');
+
+        foreach ($cuentasPorClase as $clase => $cuentas) {
+            $this->sectionTitle($ws, ($claseLabels[$clase] ?? "CLASE {$clase}"), $row);
+            $row++;
+            $this->tableHeader($ws, ['Código', 'Cuenta', 'Saldo Inicial', 'Débito', 'Crédito', 'Saldo Final'], $row);
+            $row++;
+
+            foreach ($cuentas as $r) {
+                $this->tableRow($ws, [
+                    $r['codigo'], $r['nombre'],
+                    $this->money($r['saldo_inicial']),
+                    $this->money($r['debito']), $this->money($r['credito']),
+                    $this->money($r['saldo_final']),
+                ], $row++);
+            }
+            $row++;
+        }
+
+        $cuadra = $this->data['cuadra'] ?? false;
+        $this->totalRow($ws, [
+            '', 'TOTALES', '',
+            $this->money($this->data['total_debitos']),
+            $this->money($this->data['total_creditos']),
+            $cuadra ? '✅ CUADRA' : '❌ DESCUADRE $' . number_format($this->data['diferencia'] ?? 0, 0, ',', '.'),
         ], $row);
 
         $this->setColWidths($ws, [12, 40, 16, 16, 16, 16]);

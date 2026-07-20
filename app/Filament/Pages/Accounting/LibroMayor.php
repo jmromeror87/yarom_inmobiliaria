@@ -11,10 +11,10 @@ use Illuminate\Support\Collection;
 class LibroMayor extends Page
 {
     protected string $view = 'filament.accounting.libro-mayor';
-    protected static ?string $title = 'Libro Mayor';
+    protected static ?string $title = 'Libro Auxiliar';
     protected static string|\BackedEnum|null $navigationIcon  = 'heroicon-o-table-cells';
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
-    protected static ?string $navigationLabel = 'Libro Mayor';
+    protected static ?string $navigationLabel = 'Libro Auxiliar';
     protected static ?int    $navigationSort  = 6;
 
     public ?int $account_id = null;
