@@ -42,7 +42,7 @@ class CuentaPorCobrar extends Model
         });
     }
 
-    public function registrarAbono(float $valor, string $formaPago, string $referencia = '', int $userId = null, string $notas = ''): AbonoCartera
+    public function registrarAbono(float $valor, string $formaPago, string $referencia = '', ?int $userId = null, string $notas = ''): AbonoCartera
     {
         $abono = $this->abonos()->create([
             'valor'          => $valor,

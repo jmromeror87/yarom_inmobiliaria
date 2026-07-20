@@ -12,6 +12,8 @@ class CarteraTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->heading('Heredado Siinmob y Otros Conceptos')
+            ->description('Deuda migrada del sistema anterior, depósitos, daños y otros cobros manuales')
             ->columns([
                 TextColumn::make('numero')
                     ->label('N° Cuenta')

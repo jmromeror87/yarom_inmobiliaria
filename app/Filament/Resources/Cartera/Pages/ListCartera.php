@@ -32,7 +32,7 @@ class ListCartera extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
-        return [CarteraResource::getWidgets()[0] ?? []];
+        return CarteraResource::getWidgets();
     }
 
     public function getHeaderWidgetsColumns(): int | array

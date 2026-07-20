@@ -3,36 +3,46 @@
 namespace App\Filament\Widgets;
 
 use App\Models\CuentaPorCobrar;
+use App\Models\RentBill;
 use Filament\Widgets\ChartWidget;
 
 class CarteraPorEdadWidget extends ChartWidget
 {
     protected ?string $heading     = 'Cartera por Antigüedad de Mora';
-    protected ?string $description = 'Distribución del saldo pendiente según los días de retraso — verde = saludable, rojo = crítico';
+    protected ?string $description = 'Saldo pendiente por días de retraso — heredado de Siinmob vs. facturación del sistema nuevo';
     protected static ?int $sort    = 3;
     protected int|string|array $columnSpan = ['default' => 12, 'lg' => 12];
     public static function canView(): bool { return true; }
-    protected ?string $maxHeight   = '300px';
+    protected ?string $maxHeight   = '320px';
 
     protected function getData(): array
     {
-        $cuentas = CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])
-            ->where('saldo', '>', 0)
-            ->get(['saldo', 'fecha_vencimiento']);
+        $rangosHeredado = [0, 0, 0, 0, 0, 0];
+        $rangosActivo   = [0, 0, 0, 0, 0, 0];
 
-        $rangos = [0, 0, 0, 0, 0, 0];
+        $bucket = function (int $dias) {
+            if ($dias >= 0)        return 0;
+            if ($dias >= -30)      return 1;
+            if ($dias >= -60)      return 2;
+            if ($dias >= -90)      return 3;
+            if ($dias >= -180)     return 4;
+            return 5;
+        };
 
-        foreach ($cuentas as $c) {
+        $heredadas = CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])
+            ->where('saldo', '>', 0)->get(['saldo', 'fecha_vencimiento']);
+        foreach ($heredadas as $c) {
             if (!$c->fecha_vencimiento) continue;
-            $dias  = (int) now()->startOfDay()->diffInDays($c->fecha_vencimiento->startOfDay(), false);
-            $saldo = (float) $c->saldo;
+            $dias = (int) now()->startOfDay()->diffInDays($c->fecha_vencimiento->startOfDay(), false);
+            $rangosHeredado[$bucket($dias)] += (float) $c->saldo;
+        }
 
-            if ($dias >= 0)        $rangos[0] += $saldo;
-            elseif ($dias >= -30)  $rangos[1] += $saldo;
-            elseif ($dias >= -60)  $rangos[2] += $saldo;
-            elseif ($dias >= -90)  $rangos[3] += $saldo;
-            elseif ($dias >= -180) $rangos[4] += $saldo;
-            else                   $rangos[5] += $saldo;
+        $activas = RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])
+            ->where('saldo_pendiente', '>', 0)->get(['saldo_pendiente', 'fecha_limite_pago']);
+        foreach ($activas as $b) {
+            if (!$b->fecha_limite_pago) continue;
+            $dias = (int) now()->startOfDay()->diffInDays($b->fecha_limite_pago->startOfDay(), false);
+            $rangosActivo[$bucket($dias)] += (float) $b->saldo_pendiente;
         }
 
         return [
@@ -44,30 +54,26 @@ class CarteraPorEdadWidget extends ChartWidget
                 ['91 – 180', 'días'],
                 ['Más de', '180 días'],
             ],
-            'datasets' => [[
-                'label'               => 'Saldo pendiente',
-                'data'                => $rangos,
-                'backgroundColor'     => [
-                    'rgba(34,197,94,0.80)',
-                    'rgba(234,179,8,0.80)',
-                    'rgba(249,115,22,0.80)',
-                    'rgba(239,68,68,0.80)',
-                    'rgba(185,28,28,0.85)',
-                    'rgba(127,29,29,0.90)',
+            'datasets' => [
+                [
+                    'label'           => 'Cartera activa (sistema nuevo)',
+                    'data'            => $rangosActivo,
+                    'backgroundColor' => 'rgba(37,99,235,0.85)',
+                    'borderColor'     => 'rgb(29,78,216)',
+                    'borderWidth'     => 0,
+                    'borderRadius'    => 8,
+                    'stack'           => 'cartera',
                 ],
-                'borderColor'         => [
-                    'rgb(22,163,74)',
-                    'rgb(202,138,4)',
-                    'rgb(234,88,12)',
-                    'rgb(220,38,38)',
-                    'rgb(153,27,27)',
-                    'rgb(100,20,20)',
+                [
+                    'label'           => 'Heredado Siinmob',
+                    'data'            => $rangosHeredado,
+                    'backgroundColor' => 'rgba(124,58,237,0.85)',
+                    'borderColor'     => 'rgb(109,40,217)',
+                    'borderWidth'     => 0,
+                    'borderRadius'    => 8,
+                    'stack'           => 'cartera',
                 ],
-                'borderWidth'         => 2,
-                'borderRadius'        => 12,
-                'borderSkipped'       => false,
-                'hoverBorderWidth'    => 0,
-            ]],
+            ],
         ];
     }
 
@@ -77,18 +83,37 @@ class CarteraPorEdadWidget extends ChartWidget
     {
         return [
             'plugins' => [
-                'legend' => ['display' => false],
+                'legend' => [
+                    'display'  => true,
+                    'position' => 'bottom',
+                    'labels'   => [
+                        'usePointStyle' => true,
+                        'pointStyle'    => 'circle',
+                        'padding'       => 18,
+                        'font'          => ['size' => 11.5, 'weight' => '600'],
+                        'color'         => '#475569',
+                    ],
+                ],
                 'tooltip' => [
+                    'mode'      => 'index',
+                    'intersect' => false,
                     'callbacks' => [
                         'label' => "function(c){
                             var v = c.raw;
                             var fmt = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0,maximumFractionDigits:0});
-                            return '  Saldo: ' + fmt.format(v);
+                            return '  ' + c.dataset.label + ': ' + fmt.format(v);
+                        }",
+                        'footer' => "function(items){
+                            var fmt = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0,maximumFractionDigits:0});
+                            var total = items.reduce(function(s,i){ return s + i.raw; }, 0);
+                            return 'Total: ' + fmt.format(total);
                         }",
                     ],
-                    'backgroundColor' => 'rgba(15,23,42,0.92)',
+                    'backgroundColor' => 'rgba(15,23,42,0.94)',
                     'titleColor'      => '#f8fafc',
-                    'bodyColor'       => '#94a3b8',
+                    'bodyColor'       => '#cbd5e1',
+                    'footerColor'     => '#f8fafc',
+                    'footerFont'      => ['weight' => '700'],
                     'padding'         => 14,
                     'cornerRadius'    => 10,
                     'titleFont'       => ['size' => 13, 'weight' => '700'],
@@ -97,22 +122,24 @@ class CarteraPorEdadWidget extends ChartWidget
             ],
             'scales' => [
                 'x' => [
-                    'grid'   => ['display' => false],
-                    'border' => ['display' => false],
-                    'ticks'  => [
+                    'stacked' => true,
+                    'grid'    => ['display' => false],
+                    'border'  => ['display' => false],
+                    'ticks'   => [
                         'font'  => ['size' => 11, 'weight' => '600'],
                         'color' => '#64748b',
                     ],
                 ],
                 'y' => [
+                    'stacked'     => true,
                     'beginAtZero' => true,
-                    'grid'   => ['color' => 'rgba(148,163,184,0.1)', 'drawBorder' => false],
-                    'border' => ['display' => false],
-                    'ticks'  => [
-                        'callback'     => "function(v){ if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return '$'+(v/1000).toFixed(0)+'K'; return v===0?'$0':('$'+v); }",
-                        'font'         => ['size' => 10],
-                        'color'        => '#94a3b8',
-                        'maxTicksLimit'=> 5,
+                    'grid'        => ['color' => 'rgba(148,163,184,0.12)', 'drawBorder' => false],
+                    'border'      => ['display' => false],
+                    'ticks'       => [
+                        'callback'      => "function(v){ if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M'; if(v>=1000) return '$'+(v/1000).toFixed(0)+'K'; return v===0?'$0':('$'+v); }",
+                        'font'          => ['size' => 10],
+                        'color'         => '#94a3b8',
+                        'maxTicksLimit' => 5,
                     ],
                 ],
             ],
