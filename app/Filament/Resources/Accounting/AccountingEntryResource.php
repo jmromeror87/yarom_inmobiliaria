@@ -309,6 +309,15 @@ class AccountingEntryResource extends Resource
                     ->color('gray')
                     ->url(fn($record) => static::getUrl('view', ['record' => $record]))
                     ->visible(fn($record) => in_array($record->estado, ['contabilizado', 'anulado'])),
+
+                \Filament\Actions\Action::make('recibo')
+                    ->label('Recibo')
+                    ->icon('heroicon-o-printer')
+                    ->outlined()
+                    ->color('primary')
+                    ->url(fn($record) => route('comprobante.pdf', ['entry' => $record]))
+                    ->openUrlInNewTab()
+                    ->visible(fn($record) => $record->estado === 'contabilizado' && in_array($record->tipo, ['CI', 'CE', 'CR'])),
             ]);
     }
 
