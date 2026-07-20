@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\CuentaPorCobrar;
 use App\Models\OwnerLiquidation;
 use App\Models\Property;
 use App\Models\RentBill;
@@ -79,6 +80,70 @@ class Dashboard extends BaseDashboard
             ->whereBetween('fecha_fin', [now(), now()->addDays(60)])
             ->orderBy('fecha_fin')->limit(5)->get();
 
+        // ── Cartera por antigüedad de mora (activa + heredada Siinmob) ────
+        $bucketLabels = ['Al día', '1-30', '31-60', '61-90', '91-180', '+180'];
+        $bucket = function (int $dias) {
+            if ($dias >= 0) return 0;
+            if ($dias >= -30) return 1;
+            if ($dias >= -60) return 2;
+            if ($dias >= -90) return 3;
+            if ($dias >= -180) return 4;
+            return 5;
+        };
+        $carteraBuckets = [0, 0, 0, 0, 0, 0];
+        foreach (RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])->where('saldo_pendiente', '>', 0)->get(['saldo_pendiente', 'fecha_limite_pago']) as $b) {
+            if (!$b->fecha_limite_pago) continue;
+            $dias = (int) now()->startOfDay()->diffInDays($b->fecha_limite_pago->startOfDay(), false);
+            $carteraBuckets[$bucket($dias)] += (float) $b->saldo_pendiente;
+        }
+        foreach (CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])->where('saldo', '>', 0)->get(['saldo', 'fecha_vencimiento']) as $c) {
+            if (!$c->fecha_vencimiento) continue;
+            $dias = (int) now()->startOfDay()->diffInDays($c->fecha_vencimiento->startOfDay(), false);
+            $carteraBuckets[$bucket($dias)] += (float) $c->saldo;
+        }
+
+        // ── Ocupación por estado del inmueble ──────────────────────────────
+        $ocupacionEstados = Property::selectRaw('estado, count(*) c')->groupBy('estado')->pluck('c', 'estado');
+
+        // ── Salud del cierre mensual ────────────────────────────────────────
+        $contratosSinFacturar = RentalContract::where('estado', 'activo')
+            ->whereNotNull('fecha_entrega_efectiva')
+            ->whereDoesntHave('rentBills', fn ($q) => $q->where('mes', $mes)->where('anio', $anio))
+            ->count();
+
+        $vencidasSinMoraVerificada = RentBill::whereIn('estado', ['pendiente', 'parcial'])
+            ->whereRaw('DATE_ADD(fecha_limite_pago, INTERVAL dias_gracia DAY) < ?', [now()->toDateString()])
+            ->whereDoesntHave('property.businessOrigin', fn ($q) => $q->where('nombre', 'Victoria'))
+            ->count();
+
+        $liquidacionesPendientesAprobar = OwnerLiquidation::where('estado', 'pendiente')->count();
+        $girosPendientes = OwnerLiquidation::whereIn('estado', ['pendiente', 'aprobada'])->count();
+        $girosPendientesMonto = (float) OwnerLiquidation::whereIn('estado', ['pendiente', 'aprobada'])->sum('total_giro');
+
+        $mesLabelStr = now()->translatedFormat('F Y');
+        $saludCierre = [
+            [
+                'label' => 'Facturación del mes',
+                'ok'    => $contratosSinFacturar === 0,
+                'texto' => $contratosSinFacturar === 0 ? 'Todos los contratos activos tienen factura de ' . $mesLabelStr : "{$contratosSinFacturar} contrato(s) activo(s) sin factura de {$mesLabelStr}",
+            ],
+            [
+                'label' => 'Verificación de mora',
+                'ok'    => $vencidasSinMoraVerificada === 0,
+                'texto' => $vencidasSinMoraVerificada === 0 ? 'Al día — sin facturas vencidas por verificar' : "{$vencidasSinMoraVerificada} factura(s) vencida(s) sin marcar en mora",
+            ],
+            [
+                'label' => 'Liquidaciones por aprobar',
+                'ok'    => $liquidacionesPendientesAprobar === 0,
+                'texto' => $liquidacionesPendientesAprobar === 0 ? 'Sin liquidaciones pendientes de aprobar' : "{$liquidacionesPendientesAprobar} liquidación(es) esperando aprobación",
+            ],
+            [
+                'label' => 'Giros a propietarios',
+                'ok'    => $girosPendientes === 0,
+                'texto' => $girosPendientes === 0 ? 'Todos los propietarios están al día' : "{$girosPendientes} giro(s) pendientes — " . $fmt($girosPendientesMonto),
+            ],
+        ];
+
         // ── Accesos rápidos ───────────────────────────────────────────────
         $accesos = [
             ['label' => 'Nuevo Contrato',   'icon' => 'heroicon-o-document-plus',    'url' => '/admin/contratos-arriendo/create', 'color' => '#2563EB'],
@@ -111,6 +176,10 @@ class Dashboard extends BaseDashboard
             'contratosPorVencer'=> $contratosPorVencer,
             'accesos'           => $accesos,
             'mesLabel'          => now()->translatedFormat('F Y'),
+            'bucketLabels'      => $bucketLabels,
+            'carteraBuckets'    => $carteraBuckets,
+            'ocupacionEstados'  => $ocupacionEstados,
+            'saludCierre'       => $saludCierre,
         ];
     }
 }

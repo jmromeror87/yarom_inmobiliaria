@@ -173,6 +173,7 @@ class RentalContract extends Model
     public function clauses(): HasMany                 { return $this->hasMany(RentalContractClause::class)->orderBy('orden'); }
     public function thirds(): HasMany                  { return $this->hasMany(RentalContractThird::class)->orderBy('orden'); }
     public function cuentasPorCobrar(): HasMany        { return $this->hasMany(CuentaPorCobrar::class); }
+    public function rentBills(): HasMany               { return $this->hasMany(RentBill::class); }
     public function amendments(): HasMany              { return $this->hasMany(ContractAmendment::class)->orderByDesc('fecha_firma'); }
     public function depositoCartera(): ?CuentaPorCobrar
     {

@@ -223,6 +223,64 @@
 
     </div>
 
+    {{-- ── SALUD DEL CIERRE + DONUTS ── --}}
+    <div class="yr-grid-3" style="grid-template-columns:1.1fr 1fr 1fr;margin-bottom:16px;">
+
+        {{-- Salud del cierre mensual --}}
+        <div class="yr-card">
+            <div class="yr-card-header">
+                <div>
+                    <div class="yr-card-title">Salud del Cierre Mensual</div>
+                    <div class="yr-card-sub">Checklist automático · {{ $mesLabel }}</div>
+                </div>
+                @php $todoOk = collect($saludCierre)->every(fn($s) => $s['ok']); @endphp
+                <span class="yr-badge" style="background:{{ $todoOk ? '#d1fae5' : '#fee2e2' }};color:{{ $todoOk ? '#059669' : '#dc2626' }};">
+                    {{ $todoOk ? '✓ Todo al día' : '⚠ Requiere atención' }}
+                </span>
+            </div>
+            <div class="yr-card-body" style="padding:14px 20px;">
+                @foreach($saludCierre as $item)
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;{{ !$loop->last ? 'border-bottom:1px solid #f8fafc;' : '' }}">
+                    <div style="width:20px;height:20px;border-radius:50%;background:{{ $item['ok'] ? '#d1fae5' : '#fee2e2' }};color:{{ $item['ok'] ? '#059669' : '#dc2626' }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px;">
+                        {{ $item['ok'] ? '✓' : '!' }}
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.78rem;font-weight:800;color:#0F172A;">{{ $item['label'] }}</div>
+                        <div style="font-size:0.7rem;color:{{ $item['ok'] ? '#94a3b8' : '#dc2626' }};font-weight:{{ $item['ok'] ? '500' : '700' }};">{{ $item['texto'] }}</div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Cartera por antigüedad --}}
+        <div class="yr-card">
+            <div class="yr-card-header">
+                <div>
+                    <div class="yr-card-title">Cartera por Antigüedad</div>
+                    <div class="yr-card-sub">Activa + heredada Siinmob</div>
+                </div>
+            </div>
+            <div class="yr-card-body" style="display:flex;align-items:center;justify-content:center;">
+                <canvas id="chartCarteraEdad" height="150"></canvas>
+            </div>
+        </div>
+
+        {{-- Ocupación por estado --}}
+        <div class="yr-card">
+            <div class="yr-card-header">
+                <div>
+                    <div class="yr-card-title">Ocupación del Portafolio</div>
+                    <div class="yr-card-sub">{{ $totalInm }} inmuebles totales</div>
+                </div>
+            </div>
+            <div class="yr-card-body" style="display:flex;align-items:center;justify-content:center;">
+                <canvas id="chartOcupacion" height="150"></canvas>
+            </div>
+        </div>
+
+    </div>
+
     {{-- ── CHARTS + TABLA ── --}}
     <div class="yr-grid-2" style="margin-bottom:16px;">
 
@@ -374,6 +432,53 @@
 document.addEventListener('DOMContentLoaded', function () {
     const recaudo6 = @json($recaudo6meses);
     const recaudo7 = @json($recaudo7dias);
+    const bucketLabels = @json($bucketLabels);
+    const carteraBuckets = @json($carteraBuckets);
+    const ocupacionEstados = @json($ocupacionEstados);
+
+    // Donut: cartera por antigüedad
+    new Chart(document.getElementById('chartCarteraEdad'), {
+        type: 'doughnut',
+        data: {
+            labels: bucketLabels,
+            datasets: [{
+                data: carteraBuckets,
+                backgroundColor: ['#16a34a','#eab308','#f97316','#ef4444','#b91c1c','#7f1d1d'],
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true, cutout: '68%',
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' }, boxWidth: 9, boxHeight: 9, padding: 8 } },
+                tooltip: { callbacks: { label: c => '  ' + c.label + ': $' + Number(c.raw).toLocaleString('es-CO') } }
+            }
+        }
+    });
+
+    // Donut: ocupación por estado
+    const estadoColores = { arrendado: '#2563EB', disponible: '#16a34a', inactivo: '#94a3b8', mantenimiento: '#d97706', reservado: '#7c3aed' };
+    const estadoLabels = { arrendado: 'Arrendado', disponible: 'Disponible', inactivo: 'Inactivo', mantenimiento: 'Mantenimiento', reservado: 'Reservado' };
+    const estadoKeys = Object.keys(ocupacionEstados);
+    new Chart(document.getElementById('chartOcupacion'), {
+        type: 'doughnut',
+        data: {
+            labels: estadoKeys.map(k => estadoLabels[k] || k),
+            datasets: [{
+                data: estadoKeys.map(k => ocupacionEstados[k]),
+                backgroundColor: estadoKeys.map(k => estadoColores[k] || '#cbd5e1'),
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true, cutout: '68%',
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' }, boxWidth: 9, boxHeight: 9, padding: 8 } }
+            }
+        }
+    });
 
     // Chart 6 meses
     new Chart(document.getElementById('chartRecaudo'), {
