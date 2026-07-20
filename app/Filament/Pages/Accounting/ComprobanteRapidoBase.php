@@ -146,8 +146,7 @@ abstract class ComprobanteRapidoBase extends Page
             });
 
             Notification::make()->title('Comprobante registrado y contabilizado')->success()->send();
-            $this->reset(['third_id', 'aplicacion', 'obligacion', 'monto', 'concepto', 'referencia', 'account_id']);
-            $this->fecha = now()->toDateString();
+            $this->redirect(\App\Filament\Resources\Accounting\AccountingEntryResource::getUrl('index'));
         } catch (\Throwable $e) {
             Notification::make()->title('No se pudo registrar: ' . $e->getMessage())->danger()->send();
         }

@@ -9,6 +9,7 @@ class ComprobanteIngreso extends ComprobanteRapidoBase
     protected static string|\UnitEnum|null $navigationGroup = 'Contabilidad';
     protected static ?string $navigationLabel = 'Comp. de Ingreso';
     protected static ?int $navigationSort = 3;
+    protected static bool $shouldRegisterNavigation = false;
 
     public function tipo(): string
     {
