@@ -5,7 +5,10 @@ namespace App\Services;
 use App\Models\AccountingAccount;
 use App\Models\AccountingEntry;
 use App\Models\AccountingPeriod;
+use App\Models\Bank;
 use App\Models\Company;
+use App\Models\CuentaPorCobrar;
+use App\Models\CuentaPorPagarPropietario;
 use App\Models\OwnerLiquidation;
 use App\Models\RentBill;
 use App\Models\RentPayment;
@@ -360,7 +363,8 @@ class ContabilidadService
         if ($monto <= 0) return null;
 
         $cuentaXPagarProp = static::cuentaId('23354001');
-        $cuentaBancos     = static::cuentaId('11100502');
+        $cuentaBancos     = $liq->bancoGiro?->accounting_account_id ?: static::cuentaId('11100502');
+        $nombreBanco      = $liq->bancoGiro?->nombre;
 
         if (!$cuentaXPagarProp || !$cuentaBancos) return null;
 
@@ -374,7 +378,7 @@ class ContabilidadService
             'referencia_id'   => $liq->id,
         ], [
             ['account_id' => $cuentaXPagarProp, 'debito' => $monto, 'credito' => 0,      'descripcion' => "Cancelación obligación {$liq->numero}", 'third_id' => $liq->propietario_id],
-            ['account_id' => $cuentaBancos,     'debito' => 0,      'credito' => $monto, 'descripcion' => "Giro {$liq->propietario?->nombre_completo}", 'third_id' => $liq->propietario_id],
+            ['account_id' => $cuentaBancos,     'debito' => 0,      'credito' => $monto, 'descripcion' => $nombreBanco ? "Giro {$liq->propietario?->nombre_completo} — {$nombreBanco}" : "Giro {$liq->propietario?->nombre_completo}", 'third_id' => $liq->propietario_id],
         ]);
     }
 
@@ -464,6 +468,80 @@ class ContabilidadService
             'referencia'      => $property->codigo,
             'referencia_tipo' => $tipo,
             'referencia_id'   => $property->id,
+        ], $lineas);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // COMPROBANTE RÁPIDO — asistente de Ingreso/Egreso
+    // ────────────────────────────────────────────────────────────────────────
+
+    /** Abono a una cuenta por cobrar heredada de Siinmob (el modelo solo actualiza saldo, no contabiliza) */
+    public static function generarParaAbonoCarteraHeredada(CuentaPorCobrar $cpc, float $monto, Bank $bank, string $fecha): ?AccountingEntry
+    {
+        $cuentaCartera = static::cuentaId('13050501');
+        $cuentaBanco   = $bank->accounting_account_id ?: static::cuentaId('11100502');
+        if (!$cuentaCartera || !$cuentaBanco) return null;
+
+        return static::crearComprobante([
+            'tipo'            => 'CR',
+            'fecha'           => $fecha,
+            'descripcion'     => "Abono cartera heredada {$cpc->numero} — {$cpc->third?->nombre_completo}",
+            'third_id'        => $cpc->third_id,
+            'referencia'      => $cpc->numero,
+            'referencia_tipo' => 'abono_cartera_heredada',
+            'referencia_id'   => $cpc->id,
+        ], [
+            ['account_id' => $cuentaBanco,   'debito' => $monto, 'credito' => 0,      'descripcion' => "Abono recibido {$cpc->numero} — {$bank->nombre}", 'third_id' => $cpc->third_id],
+            ['account_id' => $cuentaCartera, 'debito' => 0,      'credito' => $monto, 'descripcion' => "Abono cartera heredada {$cpc->numero}",           'third_id' => $cpc->third_id],
+        ]);
+    }
+
+    /** Pago a una cuenta por pagar a propietario heredada de Siinmob */
+    public static function generarParaPagoCxpHeredada(CuentaPorPagarPropietario $cpp, float $monto, Bank $bank, string $fecha): ?AccountingEntry
+    {
+        $cuentaCxp   = static::cuentaId('23354001');
+        $cuentaBanco = $bank->accounting_account_id ?: static::cuentaId('11100502');
+        if (!$cuentaCxp || !$cuentaBanco) return null;
+
+        return static::crearComprobante([
+            'tipo'            => 'CE',
+            'fecha'           => $fecha,
+            'descripcion'     => "Pago CxP heredada {$cpp->numero} — {$cpp->third?->nombre_completo}",
+            'third_id'        => $cpp->third_id,
+            'referencia'      => $cpp->numero,
+            'referencia_tipo' => 'pago_cxp_heredada',
+            'referencia_id'   => $cpp->id,
+        ], [
+            ['account_id' => $cuentaCxp,   'debito' => $monto, 'credito' => 0,      'descripcion' => "Cancelación CxP heredada {$cpp->numero}",        'third_id' => $cpp->third_id],
+            ['account_id' => $cuentaBanco, 'debito' => 0,      'credito' => $monto, 'descripcion' => "Pago {$cpp->numero} — {$bank->nombre}",           'third_id' => $cpp->third_id],
+        ]);
+    }
+
+    /** Comprobante libre de ingreso/egreso contra una cuenta cualquiera (gasto vario, ingreso vario, etc.) */
+    public static function generarComprobanteRapido(string $tipo, Bank $bank, int $cuentaContrariaId, float $monto, string $concepto, ?int $thirdId, string $fecha, ?string $referencia = null): ?AccountingEntry
+    {
+        $cuentaBanco = $bank->accounting_account_id ?: static::cuentaId('11100502');
+        if (!$cuentaBanco) return null;
+
+        // CI = entra dinero (débito banco, crédito cuenta elegida) — CE = sale dinero (débito cuenta elegida, crédito banco)
+        $lineas = $tipo === 'CI'
+            ? [
+                ['account_id' => $cuentaBanco,       'debito' => $monto, 'credito' => 0,      'descripcion' => $concepto, 'third_id' => $thirdId],
+                ['account_id' => $cuentaContrariaId, 'debito' => 0,      'credito' => $monto, 'descripcion' => $concepto, 'third_id' => $thirdId],
+            ]
+            : [
+                ['account_id' => $cuentaContrariaId, 'debito' => $monto, 'credito' => 0,      'descripcion' => $concepto, 'third_id' => $thirdId],
+                ['account_id' => $cuentaBanco,        'debito' => 0,      'credito' => $monto, 'descripcion' => $concepto, 'third_id' => $thirdId],
+            ];
+
+        return static::crearComprobante([
+            'tipo'            => $tipo,
+            'fecha'           => $fecha,
+            'descripcion'     => $concepto,
+            'third_id'        => $thirdId,
+            'referencia'      => $referencia,
+            'referencia_tipo' => 'comprobante_rapido',
+            'referencia_id'   => null,
         ], $lineas);
     }
 }

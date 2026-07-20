@@ -36,7 +36,7 @@ class OwnerLiquidation extends Model
         'aplica_retefuente', 'retefuente_valor',
         'seguro_sura_deducido',
         'otros_descuentos', 'descripcion_descuentos', 'total_giro',
-        'estado', 'fecha_giro', 'forma_giro', 'referencia_giro',
+        'estado', 'fecha_giro', 'forma_giro', 'banco_giro_id', 'referencia_giro',
         'comprobante_giro_path', 'wap_enviado', 'wap_enviado_at', 'notas',
     ];
 
@@ -167,6 +167,7 @@ class OwnerLiquidation extends Model
     public function rentalContract(): BelongsTo { return $this->belongsTo(RentalContract::class); }
     public function property(): BelongsTo       { return $this->belongsTo(Property::class); }
     public function propietario(): BelongsTo    { return $this->belongsTo(Third::class, 'propietario_id'); }
+    public function bancoGiro(): BelongsTo      { return $this->belongsTo(Bank::class, 'banco_giro_id'); }
     public function bills(): HasMany            { return $this->hasMany(RentBill::class); }
     public function statusHistories(): HasMany  { return $this->hasMany(OwnerLiquidationStatusHistory::class)->orderByDesc('cambiado_en'); }
 }
