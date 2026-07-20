@@ -35,7 +35,7 @@ class RenovarContratosJob implements ShouldQueue
         $empresa = \App\Models\Company::first()?->razon_social ?? 'Serviarrendar S.A.S';
 
         $contratos = RentalContract::where('estado', 'activo')
-            ->whereIn('tipo_incremento', ['ipc', 'porcentaje_fijo'])
+            ->whereIn('tipo_incremento', ['ipc_vivienda', 'porcentaje_fijo'])
             ->whereDate('fecha_fin', '<=', now()->toDateString())
             ->with(['arrendatario', 'asesor', 'property'])
             ->get();
@@ -62,7 +62,7 @@ class RenovarContratosJob implements ShouldQueue
     {
         // Calcular nuevo canon según tipo de incremento
         $canonActual = (float) $contrato->canon_mensual;
-        $pct         = $contrato->tipo_incremento === 'ipc'
+        $pct         = $contrato->tipo_incremento === 'ipc_vivienda'
             ? self::IPC_ANUAL
             : (float) $contrato->porcentaje_incremento;
 
@@ -101,7 +101,7 @@ class RenovarContratosJob implements ShouldQueue
 
         $nombre   = $arrendatario->nombre_completo ?? $arrendatario->razon_social;
         $inmueble = $contrato->property?->direccion ?? $contrato->property?->codigo;
-        $tipoPct  = $contrato->tipo_incremento === 'ipc' ? 'IPC' : 'incremento pactado';
+        $tipoPct  = $contrato->tipo_incremento === 'ipc_vivienda' ? 'IPC' : 'incremento pactado';
 
         $msg = "🔄 *Renovación de contrato*\n\n"
             . "Estimado(a) {$nombre},\n\n"
