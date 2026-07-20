@@ -3,19 +3,28 @@
 namespace App\Filament\Resources\Cartera\Pages;
 
 use App\Filament\Resources\Cartera\CarteraResource;
-use App\Filament\Resources\Cartera\Tables\CarteraTable;
 use App\Models\CuentaPorCobrar;
+use App\Models\RentBill;
 use Filament\Actions\Action;
-use Filament\Pages\Concerns\ExposesTableToWidgets;
-use Filament\Resources\Pages\ListRecords;
-use Filament\Tables\Table;
-use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Resources\Pages\Page;
+use Livewire\Attributes\Url;
+use Livewire\WithPagination;
 
-class ListCartera extends ListRecords
+class ListCartera extends Page
 {
-    use ExposesTableToWidgets;
+    use WithPagination;
 
     protected static string $resource = CarteraResource::class;
+
+    protected string $view = 'filament.resources.cartera.pages.list-cartera';
+
+    #[Url]
+    public string $tab = 'resumen';
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = $tab;
+    }
 
     protected function getHeaderActions(): array
     {
@@ -30,35 +39,46 @@ class ListCartera extends ListRecords
         ];
     }
 
-    protected function getHeaderWidgets(): array
+    public function getKpisProperty(): array
     {
-        return CarteraResource::getWidgets();
-    }
+        $activa = (float) RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])->sum('saldo_pendiente');
+        $activaCount = RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])->count();
 
-    public function getHeaderWidgetsColumns(): int | array
-    {
-        return 4;
-    }
+        $heredado = (float) CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])->sum('saldo');
+        $heredadoCount = CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])->count();
 
-    protected function getStats(): array
-    {
-        $total    = CuentaPorCobrar::whereIn('estado', ['pendiente','parcial'])->sum('saldo');
-        $vencidas = CuentaPorCobrar::whereIn('estado', ['pendiente','parcial'])
+        $vencidaActiva = (float) RentBill::whereIn('estado', ['en_mora', 'vencida'])->sum('saldo_pendiente');
+        $vencidaHeredado = (float) CuentaPorCobrar::whereIn('estado', ['pendiente', 'parcial'])
             ->where('fecha_vencimiento', '<', now())->sum('saldo');
-        $pagadas  = CuentaPorCobrar::where('estado', 'pagado')
-            ->whereMonth('fecha_pago_total', now()->month)->sum('valor_original');
-        $count    = CuentaPorCobrar::whereIn('estado', ['pendiente','parcial'])->count();
+
+        $recaudadoMes = (float) \App\Models\RentPayment::whereYear('fecha_pago', now()->year)
+            ->whereMonth('fecha_pago', now()->month)->sum('total_pagado');
 
         return [
-            Stat::make('Cartera total', '$' . number_format($total, 0, ',', '.'))->color('warning'),
-            Stat::make('Cartera vencida', '$' . number_format($vencidas, 0, ',', '.'))->color('danger'),
-            Stat::make('Recaudo este mes', '$' . number_format($pagadas, 0, ',', '.'))->color('success'),
-            Stat::make('Cuentas activas', $count)->color('info'),
+            'total_pendiente'   => $activa + $heredado,
+            'total_count'       => $activaCount + $heredadoCount,
+            'activa'            => $activa,
+            'activa_count'      => $activaCount,
+            'heredado'          => $heredado,
+            'heredado_count'    => $heredadoCount,
+            'vencida'           => $vencidaActiva + $vencidaHeredado,
+            'recaudado_mes'     => $recaudadoMes,
         ];
     }
 
-    public function table(Table $table): Table
+    public function getCarteraActivaProperty()
     {
-        return CarteraTable::configure($table);
+        return RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])
+            ->where('saldo_pendiente', '>', 0)
+            ->with('arrendatario')
+            ->orderBy('fecha_limite_pago')
+            ->paginate(15, ['*'], 'activa_page');
+    }
+
+    public function getHeredadoProperty()
+    {
+        return CuentaPorCobrar::with('third')
+            ->orderByDesc('created_at')
+            ->paginate(15, ['*'], 'heredado_page');
     }
 }

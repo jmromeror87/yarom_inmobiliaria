@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Cartera;
 use App\Filament\Resources\Cartera\Pages\CreateCartera;
 use App\Filament\Resources\Cartera\Pages\ListCartera;
 use App\Filament\Resources\Cartera\Pages\ViewCartera;
-use App\Filament\Widgets\CarteraActivaWidget;
 use App\Filament\Widgets\CarteraPorEdadWidget;
 use App\Models\CuentaPorCobrar;
 use App\Models\Property;
@@ -107,7 +106,7 @@ class CarteraResource extends Resource
 
     public static function getWidgets(): array
     {
-        return [CarteraPorEdadWidget::class, CarteraActivaWidget::class];
+        return [CarteraPorEdadWidget::class];
     }
 
     public static function getPages(): array
