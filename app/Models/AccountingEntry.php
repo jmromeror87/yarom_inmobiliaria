@@ -54,12 +54,25 @@ class AccountingEntry extends Model
     public static function generarNumero(string $tipo): string
     {
         $anio = now()->year;
-        // lockForUpdate evita race condition en inserciones simultáneas del mismo tipo
+        // La migración del histórico Siinmob insertó miles de comprobantes con
+        // created_at de HOY (no la fecha original de la nota), lo que infla el
+        // conteo por año y produce números que ya existen entre esos registros
+        // heredados. Se excluyen del conteo y, por seguridad adicional, se
+        // verifica que el número candidato no exista ya (de ningún origen)
+        // antes de asignarlo — lockForUpdate evita carreras entre inserciones
+        // simultáneas del mismo tipo.
         $ultimo = static::where('tipo', $tipo)
             ->whereYear('created_at', $anio)
+            ->where('referencia_tipo', '!=', 'historico_siinmob')
             ->lockForUpdate()
-            ->count() + 1;
-        return $tipo . '-' . $anio . '-' . str_pad($ultimo, 4, '0', STR_PAD_LEFT);
+            ->count();
+
+        do {
+            $ultimo++;
+            $candidato = $tipo . '-' . $anio . '-' . str_pad($ultimo, 4, '0', STR_PAD_LEFT);
+        } while (static::where('numero', $candidato)->exists());
+
+        return $candidato;
     }
 
     public function period(): BelongsTo     { return $this->belongsTo(AccountingPeriod::class, 'period_id'); }

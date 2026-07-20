@@ -23,6 +23,7 @@ class GenerarFacturasMensuales implements ShouldQueue
         private ?int $mesParam = null,
         private ?int $anioParam = null,
         private ?int $businessOriginId = null,
+        private bool $enviarWhatsapp = true,
     ) {}
 
     public function handle(): void
@@ -123,7 +124,7 @@ class GenerarFacturasMensuales implements ShouldQueue
             ]);
 
             // Generar token de pago y enviar link por WhatsApp
-            if ($contrato->arrendatario?->celular) {
+            if ($this->enviarWhatsapp && $contrato->arrendatario?->celular) {
                 try {
                     $token    = $bill->generatePaymentToken();
                     $urlPago  = route('payment.show', ['token' => $token]);
