@@ -428,6 +428,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const recaudo6 = @json($recaudo6meses);
@@ -436,9 +437,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const carteraBuckets = @json($carteraBuckets);
     const ocupacionEstados = @json($ocupacionEstados);
 
-    // Donut: cartera por antigüedad
+    // Torta: cartera por antigüedad
     new Chart(document.getElementById('chartCarteraEdad'), {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: bucketLabels,
             datasets: [{
@@ -449,20 +450,30 @@ document.addEventListener('DOMContentLoaded', function () {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: true, cutout: '68%',
+            responsive: true, maintainAspectRatio: true,
             plugins: {
                 legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' }, boxWidth: 9, boxHeight: 9, padding: 8 } },
-                tooltip: { callbacks: { label: c => '  ' + c.label + ': $' + Number(c.raw).toLocaleString('es-CO') } }
+                tooltip: { callbacks: { label: c => '  ' + c.label + ': $' + Number(c.raw).toLocaleString('es-CO') } },
+                datalabels: {
+                    color: '#fff',
+                    font: { family: 'Plus Jakarta Sans', size: 12, weight: '800' },
+                    formatter: (value, ctx) => {
+                        const total = ctx.chart.getDatasetMeta(0).total;
+                        if (!value || !total) return '';
+                        const pct = (value / total) * 100;
+                        return pct < 4 ? '' : pct.toFixed(0) + '%';
+                    }
+                }
             }
         }
     });
 
-    // Donut: ocupación por estado
+    // Torta: ocupación por estado
     const estadoColores = { arrendado: '#2563EB', disponible: '#16a34a', inactivo: '#94a3b8', mantenimiento: '#d97706', reservado: '#7c3aed' };
     const estadoLabels = { arrendado: 'Arrendado', disponible: 'Disponible', inactivo: 'Inactivo', mantenimiento: 'Mantenimiento', reservado: 'Reservado' };
     const estadoKeys = Object.keys(ocupacionEstados);
     new Chart(document.getElementById('chartOcupacion'), {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: estadoKeys.map(k => estadoLabels[k] || k),
             datasets: [{
@@ -473,9 +484,19 @@ document.addEventListener('DOMContentLoaded', function () {
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: true, cutout: '68%',
+            responsive: true, maintainAspectRatio: true,
             plugins: {
-                legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' }, boxWidth: 9, boxHeight: 9, padding: 8 } }
+                legend: { position: 'bottom', labels: { font: { family: 'Plus Jakarta Sans', size: 10, weight: '700' }, boxWidth: 9, boxHeight: 9, padding: 8 } },
+                datalabels: {
+                    color: '#fff',
+                    font: { family: 'Plus Jakarta Sans', size: 12, weight: '800' },
+                    formatter: (value, ctx) => {
+                        const total = ctx.chart.getDatasetMeta(0).total;
+                        if (!value || !total) return '';
+                        const pct = (value / total) * 100;
+                        return pct < 4 ? '' : pct.toFixed(0) + '%';
+                    }
+                }
             }
         }
     });
@@ -506,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         options: {
             responsive: true, maintainAspectRatio: true,
-            plugins: { legend: { labels: { font: { family: 'Plus Jakarta Sans', size: 11, weight: '700' }, boxWidth: 12, boxHeight: 12 } } },
+            plugins: { legend: { labels: { font: { family: 'Plus Jakarta Sans', size: 11, weight: '700' }, boxWidth: 12, boxHeight: 12 } }, datalabels: { display: false } },
             scales: {
                 x: { grid: { display: false }, ticks: { font: { family: 'Plus Jakarta Sans', size: 11 } } },
                 y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Plus Jakarta Sans', size: 10 }, callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) } }
@@ -529,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         options: {
             responsive: true, maintainAspectRatio: true,
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 x: { grid: { display: false }, ticks: { font: { family: 'Plus Jakarta Sans', size: 11 } } },
                 y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Plus Jakarta Sans', size: 10 }, callback: v => '$' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) } }
