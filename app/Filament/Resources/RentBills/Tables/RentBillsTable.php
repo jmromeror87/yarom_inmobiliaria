@@ -27,7 +27,8 @@ class RentBillsTable
 
                 TextColumn::make('arrendatario.nombre_completo')
                     ->label('Arrendatario')
-                    ->searchable(),
+                    ->searchable()
+                    ->description(fn ($record) => $record->rentalContract?->en_revision ? '⚠️ Contrato en revisión' : null),
 
                 TextColumn::make('mes')
                     ->label('Periodo')

@@ -37,6 +37,7 @@ class VerificarMoraJob implements ShouldQueue
         $bills = RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])
             ->whereRaw('DATE_ADD(fecha_limite_pago, INTERVAL dias_gracia DAY) < ?', [$hoy])
             ->whereDoesntHave('property.businessOrigin', fn ($q) => $q->where('nombre', 'Victoria'))
+            ->whereDoesntHave('rentalContract', fn ($q) => $q->where('en_revision', true))
             ->with(['arrendatario', 'property', 'rentalContract'])
             ->get();
 

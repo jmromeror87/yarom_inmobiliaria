@@ -39,7 +39,7 @@ class RentalContract extends Model
         'duracion_meses','tipo_incremento','porcentaje_incremento','meses_preaviso',
         'servicios_cargo_arrendatario','tipo_garantia','estado','fecha_firma',
         'firmado_por','path_contrato_firmado','fecha_terminacion','causal_terminacion','notas',
-        'admin_cobrada_por','mora_solo_sobre_canon',
+        'admin_cobrada_por','mora_solo_sobre_canon','en_revision','nota_revision',
         'estado_deposito','fecha_pago_deposito','deposito_pagado','notas_deposito',
     ];
 

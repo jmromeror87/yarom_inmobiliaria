@@ -17,7 +17,8 @@ class RentalContractsTable
             ->columns([
                 TextColumn::make('numero_contrato')
                     ->label('N° Contrato')->searchable()->sortable()
-                    ->weight('bold')->color('primary'),
+                    ->weight('bold')->color('primary')
+                    ->description(fn ($record) => $record->en_revision ? '⚠️ EN REVISIÓN — verificar vigencia real' : null),
 
                 TextColumn::make('tipo')
                     ->label('Tipo')->badge()

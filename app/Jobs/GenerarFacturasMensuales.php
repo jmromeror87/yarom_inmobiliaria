@@ -47,6 +47,7 @@ class GenerarFacturasMensuales implements ShouldQueue
         $periodoFin    = $periodoBase->copy()->endOfMonth()->toDateString();
 
         $contratos = RentalContract::where('estado', 'activo')
+            ->where('en_revision', false)
             ->when($this->businessOriginId, fn ($q) => $q->whereHas('property', fn ($p) => $p->where('business_origin_id', $this->businessOriginId)))
             ->with(['property', 'arrendatario'])
             ->get();
