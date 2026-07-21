@@ -4,21 +4,25 @@
     $cuentas    = $this->getCuentas();
     $periodos   = $this->getPeriodos();
     $cuenta     = $this->getCuentaActual();
-    $movs       = $this->getMovimientos();
-    $fmt        = fn($v) => '$' . number_format($v, 2, ',', '.');
+    $movs        = $this->getMovimientos();
+    $fmt         = fn($v) => '$' . number_format($v, 2, ',', '.');
 
-    $totalDeb   = $movs->sum('debito');
-    $totalCre   = $movs->sum('credito');
-    $saldoFinal = $cuenta?->naturaleza === 'debito'
+    $saldoInicial = $this->getSaldoInicial();
+    $totalDeb    = $movs->sum('debito');
+    $totalCre    = $movs->sum('credito');
+    $saldoFinal  = $saldoInicial + ($cuenta?->naturaleza === 'debito'
         ? ($totalDeb - $totalCre)
-        : ($totalCre - $totalDeb);
+        : ($totalCre - $totalDeb));
 
-    $saldoAcum  = 0;
+    $saldoAcum   = $saldoInicial;
 @endphp
 
 <style>
 .acc-filter{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
 .acc-filter select{padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;font-weight:600;color:#0f172a;background:#fff;cursor:pointer;min-width:280px;}
+.acc-filter input[type="date"]{padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;font-weight:600;color:#0f172a;background:#fff;cursor:pointer;}
+.acc-filter .acc-sep{color:#94a3b8;font-size:12px;font-weight:700;}
+.acc-filter .acc-clear{padding:7px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:12px;font-weight:700;color:#475569;background:#f8fafc;cursor:pointer;}
 .acc-table{width:100%;border-collapse:collapse;font-size:13px;}
 .acc-table th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:2px solid #e2e8f0;}
 .acc-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;}
@@ -49,6 +53,18 @@
             <option value="{{ $id }}" @selected($this->periodo_id == $id)>{{ $nombre }}</option>
             @endforeach
         </select>
+
+        <span class="acc-sep">o rango de fechas:</span>
+
+        <label style="font-size:12px;font-weight:700;color:#64748b;">Desde:</label>
+        <input type="date" wire:model.live="fecha_inicio" />
+
+        <label style="font-size:12px;font-weight:700;color:#64748b;">Hasta:</label>
+        <input type="date" wire:model.live="fecha_fin" />
+
+        @if($fecha_inicio || $fecha_fin)
+        <button type="button" class="acc-clear" wire:click="limpiarFechas">Quitar rango</button>
+        @endif
     </div>
 
     @if(!$this->account_id)
@@ -103,7 +119,12 @@
                 </tr>
             </thead>
             <tbody>
-                @php $saldoAcum = 0; @endphp
+                <tr style="background:#f8fafc;">
+                    <td colspan="6" style="padding:10px 14px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#0f172a;">SALDO ANTERIOR</td>
+                    <td style="text-align:right;padding:10px 14px;" class="{{ $saldoInicial >= 0 ? 'acc-saldo-pos' : 'acc-saldo-neg' }}">
+                        {{ $fmt(abs($saldoInicial)) }}
+                    </td>
+                </tr>
                 @foreach($movs as $mov)
                 @php
                     if ($cuenta->naturaleza === 'debito') {
@@ -129,12 +150,24 @@
                 </tr>
                 @endforeach
 
-                {{-- Totales --}}
+                {{-- Totales del período (solo los movimientos listados, sin saldo anterior) --}}
+                @php
+                    $netoPeriodo = $cuenta->naturaleza === 'debito'
+                        ? ($totalDeb - $totalCre)
+                        : ($totalCre - $totalDeb);
+                @endphp
                 <tr style="background:#f8fafc;font-weight:900;border-top:2px solid #e2e8f0;">
                     <td colspan="4" style="padding:12px 14px;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#0f172a;">TOTALES DEL PERÍODO</td>
                     <td class="acc-deb" style="text-align:right;padding:12px 14px;">{{ $fmt($totalDeb) }}</td>
                     <td class="acc-cre" style="text-align:right;padding:12px 14px;">{{ $fmt($totalCre) }}</td>
-                    <td class="{{ $saldoFinal >= 0 ? 'acc-saldo-pos' : 'acc-saldo-neg' }}" style="text-align:right;padding:12px 14px;font-size:14px;">
+                    <td class="{{ $netoPeriodo >= 0 ? 'acc-saldo-pos' : 'acc-saldo-neg' }}" style="text-align:right;padding:12px 14px;font-size:14px;">
+                        {{ $fmt(abs($netoPeriodo)) }}
+                    </td>
+                </tr>
+                {{-- Nuevo saldo: saldo anterior + neto del período --}}
+                <tr style="background:#0f172a;font-weight:900;">
+                    <td colspan="6" style="padding:12px 14px;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#fff;">NUEVO SALDO</td>
+                    <td style="text-align:right;padding:12px 14px;font-size:15px;color:{{ $saldoFinal >= 0 ? '#86efac' : '#fca5a5' }};">
                         {{ $fmt(abs($saldoFinal)) }}
                     </td>
                 </tr>

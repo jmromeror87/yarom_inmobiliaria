@@ -29,8 +29,8 @@ class ListRentBills extends ListRecords
                 ->modalSubmitActionLabel('Generar facturas')
                 ->modalIcon('heroicon-o-bolt')
                 ->schema([
-                    Select::make('mes')
-                        ->label('Mes')
+                    Select::make('mes_desde')
+                        ->label('Mes desde')
                         ->options([
                             1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
                             5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
@@ -40,8 +40,30 @@ class ListRentBills extends ListRecords
                         ->required()
                         ->native(false),
 
-                    Select::make('anio')
-                        ->label('Año')
+                    Select::make('anio_desde')
+                        ->label('Año desde')
+                        ->options(array_combine(
+                            range(now()->year - 1, now()->year + 1),
+                            range(now()->year - 1, now()->year + 1)
+                        ))
+                        ->default(now()->year)
+                        ->required()
+                        ->native(false),
+
+                    Select::make('mes_hasta')
+                        ->label('Mes hasta')
+                        ->options([
+                            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+                            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+                            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+                        ])
+                        ->default(now()->month)
+                        ->required()
+                        ->native(false)
+                        ->helperText('Igual al "desde" si solo quieres generar un mes.'),
+
+                    Select::make('anio_hasta')
+                        ->label('Año hasta')
                         ->options(array_combine(
                             range(now()->year - 1, now()->year + 1),
                             range(now()->year - 1, now()->year + 1)
@@ -55,17 +77,44 @@ class ListRentBills extends ListRecords
                         ->placeholder('Todos los orígenes')
                         ->options(BusinessOrigin::where('is_active', true)->pluck('nombre', 'id'))
                         ->native(false)
+                        ->columnSpanFull()
                         ->helperText('Deja en blanco para generar facturas de todos los orígenes a la vez.'),
                 ])
                 ->action(function (array $data) {
-                    (new GenerarFacturasMensuales(
-                        mesParam: (int) $data['mes'],
-                        anioParam: (int) $data['anio'],
-                        businessOriginId: $data['business_origin_id'] ? (int) $data['business_origin_id'] : null,
-                    ))->handle();
+                    $desde = ((int) $data['anio_desde']) * 100 + (int) $data['mes_desde'];
+                    $hasta = ((int) $data['anio_hasta']) * 100 + (int) $data['mes_hasta'];
+
+                    if ($desde > $hasta) {
+                        Notification::make()
+                            ->title('El período "desde" es posterior al "hasta"')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
+                    $periodos = [];
+                    $anio = (int) $data['anio_desde'];
+                    $mes = (int) $data['mes_desde'];
+                    while (($anio * 100 + $mes) <= $hasta) {
+                        $periodos[] = [$mes, $anio];
+                        $mes++;
+                        if ($mes > 12) {
+                            $mes = 1;
+                            $anio++;
+                        }
+                    }
+
+                    foreach ($periodos as [$mesPeriodo, $anioPeriodo]) {
+                        (new GenerarFacturasMensuales(
+                            mesParam: $mesPeriodo,
+                            anioParam: $anioPeriodo,
+                            businessOriginId: $data['business_origin_id'] ? (int) $data['business_origin_id'] : null,
+                        ))->handle();
+                    }
 
                     Notification::make()
                         ->title('Facturas generadas y enviadas por WhatsApp')
+                        ->body(count($periodos) > 1 ? ('Períodos procesados: ' . count($periodos)) : null)
                         ->success()
                         ->send();
                 }),

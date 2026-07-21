@@ -96,8 +96,39 @@ class OwnerLiquidationResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->options(['pendiente'=>'Pendiente','aprobada'=>'Aprobada','pagada'=>'Pagada','anulada'=>'Anulada']),
-                Tables\Filters\SelectFilter::make('mes')
-                    ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'])),
+                Tables\Filters\Filter::make('periodo_rango')
+                    ->label('Período')
+                    ->schema([
+                        Forms\Components\Select::make('mes_desde')->label('Mes desde')
+                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'])),
+                        Forms\Components\TextInput::make('anio_desde')->label('Año desde')->numeric()->default(now()->year),
+                        Forms\Components\Select::make('mes_hasta')->label('Mes hasta')
+                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'])),
+                        Forms\Components\TextInput::make('anio_hasta')->label('Año hasta')->numeric()->default(now()->year),
+                    ])
+                    ->columns(2)
+                    ->query(function(Builder $query, array $data) {
+                        if (!empty($data['mes_desde']) && !empty($data['anio_desde'])) {
+                            $desde = ((int) $data['anio_desde']) * 100 + (int) $data['mes_desde'];
+                            $query->whereRaw('(anio * 100 + mes) >= ?', [$desde]);
+                        }
+                        if (!empty($data['mes_hasta']) && !empty($data['anio_hasta'])) {
+                            $hasta = ((int) $data['anio_hasta']) * 100 + (int) $data['mes_hasta'];
+                            $query->whereRaw('(anio * 100 + mes) <= ?', [$hasta]);
+                        }
+                        return $query;
+                    })
+                    ->indicateUsing(function(array $data): array {
+                        $indicators = [];
+                        $meses = [1=>'Ene',2=>'Feb',3=>'Mar',4=>'Abr',5=>'May',6=>'Jun',7=>'Jul',8=>'Ago',9=>'Sep',10=>'Oct',11=>'Nov',12=>'Dic'];
+                        if (!empty($data['mes_desde']) && !empty($data['anio_desde'])) {
+                            $indicators['mes_desde'] = 'Desde ' . ($meses[$data['mes_desde']] ?? $data['mes_desde']) . '/' . $data['anio_desde'];
+                        }
+                        if (!empty($data['mes_hasta']) && !empty($data['anio_hasta'])) {
+                            $indicators['mes_hasta'] = 'Hasta ' . ($meses[$data['mes_hasta']] ?? $data['mes_hasta']) . '/' . $data['anio_hasta'];
+                        }
+                        return $indicators;
+                    }),
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->recordActions([
@@ -244,21 +275,36 @@ class OwnerLiquidationResource extends Resource
             ])
             ->toolbarActions([
                 TableAction::make('generar_mes')
-                    ->label('Generar liquidaciones del mes')
+                    ->label('Generar liquidaciones')
                     ->icon('heroicon-o-bolt')
                     ->extraAttributes([
                         'style' => 'background:linear-gradient(135deg,#d97706,#f59e0b)!important;color:#fff!important;border:none!important;box-shadow:0 4px 14px rgba(217,119,6,.35)!important;font-weight:700!important;',
                     ])
+                    ->modalHeading('Generar liquidaciones por período')
+                    ->modalDescription('Elige el mes o un rango de meses (ej. de junio a julio) para generar las liquidaciones de las facturas ya pagadas en ese período.')
                     ->schema([
-                        Forms\Components\Select::make('mes')->label('Mes')
+                        Forms\Components\Select::make('mes_desde')->label('Mes desde')
                             ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
                             ->required()->default(now()->month),
-                        Forms\Components\TextInput::make('anio')
-                            ->label('Año')->numeric()->required()->default(now()->year),
+                        Forms\Components\TextInput::make('anio_desde')
+                            ->label('Año desde')->numeric()->required()->default(now()->year),
+                        Forms\Components\Select::make('mes_hasta')->label('Mes hasta')
+                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
+                            ->required()->default(now()->month),
+                        Forms\Components\TextInput::make('anio_hasta')
+                            ->label('Año hasta')->numeric()->required()->default(now()->year),
                     ])
                     ->action(function(array $data) {
-                        $bills = RentBill::where('mes', $data['mes'])
-                            ->where('anio', $data['anio'])
+                        $desde = ((int) $data['anio_desde']) * 100 + (int) $data['mes_desde'];
+                        $hasta = ((int) $data['anio_hasta']) * 100 + (int) $data['mes_hasta'];
+
+                        if ($desde > $hasta) {
+                            Notification::make()->title('El período "desde" es posterior al "hasta"')->danger()->send();
+                            return;
+                        }
+
+                        $bills = RentBill::whereRaw('(anio * 100 + mes) >= ?', [$desde])
+                            ->whereRaw('(anio * 100 + mes) <= ?', [$hasta])
                             ->where('estado', 'pagada')
                             ->whereNull('owner_liquidation_id')
                             ->get();
