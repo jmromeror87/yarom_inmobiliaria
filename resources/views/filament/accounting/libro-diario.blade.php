@@ -19,6 +19,9 @@
 .acc-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 24px;margin-bottom:16px;}
 .acc-filter{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
 .acc-filter select{padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;font-weight:600;color:#0f172a;background:#fff;cursor:pointer;}
+.acc-filter input[type="date"]{padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;font-weight:600;color:#0f172a;background:#fff;cursor:pointer;}
+.acc-filter .acc-sep{color:#94a3b8;font-size:12px;font-weight:700;}
+.acc-filter .acc-clear{padding:7px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:12px;font-weight:700;color:#475569;background:#f8fafc;cursor:pointer;}
 .acc-table{width:100%;border-collapse:collapse;font-size:13px;}
 .acc-table th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:2px solid #e2e8f0;position:sticky;top:0;z-index:1;}
 .acc-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
@@ -49,6 +52,15 @@
             <option value="{{ $id }}" @selected($this->periodo_id == $id)>{{ $nombre }}</option>
             @endforeach
         </select>
+        <span class="acc-sep">o rango de fechas:</span>
+        <label style="font-size:12px;font-weight:700;color:#64748b;">Desde:</label>
+        <input type="date" wire:model.live="fecha_inicio" />
+        <label style="font-size:12px;font-weight:700;color:#64748b;">Hasta:</label>
+        <input type="date" wire:model.live="fecha_fin" />
+        @if($fecha_inicio || $fecha_fin)
+        <button type="button" class="acc-clear" wire:click="limpiarFechas">Quitar rango</button>
+        @endif
+
         <label style="font-size:12px;font-weight:700;color:#64748b;margin-left:8px;">Por página:</label>
         <select wire:model.live="perPage">
             @foreach([25, 50, 100, 200] as $n)

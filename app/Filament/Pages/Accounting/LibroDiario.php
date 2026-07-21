@@ -22,6 +22,8 @@ class LibroDiario extends Page
 
     public ?int $periodo_id = null;
     public int $perPage = 25;
+    public ?string $fecha_inicio = null;
+    public ?string $fecha_fin = null;
 
     public function mount(): void
     {
@@ -30,6 +32,29 @@ class LibroDiario extends Page
 
     public function updatedPeriodoId(): void
     {
+        if ($this->periodo_id) {
+            $this->fecha_inicio = null;
+            $this->fecha_fin = null;
+        }
+        $this->resetPage();
+    }
+
+    public function updatedFechaInicio(): void
+    {
+        if ($this->fecha_inicio || $this->fecha_fin) $this->periodo_id = null;
+        $this->resetPage();
+    }
+
+    public function updatedFechaFin(): void
+    {
+        if ($this->fecha_inicio || $this->fecha_fin) $this->periodo_id = null;
+        $this->resetPage();
+    }
+
+    public function limpiarFechas(): void
+    {
+        $this->fecha_inicio = null;
+        $this->fecha_fin = null;
         $this->resetPage();
     }
 
@@ -42,7 +67,12 @@ class LibroDiario extends Page
     {
         return AccountingEntry::query()
             ->where('estado', 'contabilizado')
-            ->when($this->periodo_id, fn($q) => $q->where('period_id', $this->periodo_id));
+            ->when($this->fecha_inicio || $this->fecha_fin, function ($q) {
+                if ($this->fecha_inicio) $q->whereDate('fecha', '>=', $this->fecha_inicio);
+                if ($this->fecha_fin) $q->whereDate('fecha', '<=', $this->fecha_fin);
+            }, function ($q) {
+                $q->when($this->periodo_id, fn($qq) => $qq->where('period_id', $this->periodo_id));
+            });
     }
 
     public function getEntries(): LengthAwarePaginator
