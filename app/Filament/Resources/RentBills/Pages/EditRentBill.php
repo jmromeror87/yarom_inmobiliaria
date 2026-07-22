@@ -16,6 +16,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Notifications\Notification;
@@ -42,6 +43,48 @@ class EditRentBill extends EditRecord
                 ->label('✅ PAGADA')->color('success')->disabled();
         }
 
+        // ── Ajustes (mora y saldo arrastrado) ──────────────
+        if (!in_array($record->estado, ['pagada', 'anulada'])) {
+            $acciones[] = Action::make('ajustes')
+                ->label('⚙️ Ajustes')
+                ->color('gray')
+                ->outlined()
+                ->icon('heroicon-o-adjustments-horizontal')
+                ->modalHeading('Ajustes de la factura')
+                ->modalDescription('Decide si esta factura puntual aplica mora, y si arrastra saldo pendiente de un periodo anterior.')
+                ->modalSubmitActionLabel('Guardar ajustes')
+                ->schema([
+                    Toggle::make('aplicar_mora')
+                        ->label('Aplicar mora a esta factura')
+                        ->default(fn () => $record->aplicar_mora)
+                        ->helperText('Si lo apagas, esta factura deja de acumular mora aunque esté vencida. Solo afecta este mes.'),
+                    TextInput::make('saldo_anterior_arrastrado')
+                        ->label('Saldo arrastrado de periodo anterior')
+                        ->numeric()->prefix('$')
+                        ->default(fn () => $record->saldo_anterior_arrastrado),
+                    TextInput::make('nota_saldo_arrastrado')
+                        ->label('Nota del saldo arrastrado')
+                        ->placeholder('Ej: saldo pendiente de junio 2026')
+                        ->default(fn () => $record->nota_saldo_arrastrado)
+                        ->columnSpanFull(),
+                ])
+                ->action(function (array $data) use ($record) {
+                    $data['aplicar_mora'] ??= false;
+
+                    $record->update([
+                        'aplicar_mora'              => $data['aplicar_mora'],
+                        'saldo_anterior_arrastrado' => $data['saldo_anterior_arrastrado'] ?? 0,
+                        'nota_saldo_arrastrado'     => $data['nota_saldo_arrastrado'] ?? null,
+                    ]);
+
+                    if (!$data['aplicar_mora']) {
+                        $record->update(['mora_acumulada' => 0]);
+                    }
+
+                    Notification::make()->title('Ajustes guardados')->success()->send();
+                });
+        }
+
         // ── Registrar pago ────────────────────────────────
         if (!in_array($record->estado, ['pagada','anulada'])) {
             $acciones[] = Action::make('registrar_pago')
@@ -60,7 +103,7 @@ class EditRentBill extends EditRecord
                         TextInput::make('total_pagado')
                             ->label('Valor recibido')
                             ->numeric()->prefix('$')
-                            ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada)
+                            ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada + $record->saldo_anterior_arrastrado)
                             ->required(),
                         DatePicker::make('fecha_pago')
                             ->label('Fecha de pago')
@@ -165,7 +208,7 @@ class EditRentBill extends EditRecord
                 ->icon('heroicon-o-chat-bubble-left-right')
                 ->action(function () {
                     $r     = $this->record;
-                    $saldo = '$' . number_format($r->saldo_pendiente + $r->mora_acumulada, 0, ',', '.');
+                    $saldo = '$' . number_format($r->saldo_pendiente + $r->mora_acumulada + $r->saldo_anterior_arrastrado, 0, ',', '.');
                     $mora  = $r->mora_acumulada > 0 ? "\n📈 Mora: $" . number_format($r->mora_acumulada, 0, ',', '.') : '';
                     $msg   = "Recordatorio de pago — Serviarrendar S.A.S\n\n" .
                              "Estimado(a) {$r->arrendatario->nombre_completo},\n\n" .

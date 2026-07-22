@@ -35,9 +35,10 @@ class RentBill extends Model
         'periodo_inicio','periodo_fin','mes','anio',
         'canon_base','cuota_administracion','descuentos','otros_cobros',
         'descripcion_otros_cobros',
+        'saldo_anterior_arrastrado','nota_saldo_arrastrado',
         'valor_seguro_sura','iva_seguro_sura','redondeo_seguro',
         'total_factura',
-        'fecha_limite_pago','dias_gracia','tasa_mora_diaria',
+        'fecha_limite_pago','dias_gracia','tasa_mora_diaria','aplicar_mora',
         'mora_acumulada','fecha_inicio_mora','dias_mora',
         'estado','total_pagado','saldo_pendiente','fecha_pago',
         'tipo_documento','cufe','numero_dian',
@@ -57,6 +58,8 @@ class RentBill extends Model
         'wap_mora_enviado'         => 'boolean',
         'wap_mora_enviado_at'      => 'datetime',
         'payment_token_expires_at' => 'datetime',
+        'aplicar_mora'       => 'boolean',
+        'saldo_anterior_arrastrado' => 'decimal:2',
         'canon_base'         => 'decimal:2',
         'valor_seguro_sura'  => 'decimal:2',
         'iva_seguro_sura'    => 'decimal:2',
@@ -113,6 +116,8 @@ class RentBill extends Model
 
     public function estaEnMora(): bool
     {
+        if (!$this->aplicar_mora) return false;
+
         return $this->estado === 'en_mora' ||
                ($this->estado !== 'pagada' && now()->gt($this->fecha_limite_pago->addDays($this->dias_gracia)));
     }

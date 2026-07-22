@@ -6,6 +6,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -54,6 +55,24 @@ class RentBillForm
                         ->label('Total pagado')->prefix('$')->disabled(),
                     TextInput::make('saldo_pendiente')
                         ->label('Saldo pendiente')->prefix('$')->disabled(),
+                ]),
+
+            Section::make('⚙️ Ajustes')
+                ->description('Ajustes manuales del asesor: aplicar o no mora en esta factura puntual, y arrastrar saldo pendiente de un periodo anterior.')
+                ->columns(2)
+                ->schema([
+                    Toggle::make('aplicar_mora')
+                        ->label('Aplicar mora a esta factura')
+                        ->helperText('Si lo apagas, esta factura deja de acumular mora aunque esté vencida.')
+                        ->default(true),
+                    TextInput::make('saldo_anterior_arrastrado')
+                        ->label('Saldo arrastrado de periodo anterior')
+                        ->prefix('$')->numeric()->default(0)
+                        ->helperText('Se suma al total que debe pagar el inquilino, sin duplicar el asiento contable del periodo anterior.'),
+                    TextInput::make('nota_saldo_arrastrado')
+                        ->label('Nota del saldo arrastrado')
+                        ->placeholder('Ej: saldo pendiente de junio 2026')
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('🛡️ Seguro SURA')

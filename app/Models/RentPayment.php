@@ -40,7 +40,7 @@ class RentPayment extends Model
             if (!$bill) return;
 
             $totalPagado = $bill->payments()->sum('total_pagado');
-            $saldo       = $bill->total_factura + $bill->mora_acumulada - $totalPagado;
+            $saldo       = $bill->total_factura + $bill->mora_acumulada + $bill->saldo_anterior_arrastrado - $totalPagado;
 
             $estado = $saldo <= 0 ? 'pagada' : ($totalPagado > 0 ? 'parcial' : $bill->estado);
 

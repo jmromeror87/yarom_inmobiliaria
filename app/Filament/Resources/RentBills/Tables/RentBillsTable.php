@@ -61,7 +61,10 @@ class RentBillsTable
 
                 TextColumn::make('saldo_pendiente')
                     ->label('Saldo')->money('COP')
-                    ->color(fn ($state) => $state > 0 ? 'warning' : 'success'),
+                    ->color(fn ($state) => $state > 0 ? 'warning' : 'success')
+                    ->description(fn ($record) => $record->saldo_anterior_arrastrado > 0
+                        ? 'Incluye $' . number_format($record->saldo_anterior_arrastrado, 0, ',', '.') . ' arrastrado'
+                        : null),
 
                 TextColumn::make('fecha_limite_pago')
                     ->label('Vence')->date('d/m/Y')->sortable()

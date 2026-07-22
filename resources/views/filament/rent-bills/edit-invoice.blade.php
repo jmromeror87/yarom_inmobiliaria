@@ -70,7 +70,7 @@
   // ContabilidadService::generarParaFactura y la plantilla del PDF.
   $aplicaRete = $r->arrendatario?->tipo_persona === 'juridica';
   $rtefonte = $aplicaRete ? round($r->canon_base * 0.035, 2) : 0;
-  $netoPagar = $r->total_factura + $r->mora_acumulada - $rtefonte;
+  $netoPagar = $r->total_factura + $r->mora_acumulada + $r->saldo_anterior_arrastrado - $rtefonte;
   $logoBase64 = null;
   if ($company?->logo_path) {
       $path = storage_path('app/public/' . $company->logo_path);
@@ -231,6 +231,19 @@
       <div class="fac-tot-row" style="color:var(--color-text-danger);">
         <label style="color:var(--color-text-danger);">Intereses de mora ({{ $r->dias_mora }} días · {{ $r->tasa_mora_diaria }}% diario)</label>
         <span style="color:var(--color-text-danger);">+${{ number_format($r->mora_acumulada, 0, ',', '.') }}</span>
+      </div>
+      @elseif(!$r->aplicar_mora)
+      <div class="fac-tot-row" style="color:var(--color-text-secondary);">
+        <label style="color:var(--color-text-secondary);font-style:italic;">Mora no aplicada a esta factura</label>
+        <span style="color:var(--color-text-secondary);">$0</span>
+      </div>
+      @endif
+      @if($r->saldo_anterior_arrastrado > 0)
+      <div class="fac-tot-row" style="color:var(--color-text-warning);">
+        <label style="color:var(--color-text-warning);">
+          Saldo arrastrado{{ $r->nota_saldo_arrastrado ? ' — ' . $r->nota_saldo_arrastrado : '' }}
+        </label>
+        <span style="color:var(--color-text-warning);">+${{ number_format($r->saldo_anterior_arrastrado, 0, ',', '.') }}</span>
       </div>
       @endif
       @if($r->descuentos > 0)
