@@ -68,24 +68,42 @@ class CalendarioPagos extends Page
             $dias[] = null;
         }
 
+        $hoy = now()->startOfDay();
+
         for ($d = 1; $d <= $fin->day; $d++) {
             $delDia = $bills->get($d, collect());
             $pagadas = $delDia->where('estado', 'pagada')->count();
             $total   = $delDia->count();
+
+            // Las que faltan por pagar: distinguir si siguen dentro de los
+            // días de gracia del contrato (aún no es urgente) o si ya se
+            // pasó la gracia (esas sí son las realmente atrasadas).
+            $pendientes  = $delDia->where('estado', '!=', 'pagada');
+            $finDeGracia = $pendientes->every(function (RentBill $b) use ($hoy) {
+                $finGracia = $b->fecha_limite_pago->copy()->addDays($b->dias_gracia)->startOfDay();
+                return $hoy->lte($finGracia);
+            });
+            $enGracia = $total > 0 && $pagadas < $total && $finDeGracia;
 
             $dias[] = [
                 'dia'      => $d,
                 'esHoy'    => $periodoBase->copy()->day($d)->isSameDay(now()),
                 'total'    => $total,
                 'pagadas'  => $pagadas,
-                'facturas' => $delDia->map(fn (RentBill $b) => [
-                    'id'           => $b->id,
-                    'numero'       => $b->numero,
-                    'arrendatario' => $b->rentalContract?->arrendatario?->nombre_completo ?? $b->arrendatario?->nombre_completo ?? '—',
-                    'inmueble'     => $b->property?->codigo ?? '—',
-                    'total_factura'=> (float) $b->total_factura,
-                    'estado'       => $b->estado,
-                ])->values()->toArray(),
+                'enGracia' => $enGracia,
+                'facturas' => $delDia->map(function (RentBill $b) use ($hoy) {
+                    $finGracia = $b->fecha_limite_pago->copy()->addDays($b->dias_gracia)->startOfDay();
+                    return [
+                        'id'           => $b->id,
+                        'numero'       => $b->numero,
+                        'arrendatario' => $b->rentalContract?->arrendatario?->nombre_completo ?? $b->arrendatario?->nombre_completo ?? '—',
+                        'inmueble'     => $b->property?->codigo ?? '—',
+                        'total_factura'=> (float) $b->total_factura,
+                        'estado'       => $b->estado,
+                        'en_gracia'    => $b->estado !== 'pagada' && $hoy->lte($finGracia),
+                        'fin_gracia'   => $finGracia->toDateString(),
+                    ];
+                })->values()->toArray(),
             ];
         }
 

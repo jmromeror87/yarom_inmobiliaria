@@ -466,7 +466,7 @@ class ExcelExporter
     private function buildFlujoEfectivo(): Spreadsheet
     {
         $ws  = $this->sheet();
-        $ws->setTitle('Flujo de Efectivo');
+        $ws->setTitle('Flujo de Caja');
         $row = 1;
 
         $this->header($ws, $this->data['titulo'], 'Período: ' . ($this->data['periodo_label'] ?? ''), $row);

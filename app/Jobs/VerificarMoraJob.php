@@ -32,12 +32,9 @@ class VerificarMoraJob implements ShouldQueue
         $celEmpresa = $company?->celular ?? '';
 
         // Solo entra en mora después de agotar los días de gracia.
-        // Los inmuebles de "Victoria" son un caso de contingencia (migración de
-        // otra inmobiliaria) — por acuerdo, a sus inquilinos no se les aplica mora.
         $bills = RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora', 'vencida'])
             ->whereRaw('DATE_ADD(fecha_limite_pago, INTERVAL dias_gracia DAY) < ?', [$hoy])
             ->where('aplicar_mora', true)
-            ->whereDoesntHave('property.businessOrigin', fn ($q) => $q->where('nombre', 'Victoria'))
             ->whereDoesntHave('rentalContract', fn ($q) => $q->where('en_revision', true))
             ->with(['arrendatario', 'property', 'rentalContract'])
             ->get();

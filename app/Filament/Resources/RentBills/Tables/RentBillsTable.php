@@ -52,12 +52,14 @@ class RentBillsTable
                 TextColumn::make('dias_mora')
                     ->label('Días mora')->sortable()->alignCenter()
                     ->badge()
-                    ->color(fn ($state) => $state > 0 ? 'danger' : 'gray')
-                    ->formatStateUsing(fn ($state) => $state > 0 ? $state . ' día' . ($state == 1 ? '' : 's') : '—'),
+                    ->color(fn ($state, $record) => $state > 0 ? ($record->estado === 'pagada' ? 'success' : 'danger') : 'gray')
+                    ->formatStateUsing(fn ($state, $record) => $state > 0
+                        ? $state . ' día' . ($state == 1 ? '' : 's') . ($record->estado === 'pagada' ? ' (ya pagada)' : '')
+                        : '—'),
 
                 TextColumn::make('mora_acumulada')
                     ->label('Mora')->money('COP')
-                    ->color(fn ($state) => $state > 0 ? 'danger' : null),
+                    ->color(fn ($state, $record) => $state > 0 && $record->estado !== 'pagada' ? 'danger' : null),
 
                 TextColumn::make('saldo_pendiente')
                     ->label('Saldo')->money('COP')

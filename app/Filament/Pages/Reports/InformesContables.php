@@ -64,7 +64,7 @@ class InformesContables extends Page
         return [
             'estado_resultados' => '📈  Estado de Resultados (P&G)',
             'balance_general'   => '🏢  Balance General',
-            'flujo_efectivo'    => '💧  Flujo de Efectivo',
+            'flujo_efectivo'    => '💧  Flujo de Caja',
             'libro_mayor'       => '📚  Libro Mayor',
             'balance_prueba'    => '⚖️  Balance de Comprobación',
             'analisis_cartera'  => '📊  Análisis de Cartera por Antigüedad',

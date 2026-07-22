@@ -32,6 +32,7 @@
         .cal-badge.completo { background:#dcfce7; color:#15803d; }
         .cal-badge.parcial { background:#fef3c7; color:#b45309; }
         .cal-badge.ninguno { background:#fee2e2; color:#b91c1c; }
+        .cal-badge.gracia { background:#e0e7ff; color:#4338ca; }
         .cal-monto { font-size:0.68rem; color:#94a3b8; margin-top:auto; padding-top:4px; font-weight:600; }
 
         .cal-modal-item { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:7px; transition:background .15s; }
@@ -44,7 +45,8 @@
         <div class="cal-leyenda">
             <div class="cal-leyenda-item"><span class="cal-dot" style="background:#16a34a;"></span> Todos pagados</div>
             <div class="cal-leyenda-item"><span class="cal-dot" style="background:#d97706;"></span> Pago parcial</div>
-            <div class="cal-leyenda-item"><span class="cal-dot" style="background:#dc2626;"></span> Sin pagos aún</div>
+            <div class="cal-leyenda-item"><span class="cal-dot" style="background:#4338ca;"></span> Aún en días de gracia</div>
+            <div class="cal-leyenda-item"><span class="cal-dot" style="background:#dc2626;"></span> Sin pagos, gracia vencida</div>
             <div class="cal-leyenda-sep"></div>
             <div class="cal-leyenda-item">🖱️ Clic en un día para ver quién debe pagar y registrar el pago</div>
         </div>
@@ -88,8 +90,13 @@
                     <div class="cal-cell vacia"></div>
                 @else
                     @php
-                        $badgeClass = $d['total'] == 0 ? '' : ($d['pagadas'] == $d['total'] ? 'completo' : ($d['pagadas'] > 0 ? 'parcial' : 'ninguno'));
-                        $badgeIcono = $badgeClass === 'completo' ? '✓' : ($badgeClass === 'parcial' ? '◐' : '●');
+                        $badgeClass = $d['total'] == 0 ? '' : ($d['pagadas'] == $d['total'] ? 'completo' : ($d['pagadas'] > 0 ? 'parcial' : ($d['enGracia'] ? 'gracia' : 'ninguno')));
+                        $badgeIcono = match($badgeClass) {
+                            'completo' => '✓',
+                            'parcial' => '◐',
+                            'gracia' => '🕐',
+                            default => '●',
+                        };
                     @endphp
                     <div class="cal-cell {{ $d['esHoy'] ? 'hoy' : '' }} {{ $d['total'] > 0 ? 'con-datos' : '' }}"
                          @if($d['total'] > 0) x-on:click="$dispatch('open-modal', { id: 'dia-{{ $d['dia'] }}' })" @endif>
@@ -115,7 +122,11 @@
                                         </div>
                                         <div style="text-align:right;">
                                             <div style="font-weight:700;font-size:0.85rem;">${{ number_format($f['total_factura'], 0, ',', '.') }}</div>
-                                            <span class="cal-badge {{ $f['estado'] === 'pagada' ? 'completo' : ($f['estado'] === 'parcial' ? 'parcial' : 'ninguno') }}">{{ ucfirst($f['estado']) }}</span>
+                                            @php
+                                                $fBadge = $f['estado'] === 'pagada' ? 'completo' : ($f['estado'] === 'parcial' ? 'parcial' : ($f['en_gracia'] ? 'gracia' : 'ninguno'));
+                                                $fLabel = $f['estado'] === 'pagada' ? 'Pagada' : ($f['estado'] === 'parcial' ? 'Parcial' : ($f['en_gracia'] ? 'En gracia hasta ' . \Carbon\Carbon::parse($f['fin_gracia'])->format('d/m') : 'Vencida'));
+                                            @endphp
+                                            <span class="cal-badge {{ $fBadge }}">{{ $fLabel }}</span>
                                         </div>
                                     </a>
                                 @endforeach

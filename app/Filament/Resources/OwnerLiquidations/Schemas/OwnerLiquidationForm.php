@@ -102,23 +102,23 @@ class OwnerLiquidationForm
                         ->visible(fn (Get $get) => (float)$get('otros_descuentos') > 0),
 
                     Placeholder::make('total_giro_preview')
-                        ->label('Total a girar al propietario')
-                        ->content(fn (Get $get, $record) =>
-                            '$' . number_format(
-                                max(0,
-                                    (float)($record?->canon_cobrado ?? 0)
-                                    - (float)($record?->comision_valor ?? 0)
-                                    - (float)($record?->iva_comision ?? 0)
-                                    - (float)($record?->retefuente_valor ?? 0)
-                                    - (float)($get('otros_descuentos') ?? 0)
-                                ),
-                                0, ',', '.'
-                            ) . ' COP'
-                        )
+                        ->label('')
+                        ->content(fn (Get $get, $record) => new \Illuminate\Support\HtmlString(
+                            '<div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">'
+                                . '<span style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">Total a girar al propietario</span>'
+                                . '<span style="font-size:22px;font-weight:800;color:#fff;">$' . number_format(
+                                    max(0,
+                                        (float) ($record?->canon_cobrado ?? 0)
+                                        - (float) ($record?->comision_valor ?? 0)
+                                        - (float) ($record?->iva_comision ?? 0)
+                                        - (float) ($record?->retefuente_valor ?? 0)
+                                        - (float) ($get('otros_descuentos') ?? 0)
+                                    ),
+                                    0, ',', '.'
+                                ) . ' COP</span>'
+                            . '</div>'
+                        ))
                         ->columnSpanFull(),
-
-                    TextInput::make('total_giro')
-                        ->label('Total giro (guardado)')->prefix('$')->numeric()->disabled(),
                 ]),
 
             Section::make('Giro al propietario')

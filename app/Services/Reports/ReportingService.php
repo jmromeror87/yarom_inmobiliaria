@@ -278,7 +278,7 @@ class ReportingService
 
         return [
             'tipo'             => 'flujo_efectivo',
-            'titulo'           => 'Flujo de Efectivo',
+            'titulo'           => 'Flujo de Caja',
             'empresa'          => $company?->razon_social ?? 'Serviarrendar S.A.S',
             'nit'              => $company?->nit_completo ?? '',
             'desde'            => $desde->toDateString(),
