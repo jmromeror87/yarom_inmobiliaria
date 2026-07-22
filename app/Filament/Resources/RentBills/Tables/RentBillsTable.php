@@ -30,6 +30,16 @@ class RentBillsTable
                     ->searchable()
                     ->description(fn ($record) => $record->rentalContract?->en_revision ? '⚠️ Contrato en revisión' : null),
 
+                TextColumn::make('origen')
+                    ->label('Origen')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->rentalContract?->property?->businessOrigin?->nombre ?? '—')
+                    ->color(fn ($state) => match(true) {
+                        str_contains(strtolower($state), 'victoria') => 'warning',
+                        str_contains(strtolower($state), 'serviarrendar') => 'info',
+                        default => 'gray',
+                    }),
+
                 TextColumn::make('mes')
                     ->label('Periodo')
                     ->formatStateUsing(fn ($record) =>
@@ -130,6 +140,15 @@ class RentBillsTable
                         'documento_equivalente' => 'Doc. equivalente',
                         'factura_electronica'   => 'Factura electrónica',
                     ]),
+                SelectFilter::make('origen')
+                    ->label('Origen')
+                    ->options(\App\Models\BusinessOrigin::pluck('nombre', 'id'))
+                    ->query(function ($query, array $data) {
+                        if (empty($data['value'])) return $query;
+                        return $query->whereHas('rentalContract.property', fn ($q) =>
+                            $q->where('business_origin_id', $data['value'])
+                        );
+                    }),
             ])
             ->recordActions([
                 Action::make('send_payment_link')
