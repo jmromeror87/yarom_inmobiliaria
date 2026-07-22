@@ -95,13 +95,16 @@ class RentBillsTable
 
                 IconColumn::make('contabilizado')
                     ->label('Cont.')
-                    ->tooltip('¿Tiene asiento contable?')
-                    ->getStateUsing(fn ($record) => AccountingEntry::where('referencia_id', $record->id)
-                        ->where('referencia_tipo', 'factura_rent_bill')->exists())
+                    ->tooltip(fn ($record) => $record->contabilizado_via_historico
+                        ? 'Contabilizado vía histórico Siinmob: ' . $record->referencia_historico
+                        : '¿Tiene asiento contable?')
+                    ->getStateUsing(fn ($record) => $record->contabilizado_via_historico
+                        || AccountingEntry::where('referencia_id', $record->id)
+                            ->where('referencia_tipo', 'factura_rent_bill')->exists())
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
+                    ->trueColor(fn ($record) => $record->contabilizado_via_historico ? 'info' : 'success')
                     ->falseColor('gray'),
 
                 TextColumn::make('fe_estado')
@@ -198,8 +201,9 @@ class RentBillsTable
                     ->color('gray')
                     ->outlined()
                     ->tooltip('Generar asiento contable manualmente')
-                    ->visible(fn ($record) => !AccountingEntry::where('referencia_id', $record->id)
-                        ->where('referencia_tipo', 'factura_rent_bill')->exists())
+                    ->visible(fn ($record) => !$record->contabilizado_via_historico
+                        && !AccountingEntry::where('referencia_id', $record->id)
+                            ->where('referencia_tipo', 'factura_rent_bill')->exists())
                     ->requiresConfirmation()
                     ->action(function ($record) {
                         try {

@@ -44,6 +44,7 @@ class RentBill extends Model
         'tipo_documento','cufe','numero_dian',
         'wap_enviado','wap_enviado_at','wap_mora_enviado','wap_mora_enviado_at',
         'owner_liquidation_id','notas',
+        'contabilizado_via_historico','referencia_historico',
         'payment_token','payment_token_expires_at','wompi_transaction_id','wompi_reference',
     ];
 
@@ -59,6 +60,7 @@ class RentBill extends Model
         'wap_mora_enviado_at'      => 'datetime',
         'payment_token_expires_at' => 'datetime',
         'aplicar_mora'       => 'boolean',
+        'contabilizado_via_historico' => 'boolean',
         'saldo_anterior_arrastrado' => 'decimal:2',
         'canon_base'         => 'decimal:2',
         'valor_seguro_sura'  => 'decimal:2',
