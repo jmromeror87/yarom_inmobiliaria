@@ -34,8 +34,8 @@
     .id-bar .numero .v { font-size:11pt; font-weight:bold; color:#0A192F; }
 
     /* ── Sello de estado de pago ── */
-    .sello-estado { text-align:center; margin-top:5pt; }
-    .sello-estado span { display:inline-block; padding:3pt 14pt; border-radius:3pt; font-size:8pt; font-weight:bold; letter-spacing:.08em; text-transform:uppercase; }
+    .sello-estado { text-align:center; margin-top:1.5pt; }
+    .sello-estado span { display:inline-block; padding:0.5pt 6pt; border-radius:2pt; font-size:4.6pt; font-weight:bold; letter-spacing:.02em; text-transform:uppercase; }
     .sello-pagada { background:#dcfce7; color:#15803d; border:1pt solid #15803d; }
     .sello-pendiente { background:#fef3c7; color:#b45309; border:1pt solid #b45309; }
     .sello-mora { background:#fee2e2; color:#b91c1c; border:1pt solid #b91c1c; }
@@ -184,11 +184,10 @@
                 <div class="k">N°</div>
                 <div class="v" style="white-space:nowrap;">{{ $bill->numero_dian ?? $bill->numero }}</div>
             </div>
+            <div class="sello-estado"><span class="{{ $selloClase }}">{{ $selloTexto }}</span></div>
         </td>
     </tr>
 </table>
-
-<div class="sello-estado"><span class="{{ $selloClase }}">{{ $selloTexto }}</span></div>
 
 {{-- DATOS DEL ADQUIRENTE / DOCUMENTO --}}
 <div class="datos-box">

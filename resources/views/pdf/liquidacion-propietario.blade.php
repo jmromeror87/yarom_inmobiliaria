@@ -42,8 +42,8 @@
     .pie-linea { border-top: 0.75pt solid #000; margin-bottom: 3pt; }
     .pie-texto { font-size: 4.6pt; color: #000; line-height: 1.4; }
 
-    .sello-estado { text-align: center; margin-top: 3pt; }
-    .sello-estado span { display: inline-block; padding: 2pt 10pt; border-radius: 3pt; font-size: 6.4pt; font-weight: bold; letter-spacing: .05em; text-transform: uppercase; }
+    .sello-estado { text-align: right; margin-top: 1pt; }
+    .sello-estado span { display: inline-block; padding: 0.5pt 4pt; border-radius: 2pt; font-size: 4.2pt; font-weight: bold; letter-spacing: .02em; text-transform: uppercase; }
     .sello-pagada { background: #dcfce7; color: #15803d; border: 0.75pt solid #15803d; }
     .sello-pendiente { background: #fef3c7; color: #b45309; border: 0.75pt solid #b45309; }
     .sello-aprobada { background: #dbeafe; color: #1d4ed8; border: 0.75pt solid #1d4ed8; }
@@ -84,13 +84,12 @@
             <td style="width:42%;">
                 <div class="doctitle">EGRESO: {{ $liquidation->numero }}</div>
                 <div class="docnum">FECHA: {{ ($liquidation->fecha_giro ?? $liquidation->created_at)->format('Y-m-d') }}</div>
+                <div class="sello-estado"><span class="{{ $selloClase }}">{{ $selloTexto }}</span></div>
             </td>
         </tr>
     </table>
     <div class="top-sep"></div>
 </div>
-
-<div class="sello-estado"><span class="{{ $selloClase }}">{{ $selloTexto }}</span></div>
 
 <table class="datos">
     <tr>
