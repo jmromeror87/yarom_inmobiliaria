@@ -260,6 +260,7 @@ class EditRentBill extends EditRecord
 
         $wap     = app(WhatsAppService::class);
         $enviado = false;
+        $errorEnvio = null;
 
         if ($wap->isConnected()) {
             try {
@@ -275,6 +276,7 @@ class EditRentBill extends EditRecord
                 $res     = $wap->enviarConArchivo($celular, $msg, $tmpPath, 'Recibo-' . $payment->numero . '.pdf');
                 $enviado = $res['ok'] ?? false;
                 if (!$enviado) {
+                    $errorEnvio = $res['error'] ?? 'El servicio no pudo enviar el recibo con el archivo adjunto.';
                     \Illuminate\Support\Facades\Log::warning('WhatsApp recibo no enviado', ['payment' => $payment->numero, 'res' => $res]);
                 }
                 if (file_exists($tmpPath)) @unlink($tmpPath);
@@ -282,8 +284,10 @@ class EditRentBill extends EditRecord
                 \Illuminate\Support\Facades\Log::error('WhatsApp recibo excepción', ['payment' => $payment->numero, 'error' => $e->getMessage()]);
                 $res     = $wap->enviar($celular, $msg);
                 $enviado = $res['ok'] ?? false;
+                $errorEnvio = $res['error'] ?? $e->getMessage();
             }
         } else {
+            $errorEnvio = 'No fue posible consultar el estado del servicio de WhatsApp.';
             \Illuminate\Support\Facades\Log::warning('WhatsApp no conectado al intentar enviar recibo', ['payment' => $payment->numero]);
         }
 
@@ -292,8 +296,16 @@ class EditRentBill extends EditRecord
         } else {
             $fallback = WhatsApp::urlFallback($celular, $msg);
             Notification::make()
-                ->title('WhatsApp no disponible — abra el enlace manualmente')
-                ->body($fallback)
+                ->title('No se pudo enviar el recibo por WhatsApp')
+                ->body($errorEnvio ?: 'Abra WhatsApp para enviar el mensaje y adjunte el recibo PDF manualmente desde el chat.')
+                ->actions([
+                    Action::make('abrir_whatsapp')
+                        ->label('Abrir WhatsApp')
+                        ->icon('heroicon-o-chat-bubble-left-right')
+                        ->color('success')
+                        ->url($fallback)
+                        ->openUrlInNewTab(),
+                ])
                 ->warning()->send();
         }
     }

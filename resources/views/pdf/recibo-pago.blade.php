@@ -18,24 +18,25 @@
     table.datos { width: 100%; border-collapse: collapse; margin-top: 4pt; border: 0.9pt solid #000; }
     table.datos td { border: 0.9pt solid #000; padding: 1.5pt 4pt; font-size: 6.2pt; font-weight: bold; vertical-align: top; line-height: 1.15; color: #000; }
     table.datos td.lbl { width: 24%; white-space: nowrap; font-weight: bold; }
-    table.datos td.val { font-weight: bold; width: 26%; }
+    table.datos td.val { font-weight: normal; width: 26%; }
 
     .suma-row td { padding: 2pt 4pt; }
     .suma-row .lbl { width: 24%; }
-    .suma-row .txt { font-weight: bold; }
+    .suma-row .txt { font-weight: normal; }
 
     table.concepto { width: 100%; border-collapse: collapse; margin-top: -0.9pt; border: 0.9pt solid #000; border-top: none; }
     table.concepto th { border: 0.9pt solid #000; padding: 1.5pt 4pt; text-align: left; font-size: 6pt; font-weight: bold; color: #000; }
     table.concepto th.val, table.concepto td.val { text-align: right; }
-    table.concepto td { border: 0.9pt solid #000; padding: 1.5pt 4pt; font-size: 6.2pt; font-weight: bold; line-height: 1.15; color: #000; }
+    table.concepto td { border: 0.9pt solid #000; padding: 1.5pt 4pt; font-size: 6.2pt; font-weight: normal; line-height: 1.15; color: #000; }
     table.concepto td.desc-sub { padding-left: 10pt; font-size: 5pt; font-weight: normal; color: #000; }
     table.concepto tr.neto td { font-weight: bold; }
     table.concepto td .cuenta-cod { font-weight: bold; }
 
-    .notas { border: 0.9pt solid #000; border-top: none; padding: 1.5pt 4pt; font-size: 5.4pt; font-weight: bold; min-height: 10pt; line-height: 1.15; color: #000; }
+    .notas { border: 0.9pt solid #000; border-top: none; padding: 1.5pt 4pt; font-size: 5.4pt; font-weight: normal; min-height: 10pt; line-height: 1.15; color: #000; }
 
     table.firmas { width: 100%; border-collapse: collapse; margin-top: -0.9pt; }
-    table.firmas td { border: 0.9pt solid #000; border-top: none; padding: 6pt 4pt 2pt 4pt; text-align: center; font-size: 5.4pt; font-weight: bold; width: 50%; color: #000; }
+    table.firmas td { border: 0.9pt solid #000; border-top: none; padding: 10pt 4pt 4pt 4pt; text-align: center; font-size: 5.4pt; font-weight: bold; width: 50%; color: #000; vertical-align: bottom; }
+    table.firmas .quien { font-size: 4.6pt; font-weight: normal; color: #333; margin-top: 2pt; }
 
     .pie { margin-top: 5pt; text-align: center; }
     .pie-linea { border-top: 0.75pt solid #000; margin-bottom: 3pt; }
@@ -165,8 +166,14 @@
 
 <table class="firmas">
     <tr>
-        <td>ELABORA<br>{{ $payment->registradoPor?->name }}</td>
-        <td>FIRMA Y SELLO — {{ mb_strtoupper($company?->razon_social ?? 'SERVIARRENDAR SAS', 'UTF-8') }}</td>
+        <td>
+            RECIBE CONFORME<br>&nbsp;
+            <div class="quien">{{ mb_strtoupper($payment->arrendatario?->nombre_completo ?? '', 'UTF-8') }}</div>
+        </td>
+        <td>
+            FIRMA Y SELLO — {{ mb_strtoupper($company?->razon_social ?? 'SERVIARRENDAR SAS', 'UTF-8') }}<br>&nbsp;
+            <div class="quien">Elaborado por: {{ $payment->registradoPor?->name ?? 'Sistema' }}</div>
+        </td>
     </tr>
 </table>
 

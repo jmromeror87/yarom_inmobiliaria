@@ -13,10 +13,11 @@ class OwnerLiquidationPdfController extends Controller
     public function individual(OwnerLiquidation $liquidation): Response
     {
         $liquidation->load(['propietario', 'property.tipo', 'rentalContract.arrendatario', 'statusHistories.usuario']);
-        $company    = Company::with('municipio')->first();
-        $logoBase64 = $this->logoBase64($company);
+        $company      = Company::with('municipio')->first();
+        $logoBase64   = $this->logoBase64($company);
+        $elaboradoPor = auth()->user()?->name;
 
-        $pdf = Pdf::loadView('pdf.liquidacion-propietario', compact('liquidation', 'company', 'logoBase64'))
+        $pdf = Pdf::loadView('pdf.liquidacion-propietario', compact('liquidation', 'company', 'logoBase64', 'elaboradoPor'))
             ->setPaper([0, 0, 396, 612], 'portrait');
 
         return response($pdf->output(), 200, [

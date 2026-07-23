@@ -229,7 +229,8 @@ class OwnerLiquidationResource extends Resource
                                     if (file_exists($p)) $logoBase64 = 'data:' . mime_content_type($p) . ';base64,' . base64_encode(file_get_contents($p));
                                 }
                                 $liquidation = $r;
-                                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.liquidacion-propietario', compact('liquidation','company2','logoBase64'))->setPaper('letter','portrait');
+                                $elaboradoPor = auth()->user()?->name;
+                                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.liquidacion-propietario', compact('liquidation','company2','logoBase64','elaboradoPor'))->setPaper('letter','portrait');
                                 $tmpPath = storage_path('app/tmp/liq-' . $r->numero . '-' . time() . '.pdf');
                                 if (!is_dir(dirname($tmpPath))) mkdir(dirname($tmpPath), 0755, true);
                                 file_put_contents($tmpPath, $pdf->output());
