@@ -62,10 +62,9 @@ class PaymentController extends Controller
 
     public function webhook(Request $request)
     {
-        $payload   = $request->all();
-        $checksum  = $request->header('X-Event-Checksum') ?? '';
+        $payload = $request->all();
 
-        if (!app(WompiService::class)->verifyWebhook($payload, $checksum)) {
+        if (!app(WompiService::class)->verifyWebhook($payload)) {
             Log::warning('Wompi webhook: firma inválida');
             return response()->json(['ok' => false], 401);
         }

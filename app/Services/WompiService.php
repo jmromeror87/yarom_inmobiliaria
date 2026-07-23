@@ -18,9 +18,7 @@ class WompiService
         $integrity    = config('wompi.integrity_secret');
         $signature    = hash('sha256', $reference . $amountCents . $currency . $integrity);
         $redirectUrl  = route('payment.resultado');
-        $base         = config('wompi.env') === 'production'
-            ? 'https://checkout.wompi.co/p/'
-            : 'https://checkout.wompi.co/p/?';
+        $base         = 'https://checkout.wompi.co/p/';
 
         return $base . '?' . http_build_query([
             'public-key'          => config('wompi.public_key'),
@@ -32,18 +30,30 @@ class WompiService
         ]);
     }
 
-    public function verifyWebhook(array $data, string $checksum): bool
+    /**
+     * Verifica la firma del evento tal como Wompi realmente la envía: el propio
+     * payload trae qué propiedades firmar (signature.properties, rutas tipo
+     * "transaction.id") y el checksum a comparar (signature.checksum) — no es
+     * un checksum fijo de 4 campos ni viene en un header.
+     */
+    public function verifyWebhook(array $payload): bool
     {
-        $t  = $data['data']['transaction'] ?? [];
-        $e  = config('wompi.events_secret');
-        $sig = hash('sha256',
-            ($t['id']                  ?? '') .
-            ($t['status']              ?? '') .
-            ($t['payment_method_type'] ?? '') .
-            ($t['amount_in_cents']     ?? '') .
-            $e
-        );
-        return hash_equals($sig, $checksum);
+        $properties = $payload['signature']['properties'] ?? [];
+        $checksum   = $payload['signature']['checksum'] ?? '';
+        $timestamp  = $payload['timestamp'] ?? '';
+        $secret     = config('wompi.events_secret');
+
+        if (empty($properties) || !$checksum) return false;
+
+        $concatenado = '';
+        foreach ($properties as $ruta) {
+            $valor = data_get($payload['data'] ?? [], $ruta);
+            $concatenado .= $valor;
+        }
+
+        $firmaCalculada = hash('sha256', $concatenado . $timestamp . $secret);
+
+        return hash_equals($firmaCalculada, $checksum);
     }
 
     public function transactionStatus(string $transactionId): ?array
