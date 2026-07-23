@@ -33,6 +33,14 @@
     .id-bar .numero .k { font-size:5.8pt; text-transform:uppercase; letter-spacing:.05em; color:#64748b; }
     .id-bar .numero .v { font-size:11pt; font-weight:bold; color:#0A192F; }
 
+    /* ── Sello de estado de pago ── */
+    .sello-estado { text-align:center; margin-top:5pt; }
+    .sello-estado span { display:inline-block; padding:3pt 14pt; border-radius:3pt; font-size:8pt; font-weight:bold; letter-spacing:.08em; text-transform:uppercase; }
+    .sello-pagada { background:#dcfce7; color:#15803d; border:1pt solid #15803d; }
+    .sello-pendiente { background:#fef3c7; color:#b45309; border:1pt solid #b45309; }
+    .sello-mora { background:#fee2e2; color:#b91c1c; border:1pt solid #b91c1c; }
+    .sello-anulada { background:#e5e7eb; color:#374151; border:1pt solid #374151; }
+
     /* ── Bloque de datos del adquirente / documento ── */
     .datos-box { border:0.75pt solid #0A192F; border-radius:4pt; margin-top:6pt; padding:6pt 12pt; }
     .datos-box table { width:100%; border-collapse:collapse; }
@@ -105,6 +113,20 @@
     $regimenTxt = $company?->responsable_iva ? 'Responsable del impuesto sobre las ventas IVA' : 'No responsable de IVA';
 
     $totalLineas = 1 + ($bill->cuota_administracion > 0 ? 1 : 0) + ($bill->otros_cobros > 0 ? 1 : 0);
+
+    $selloTexto = match ($bill->estado) {
+        'pagada'  => 'PAGADA',
+        'anulada' => 'ANULADA',
+        'en_mora' => 'PENDIENTE — EN MORA',
+        'parcial' => 'PAGO PARCIAL — SALDO PENDIENTE',
+        default   => 'PENDIENTE DE PAGO',
+    };
+    $selloClase = match ($bill->estado) {
+        'pagada'  => 'sello-pagada',
+        'anulada' => 'sello-anulada',
+        'en_mora' => 'sello-mora',
+        default   => 'sello-pendiente',
+    };
 @endphp
 
 {{-- ENCABEZADO --}}
@@ -165,6 +187,8 @@
         </td>
     </tr>
 </table>
+
+<div class="sello-estado"><span class="{{ $selloClase }}">{{ $selloTexto }}</span></div>
 
 {{-- DATOS DEL ADQUIRENTE / DOCUMENTO --}}
 <div class="datos-box">
