@@ -370,7 +370,7 @@
 <div class="pie-legal">
     Esta {{ $bill->tipo_documento === 'factura_electronica' ? 'factura' : 'documento' }} es un título valor de acuerdo al art. 774 del C.C. y una vez aceptado(a) declara haber recibido los bienes y servicios a satisfacción.<br>
     <b>Representación gráfica de la {{ $tituloDoc }}.</b><br>
-    Software: YarOM ERP · Desarrollado por Ing. Jhoan Romero Rivera.
+    Software: YarOM ERP · Desarrollado por YaRom Systems S.A.S.
 </div>
 
 </body>
