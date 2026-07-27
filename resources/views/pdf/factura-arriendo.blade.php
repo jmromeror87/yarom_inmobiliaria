@@ -343,7 +343,10 @@
 
 {{-- DATOS PARA PAGO --}}
 @php
-    $bancosPago = \App\Models\Bank::where('is_active', true)->where('tipo_cuenta', '!=', 'caja')->orderBy('id')->get();
+    $bancosPago = \App\Models\Bank::where('is_active', true)
+        ->where('tipo_cuenta', '!=', 'caja')
+        ->whereIn('nombre', ['Bancolombia', 'Crediservir'])
+        ->orderBy('id')->get();
 @endphp
 <div class="datos-pago">
     <strong>Datos para consignación o transferencia:</strong><br>
