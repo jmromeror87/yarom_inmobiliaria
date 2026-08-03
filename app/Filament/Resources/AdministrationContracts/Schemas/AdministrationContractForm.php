@@ -191,6 +191,12 @@ class AdministrationContractForm
                             ->helperText('0 si no aplica conjunto o edificio.')
                             ->visible(fn (Get $get) => $get('tipo_contrato') !== 'administracion_venta'),
 
+                        TextInput::make('dia_giro')
+                            ->label('Día de giro al propietario')
+                            ->numeric()->minValue(1)->maxValue(31)
+                            ->helperText('Día del mes en que se le gira al propietario, independiente de si el inquilino ya pagó.')
+                            ->visible(fn (Get $get) => $get('tipo_contrato') !== 'administracion_venta'),
+
                         // ── CAMPOS SOLO VENTA ─────────────────────
                         TextInput::make('precio_venta_pactado')
                             ->label('Precio de venta pactado')

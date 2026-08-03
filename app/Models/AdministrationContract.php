@@ -49,7 +49,7 @@ class AdministrationContract extends Model
     protected $fillable = [
         'numero_contrato','contract_template_id','property_id','propietario_id','asesor_id',
         'tipo_contrato','fecha_inicio','fecha_fin','renovacion','dias_aviso_terminacion',
-        'canon_pactado','comision_porcentaje','incluye_administracion','cuota_administracion_valor',
+        'canon_pactado','comision_porcentaje','dia_giro','incluye_administracion','cuota_administracion_valor',
         'autoriza_venta','comision_venta_porcentaje','precio_venta_pactado',
         'estado','fecha_firma','firmado_por','notas',
     ];
