@@ -99,6 +99,7 @@ class CalendarioPagos extends Page
                         'arrendatario' => $b->rentalContract?->arrendatario?->nombre_completo ?? $b->arrendatario?->nombre_completo ?? '—',
                         'inmueble'     => $b->property?->codigo ?? '—',
                         'total_factura'=> (float) $b->total_factura,
+                        'total_pagado' => (float) $b->total_pagado,
                         'estado'       => $b->estado,
                         'en_gracia'    => $b->estado !== 'pagada' && $hoy->lte($finGracia),
                         'fin_gracia'   => $finGracia->toDateString(),

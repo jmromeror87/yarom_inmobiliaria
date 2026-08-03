@@ -139,13 +139,13 @@ class RentBillsTable
                 SelectFilter::make('periodo')
                     ->label('Período')
                     ->options(function () {
-                        return \App\Models\RentBill::query()
-                            ->selectRaw('DISTINCT anio, mes')
-                            ->orderByDesc('anio')->orderByDesc('mes')
-                            ->get()
-                            ->mapWithKeys(fn ($r) => [
-                                $r->anio . '-' . $r->mes => ucfirst(\Carbon\Carbon::create($r->anio, $r->mes, 1)->translatedFormat('F Y')),
-                            ])->toArray();
+                        $opciones = [];
+                        $cursor = now()->startOfMonth();
+                        for ($i = 0; $i < 13; $i++) {
+                            $opciones[$cursor->year . '-' . $cursor->month] = ucfirst($cursor->translatedFormat('F Y'));
+                            $cursor->subMonth();
+                        }
+                        return $opciones;
                     })
                     ->default(now()->year . '-' . now()->month)
                     ->query(function ($query, array $data) {

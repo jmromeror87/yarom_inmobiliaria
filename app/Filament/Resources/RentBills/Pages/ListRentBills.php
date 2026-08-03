@@ -14,6 +14,15 @@ class ListRentBills extends ListRecords
 {
     protected static string $resource = RentBillResource::class;
 
+    public function mount(): void
+    {
+        if (empty($this->tableFilters['periodo']['value']) && ! request()->has('tableFilters')) {
+            $this->tableFilters['periodo']['value'] = now()->year . '-' . now()->month;
+        }
+
+        parent::mount();
+    }
+
     protected function getHeaderActions(): array
     {
         return [

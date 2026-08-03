@@ -69,6 +69,10 @@
                 <div class="cal-kpi-label">Total esperado</div>
                 <div class="cal-kpi-valor">${{ number_format(collect($dias)->filter()->flatMap(fn($d) => $d['facturas'])->sum('total_factura'), 0, ',', '.') }}</div>
             </div>
+            <div class="cal-kpi">
+                <div class="cal-kpi-label">Recaudado</div>
+                <div class="cal-kpi-valor" style="color:#16a34a;">${{ number_format(collect($dias)->filter()->flatMap(fn($d) => $d['facturas'])->sum('total_pagado'), 0, ',', '.') }}</div>
+            </div>
         </div>
 
         <div class="cal-toolbar">
@@ -103,7 +107,10 @@
                         <div class="cal-dia-num {{ $d['esHoy'] ? 'hoy' : '' }}">{{ $d['dia'] }}</div>
                         @if($d['total'] > 0)
                             <span class="cal-badge {{ $badgeClass }}">{{ $badgeIcono }} {{ $d['pagadas'] }}/{{ $d['total'] }} cobros</span>
-                            <div class="cal-monto">${{ number_format(collect($d['facturas'])->sum('total_factura'), 0, ',', '.') }}</div>
+                            <div class="cal-monto">
+                                ${{ number_format(collect($d['facturas'])->sum('total_factura'), 0, ',', '.') }}
+                                <span style="color:#16a34a;">· ${{ number_format(collect($d['facturas'])->sum('total_pagado'), 0, ',', '.') }} recaudado</span>
+                            </div>
                         @endif
                     </div>
 
