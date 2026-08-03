@@ -285,7 +285,7 @@ class OwnerLiquidationResource extends Resource
                         'style' => 'background:linear-gradient(135deg,#d97706,#f59e0b)!important;color:#fff!important;border:none!important;box-shadow:0 4px 14px rgba(217,119,6,.35)!important;font-weight:700!important;',
                     ])
                     ->modalHeading('Generar liquidaciones por período')
-                    ->modalDescription('Elige el mes o un rango de meses (ej. de junio a julio) para generar las liquidaciones de las facturas ya pagadas en ese período.')
+                    ->modalDescription('Elige el mes o un rango de meses. Por política de la inmobiliaria, se le gira al propietario haya pagado o no el inquilino ese mes — la única excepción es si el inquilino ya acumula más de 3 meses en mora, ahí no se genera y se notifica para revisión manual.')
                     ->schema([
                         Forms\Components\Select::make('mes_desde')->label('Mes desde')
                             ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
@@ -309,14 +309,25 @@ class OwnerLiquidationResource extends Resource
 
                         $bills = RentBill::whereRaw('(anio * 100 + mes) >= ?', [$desde])
                             ->whereRaw('(anio * 100 + mes) <= ?', [$hasta])
-                            ->where('estado', 'pagada')
+                            ->whereNotIn('estado', ['anulada'])
                             ->whereNull('owner_liquidation_id')
                             ->get();
-                        $n = 0;
+
+                        $n = 0; $bloqueadas = 0;
                         foreach ($bills as $b) {
+                            $mesesEnMora = RentBill::where('rental_contract_id', $b->rental_contract_id)
+                                ->whereNotIn('estado', ['pagada', 'anulada'])
+                                ->count();
+                            if ($mesesEnMora > 3) {
+                                $bloqueadas++;
+                                continue;
+                            }
                             if (OwnerLiquidation::generarDesdeFact($b)) $n++;
                         }
-                        Notification::make()->title("{$n} liquidaciones generadas")->success()->send();
+                        Notification::make()
+                            ->title("{$n} liquidaciones generadas")
+                            ->body($bloqueadas > 0 ? "{$bloqueadas} no se generaron por mora mayor a 3 meses — revisar manualmente." : null)
+                            ->success()->send();
                     }),
                 TableAction::make('reporte_pdf')
                     ->label('Reporte PDF del mes')

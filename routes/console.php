@@ -4,6 +4,7 @@ use App\Jobs\AlertasDocumentosJob;
 use App\Jobs\AlertasVencimientoContratosJob;
 use App\Jobs\EnviarNotificacionesInternasJob;
 use App\Jobs\GenerarFacturasMensuales;
+use App\Jobs\GenerarLiquidacionesAutomaticasJob;
 use App\Jobs\GenerarObligacionesDianJob;
 use App\Jobs\ReintentarFEJob;
 use App\Jobs\RenovarContratosJob;
@@ -28,6 +29,16 @@ Schedule::job(new VerificarMoraJob)
     ->name('verificar-mora')
     ->withoutOverlapping()
     ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job VerificarMoraJob falló'));
+
+// ── 2b. Girar a propietarios en su día fijo — diario a las 8:30am ───────
+// Política de la inmobiliaria: se gira al propietario en su día, pague o
+// no pague el inquilino ese mes. Excepción: si el inquilino debe más de
+// 3 meses, no se gira automático y se manda alerta interna.
+Schedule::job(new GenerarLiquidacionesAutomaticasJob)
+    ->dailyAt('08:30')
+    ->name('generar-liquidaciones-automaticas')
+    ->withoutOverlapping()
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job GenerarLiquidacionesAutomaticasJob falló'));
 
 // ── 3. Alertas de vencimiento de contratos — diario a las 9am ───────────
 // Envía WhatsApp a arrendatarios y asesores 60/30/15/5 días antes de vencer
