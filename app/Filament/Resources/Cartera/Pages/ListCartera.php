@@ -18,6 +18,11 @@ class ListCartera extends Page
 
     protected string $view = 'filament.resources.cartera.pages.list-cartera';
 
+    public function getTitle(): string
+    {
+        return 'Cartera';
+    }
+
     #[Url]
     public string $tab = 'resumen';
 
