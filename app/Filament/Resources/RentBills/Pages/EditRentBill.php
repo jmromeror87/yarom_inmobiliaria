@@ -98,6 +98,41 @@ class EditRentBill extends EditRecord
                 ->modalWidth('md')
                 ->modalFooterActionsAlignment('start')
                 ->schema([
+                    Placeholder::make('deuda_total_inquilino')
+                        ->label('')
+                        ->columnSpanFull()
+                        ->content(function () use ($record) {
+                            $facturas = \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
+                                ->whereNotIn('estado', ['pagada', 'anulada'])
+                                ->orderBy('anio')->orderBy('mes')
+                                ->get();
+
+                            $totalDeuda = $facturas->sum(fn ($f) => $f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado);
+                            $cantidad = $facturas->count();
+
+                            if ($cantidad <= 1) {
+                                return new \Illuminate\Support\HtmlString(
+                                    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:13px;">'
+                                    . '💡 Esta es la única factura pendiente de <strong>' . e($record->arrendatario?->nombre_completo) . '</strong>.'
+                                    . '</div>'
+                                );
+                            }
+
+                            $detalle = $facturas->map(function ($f) {
+                                $periodo = \Carbon\Carbon::create($f->anio, $f->mes, 1)->translatedFormat('M Y');
+                                $valor = number_format($f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado, 0, ',', '.');
+                                $diasMora = $f->dias_mora > 0 ? " ({$f->dias_mora}d mora)" : '';
+                                return "{$periodo}: \${$valor}{$diasMora}";
+                            })->implode(' · ');
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;">'
+                                . '⚠️ <strong>' . e($record->arrendatario?->nombre_completo) . '</strong> tiene <strong>' . $cantidad . ' facturas pendientes</strong> por un total de <strong>$' . number_format($totalDeuda, 0, ',', '.') . '</strong>.'
+                                . '<div style="margin-top:4px;color:#7f1d1d;">' . e($detalle) . '</div>'
+                                . '<div style="margin-top:4px;font-style:italic;">Si hicieron un acuerdo de pago, puedes registrar aquí solo el valor real recibido para esta factura.</div>'
+                                . '</div>'
+                            );
+                        }),
                     self::grupoLabel('💰 Valor y fecha'),
                     Grid::make(2)->schema([
                         TextInput::make('total_pagado')
