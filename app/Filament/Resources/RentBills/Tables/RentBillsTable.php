@@ -136,6 +136,23 @@ class RentBillsTable
             ->defaultSort('created_at', 'desc')
             ->striped()
             ->filters([
+                SelectFilter::make('periodo')
+                    ->label('Período')
+                    ->options(function () {
+                        return \App\Models\RentBill::query()
+                            ->selectRaw('DISTINCT anio, mes')
+                            ->orderByDesc('anio')->orderByDesc('mes')
+                            ->get()
+                            ->mapWithKeys(fn ($r) => [
+                                $r->anio . '-' . $r->mes => ucfirst(\Carbon\Carbon::create($r->anio, $r->mes, 1)->translatedFormat('F Y')),
+                            ])->toArray();
+                    })
+                    ->default(now()->year . '-' . now()->month)
+                    ->query(function ($query, array $data) {
+                        if (empty($data['value'])) return $query;
+                        [$anio, $mes] = explode('-', $data['value']);
+                        return $query->where('anio', $anio)->where('mes', $mes);
+                    }),
                 SelectFilter::make('estado')->label('Estado')
                     ->options([
                         'pendiente' => 'Pendiente',
