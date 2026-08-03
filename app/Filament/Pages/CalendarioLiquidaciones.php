@@ -88,11 +88,16 @@ class CalendarioLiquidaciones extends Page
                 $estado = $liq?->estado === 'pagada' ? 'girada' : 'pendiente';
                 if ($estado === 'girada') $girados++;
 
+                $canonBruto = (float) ($rc?->canon_mensual ?? $c->canon_pactado ?? 0);
+                $netoEstimado = $liq
+                    ? (float) $liq->total_giro
+                    : round($canonBruto * (1 - ((float) ($c->comision_porcentaje ?? 10) / 100)), 2);
+
                 return [
                     'propietario' => $c->propietario?->nombre_completo ?? '—',
                     'inmueble' => $c->property?->codigo ?? '—',
                     'direccion' => $c->property?->direccion ?? '—',
-                    'canon' => (float) ($rc?->canon_mensual ?? $c->canon_pactado ?? 0),
+                    'canon' => $netoEstimado,
                     'estado' => $estado,
                     'fecha_giro' => $liq?->fecha_giro?->toDateString(),
                     'liquidation_id' => $liq?->id,

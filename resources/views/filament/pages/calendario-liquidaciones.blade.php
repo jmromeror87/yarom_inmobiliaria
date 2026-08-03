@@ -62,6 +62,10 @@
                 <div class="cal-kpi-label">Total a girar este mes</div>
                 <div class="cal-kpi-valor">${{ number_format(collect($dias)->filter()->flatMap(fn($d) => $d['items'])->sum('canon'), 0, ',', '.') }}</div>
             </div>
+            <div class="cal-kpi">
+                <div class="cal-kpi-label">Total girado</div>
+                <div class="cal-kpi-valor" style="color:#16a34a;">${{ number_format(collect($dias)->filter()->flatMap(fn($d) => $d['items'])->where('estado', 'girada')->sum('canon'), 0, ',', '.') }}</div>
+            </div>
         </div>
 
         <div class="cal-toolbar">
