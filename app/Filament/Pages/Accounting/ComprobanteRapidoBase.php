@@ -68,6 +68,28 @@ abstract class ComprobanteRapidoBase extends Page
             ->orderBy('codigo')->get();
     }
 
+    public string $cuenta_search = '';
+
+    public function getCuentasFiltradasProperty()
+    {
+        if (mb_strlen($this->cuenta_search) < 2) {
+            return collect();
+        }
+        return AccountingAccount::where('acepta_movimiento', true)->where('estado', 'activo')
+            ->where(function ($q) {
+                $q->where('nombre', 'like', "%{$this->cuenta_search}%")
+                    ->orWhere('codigo', 'like', "%{$this->cuenta_search}%");
+            })
+            ->orderBy('codigo')->limit(20)->get();
+    }
+
+    public function seleccionarCuenta(int $id): void
+    {
+        $this->account_id = $id;
+        $cuenta = AccountingAccount::find($id);
+        $this->cuenta_search = $cuenta ? "{$cuenta->codigo} — {$cuenta->nombre}" : '';
+    }
+
     public function updatedThirdId(): void
     {
         $this->obligacion = null;

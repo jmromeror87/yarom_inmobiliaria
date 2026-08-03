@@ -87,12 +87,22 @@
 @if($aplicacion === 'otro')
 <div class="cr-card">
     <span class="cr-label">3. Cuenta contable ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto/cuenta se aplica' }})</span>
-    <select class="cr-select" wire:model="account_id">
-        <option value="">Selecciona una cuenta...</option>
-        @foreach($this->cuentasManuales as $c)
-            <option value="{{ $c->id }}">{{ $c->codigo }} — {{ $c->nombre }}</option>
-        @endforeach
-    </select>
+    <div style="position:relative;">
+        <input type="text" class="cr-input" placeholder="Buscar por nombre o código de cuenta..." wire:model.live.debounce.400ms="cuenta_search">
+        @if($this->cuentasFiltradas->count() > 0 && !$account_id)
+            <div style="position:absolute;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:.6rem;width:100%;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);">
+                @foreach($this->cuentasFiltradas as $c)
+                    <div class="cr-tercero-item" wire:click="seleccionarCuenta({{ $c->id }})">{{ $c->codigo }} — {{ $c->nombre }}</div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+    @if($account_id)
+        <div style="margin-top:8px;display:inline-flex;align-items:center;gap:8px;background:{{ $colorBg }};border:1px solid {{ $colorBorder }};border-radius:99px;padding:5px 14px;font-size:12.5px;font-weight:700;color:{{ $colorPrincipal }};">
+            ✓ {{ \App\Models\AccountingAccount::find($account_id)?->codigo }} — {{ \App\Models\AccountingAccount::find($account_id)?->nombre }}
+            <span style="cursor:pointer;color:#94a3b8;" wire:click="$set('account_id', null); $set('cuenta_search', '')">✕</span>
+        </div>
+    @endif
 </div>
 @endif
 
