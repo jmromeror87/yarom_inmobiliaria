@@ -37,6 +37,15 @@ class AccountingAccountResource extends Resource
                     'unique' => 'Ya existe una cuenta con este código PUC. Por favor revísala antes de crear una nueva.',
                 ])
                 ->maxLength(20)
+                ->live(onBlur: true)
+                ->hint(function ($state, $operation, $record) {
+                    if (blank($state)) return null;
+                    $existente = AccountingAccount::where('codigo', $state)
+                        ->when($operation === 'edit' && $record, fn ($q) => $q->where('id', '!=', $record->id))
+                        ->first();
+                    return $existente ? "⚠️ Cuenta existente: {$existente->codigo} — {$existente->nombre}" : null;
+                })
+                ->hintColor('danger')
                 ->helperText('Ej: 110505 (6 dígitos = subcuenta que acepta movimientos)'),
 
             TextInput::make('nombre')
