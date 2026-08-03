@@ -33,6 +33,9 @@ class AccountingAccountResource extends Resource
             TextInput::make('codigo')
                 ->label('Código PUC')->required()
                 ->unique(ignoreRecord: true)
+                ->validationMessages([
+                    'unique' => 'Ya existe una cuenta con este código PUC. Por favor revísala antes de crear una nueva.',
+                ])
                 ->maxLength(20)
                 ->helperText('Ej: 110505 (6 dígitos = subcuenta que acepta movimientos)'),
 
