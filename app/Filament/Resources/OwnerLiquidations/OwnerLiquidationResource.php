@@ -20,6 +20,7 @@ use Filament\Notifications\Notification;
 use App\Filament\Traits\HasResourcePermissions;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -162,8 +163,8 @@ class OwnerLiquidationResource extends Resource
                                 ->get()
                                 ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
                             ->searchable()
-                            ->visible(fn (Forms\Get $get) => $get('forma_giro') !== 'efectivo')
-                            ->required(fn (Forms\Get $get) => $get('forma_giro') !== 'efectivo')
+                            ->visible(fn (Get $get) => $get('forma_giro') !== 'efectivo')
+                            ->required(fn (Get $get) => $get('forma_giro') !== 'efectivo')
                             ->helperText('De qué cuenta (Bancolombia, Crediservir, etc.) realmente salió la plata.'),
                         Forms\Components\TextInput::make('referencia_giro')
                             ->label('Referencia / N° transacción'),
