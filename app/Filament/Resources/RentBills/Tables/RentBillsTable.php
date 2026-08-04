@@ -175,6 +175,58 @@ class RentBillsTable
                         );
                     }),
             ])
+            ->headerActions([
+                Action::make('send_all_payment_links')
+                    ->label('Enviar todos los links pendientes')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('success')
+                    ->modalHeading('Enviar links de pago masivamente')
+                    ->modalDescription(function () {
+                        $count = self::elegiblesParaEnvioMasivo()->count();
+                        return "Se enviará el link de pago por WhatsApp a {$count} arrendatario(s) con factura pendiente. Se excluyen automáticamente los inmuebles de origen Victoria (sin celular registrado) y las facturas que ya tienen el link enviado.";
+                    })
+                    ->requiresConfirmation()
+                    ->action(function () {
+                        $bills = self::elegiblesParaEnvioMasivo()->get();
+
+                        $enviados = 0;
+                        $fallidos = 0;
+
+                        foreach ($bills as $record) {
+                            try {
+                                $token = $record->generatePaymentToken();
+                                $url   = route('payment.show', ['token' => $token]);
+
+                                $msg = "💳 *Link de pago — {$record->numero}*\n\n"
+                                    . "Hola {$record->arrendatario->nombre_completo},\n\n"
+                                    . "Su factura de arrendamiento está lista para pago en línea.\n\n"
+                                    . "📋 *Factura:* {$record->numero}\n"
+                                    . "💰 *Valor:* \$" . number_format($record->saldo_pendiente, 0, ',', '.') . " COP\n"
+                                    . "📅 *Vence:* {$record->fecha_limite_pago->format('d/m/Y')}\n\n"
+                                    . "🔗 *Pagar aquí:*\n{$url}\n\n"
+                                    . "Puede pagar con PSE, Nequi, tarjeta débito/crédito o en nuestra oficina.\n"
+                                    . "— Serviarrendar S.A.S";
+
+                                $resultado = app(\App\Services\WhatsAppService::class)->enviar($record->arrendatario->celular, $msg);
+
+                                if ($resultado['ok'] ?? false) {
+                                    $record->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
+                                    $enviados++;
+                                } else {
+                                    $fallidos++;
+                                }
+                            } catch (\Throwable $e) {
+                                $fallidos++;
+                            }
+                        }
+
+                        Notification::make()
+                            ->title('Envío masivo completado')
+                            ->body("{$enviados} link(s) enviados correctamente" . ($fallidos > 0 ? " · {$fallidos} fallaron" : ''))
+                            ->success()
+                            ->send();
+                    }),
+            ])
             ->recordActions([
                 Action::make('send_payment_link')
                     ->label(fn ($record) => $record->wap_enviado ? 'Reenviar link' : 'Enviar link')
@@ -288,5 +340,15 @@ class RentBillsTable
                     ->icon('heroicon-o-eye')
                     ->outlined(),
             ]);
+    }
+
+    private static function elegiblesParaEnvioMasivo()
+    {
+        return \App\Models\RentBill::query()
+            ->whereIn('estado', ['pendiente', 'en_mora', 'parcial', 'vencida'])
+            ->where('wap_enviado', false)
+            ->whereHas('arrendatario', fn ($q) => $q->whereNotNull('celular')->where('celular', '!=', ''))
+            ->whereDoesntHave('rentalContract.property.businessOrigin', fn ($q) => $q->where('nombre', 'Victoria'))
+            ->with('arrendatario');
     }
 }
