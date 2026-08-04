@@ -142,51 +142,50 @@
 {{-- ── SCORE DE COMPORTAMIENTO DE PAGO (arrendatario) ─────────────────── --}}
 @php $sp = $this->scorePago; @endphp
 @if(($sp['aplica'] ?? false) && !($sp['sin_historial'] ?? false))
-<div style="background:linear-gradient(135deg,#0F172A 0%,#1e2d45 100%);border-radius:1.25rem;padding:24px 28px;margin-bottom:20px;position:relative;overflow:hidden;">
-    <div style="position:absolute;right:-30px;top:-30px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,{{ $sp['nivel']['color'] }}22,transparent 70%);pointer-events:none;"></div>
-    <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;position:relative;">
+<div class="xp-card" style="margin-bottom:20px;">
+    <div class="xp-card-head">
+        <div class="icon" style="background:{{ $sp['nivel']['bg'] }};">📊</div>
+        <h3 style="flex:1;">Comportamiento de pago</h3>
+        <span style="font-size:12px;font-weight:800;background:{{ $sp['nivel']['bg'] }};color:{{ $sp['nivel']['color'] }};border-radius:99px;padding:4px 14px;">{{ $sp['nivel']['label'] }}</span>
+    </div>
+    <div style="padding:20px 24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
         {{-- Puntaje circular --}}
         <div style="flex-shrink:0;text-align:center;">
-            <div style="width:96px;height:96px;border-radius:50%;background:conic-gradient({{ $sp['nivel']['color'] }} {{ $sp['score'] * 3.6 }}deg, rgba(255,255,255,.1) 0deg);display:flex;align-items:center;justify-content:center;">
-                <div style="width:76px;height:76px;border-radius:50%;background:#0F172A;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                    <span style="font-size:24px;font-weight:900;color:#fff;line-height:1;">{{ $sp['score'] }}</span>
-                    <span style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;">score</span>
+            <div style="width:84px;height:84px;border-radius:50%;background:conic-gradient({{ $sp['nivel']['color'] }} {{ $sp['score'] * 3.6 }}deg, #f1f5f9 0deg);display:flex;align-items:center;justify-content:center;">
+                <div style="width:66px;height:66px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px #f1f5f9;">
+                    <span style="font-size:21px;font-weight:900;color:{{ $sp['nivel']['color'] }};line-height:1;">{{ $sp['score'] }}</span>
+                    <span style="font-size:8px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">score</span>
                 </div>
             </div>
         </div>
 
-        <div style="flex:1;min-width:220px;">
-            <div style="font-size:9.5px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">📊 Comportamiento de pago</div>
-            <div style="display:inline-block;font-size:14px;font-weight:800;background:{{ $sp['nivel']['bg'] }};color:{{ $sp['nivel']['color'] }};border-radius:99px;padding:4px 14px;margin-bottom:4px;">{{ $sp['nivel']['label'] }}</div>
-            <div style="font-size:11.5px;color:rgba(255,255,255,.55);">Basado en {{ $sp['total_facturas'] }} factura(s) históricas de este arrendatario.</div>
-        </div>
-
         {{-- Sub-métricas --}}
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
-                <div style="font-size:9px;">💰</div>
-                <div style="font-size:17px;font-weight:900;color:#fff;margin-top:2px;">{{ $sp['efectividad'] }}%</div>
-                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Efectividad</div>
+        <div style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;min-width:280px;">
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:12px;padding:10px 14px;">
+                <div style="font-size:13px;">💰</div>
+                <div style="font-size:18px;font-weight:900;color:#0f172a;margin-top:3px;">{{ $sp['efectividad'] }}%</div>
+                <div style="font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-top:1px;">Efectividad</div>
             </div>
-            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
-                <div style="font-size:9px;">⏱️</div>
-                <div style="font-size:17px;font-weight:900;color:#fff;margin-top:2px;">{{ $sp['puntualidad'] !== null ? $sp['puntualidad'].'%' : '—' }}</div>
-                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Puntualidad</div>
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:12px;padding:10px 14px;">
+                <div style="font-size:13px;">⏱️</div>
+                <div style="font-size:18px;font-weight:900;color:#0f172a;margin-top:3px;">{{ $sp['puntualidad'] !== null ? $sp['puntualidad'].'%' : '—' }}</div>
+                <div style="font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-top:1px;">Puntualidad</div>
             </div>
-            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
-                <div style="font-size:9px;">🔴</div>
-                <div style="font-size:17px;font-weight:900;color:{{ $sp['mora_actual_pct'] > 0 ? '#f87171' : '#fff' }};margin-top:2px;">{{ $sp['mora_actual_pct'] }}%</div>
-                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">En mora ({{ $sp['facturas_en_mora'] }})</div>
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:12px;padding:10px 14px;">
+                <div style="font-size:13px;">🔴</div>
+                <div style="font-size:18px;font-weight:900;color:{{ $sp['mora_actual_pct'] > 0 ? '#dc2626' : '#0f172a' }};margin-top:3px;">{{ $sp['mora_actual_pct'] }}%</div>
+                <div style="font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-top:1px;">En mora ({{ $sp['facturas_en_mora'] }})</div>
             </div>
             @if($sp['dias_mora_promedio'])
-            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
-                <div style="font-size:9px;">📅</div>
-                <div style="font-size:17px;font-weight:900;color:#fff;margin-top:2px;">{{ $sp['dias_mora_promedio'] }}d</div>
-                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Mora promedio</div>
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:12px;padding:10px 14px;">
+                <div style="font-size:13px;">📅</div>
+                <div style="font-size:18px;font-weight:900;color:#0f172a;margin-top:3px;">{{ $sp['dias_mora_promedio'] }}d</div>
+                <div style="font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-top:1px;">Mora promedio</div>
             </div>
             @endif
         </div>
     </div>
+    <div style="padding:0 24px 14px;font-size:11px;color:#94a3b8;">Basado en {{ $sp['total_facturas'] }} factura(s) históricas de este arrendatario.</div>
 </div>
 @endif
 
