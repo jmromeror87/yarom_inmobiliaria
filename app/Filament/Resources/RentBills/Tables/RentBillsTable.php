@@ -44,7 +44,8 @@ class RentBillsTable
                     ->label('Periodo')
                     ->formatStateUsing(fn ($record) =>
                         \Carbon\Carbon::create($record->anio, $record->mes, 1)->translatedFormat('F Y')
-                    ),
+                    )
+                    ->sortable(['periodo_inicio']),
 
                 TextColumn::make('total_factura')
                     ->label('Total')->money('COP')->sortable(),
@@ -133,7 +134,7 @@ class RentBillsTable
                     })
                     ->visible(fn () => \App\Models\Company::first()?->factura_electronica_activa ?? false),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('periodo_inicio', 'asc')
             ->striped()
             ->filters([
                 SelectFilter::make('periodo')
