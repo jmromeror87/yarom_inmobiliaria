@@ -44,10 +44,13 @@ class OwnerLiquidationForm
                         ->disabled(),
 
                     DatePicker::make('periodo_inicio')
-                        ->label('Inicio del período')->disabled(),
+                        ->label('Inicio del período')
+                        ->native(false)
+                        ->helperText('Corrígelo si no coincide con el período real de la factura del inquilino.'),
 
                     DatePicker::make('periodo_fin')
-                        ->label('Fin del período')->disabled(),
+                        ->label('Fin del período')
+                        ->native(false),
 
                     Select::make('estado')
                         ->label('Estado')
