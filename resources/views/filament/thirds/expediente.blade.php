@@ -167,15 +167,56 @@
     </div>
     @endif
 
-    @if($this->propiedades->count())
-    <div class="xp-card">
-        <div class="xp-card-head"><div class="icon" style="background:#f0fdf4;">🏠</div><h3>Inmuebles (propietario)</h3></div>
-        <div style="padding:4px 0;">
-        @foreach($this->propiedades as $p)
-        <div class="xp-row">
-            <label>{{ $p->codigo }}</label>
-            <span style="font-size:12.5px;">{{ $p->direccion }} <span style="font-size:10px;color:#94a3b8;font-weight:500;">· {{ ucfirst($p->estado) }}</span></span>
-        </div>
+    @if($this->propiedadesDetalle->count())
+    <div class="xp-card" style="overflow:visible;">
+        <div class="xp-card-head"><div class="icon" style="background:#f0fdf4;">🏠</div><h3>Inmuebles y estado de arriendo (propietario)</h3></div>
+        <div style="padding:12px;" x-data="{ open: null }">
+        @foreach($this->propiedadesDetalle as $i => $d)
+            @php
+                $p = $d['property']; $contrato = $d['contrato']; $facturas = $d['facturas'];
+                $estadoOcupacion = $contrato
+                    ? ($d['en_mora'] > 0 ? ['🔴 En mora', '#fef2f2', '#991b1b'] : ($d['al_dia'] ? ['🟢 Al día', '#f0fdf4', '#166534'] : ['🟡 Pendiente', '#fffbeb', '#92400e']))
+                    : ['⚪ Sin inquilino activo', '#f8fafc', '#64748b'];
+            @endphp
+            <div style="border:1px solid #e2e8f0;border-radius:.875rem;margin-bottom:10px;overflow:hidden;">
+                <button type="button" x-on:click="open = (open === {{ $i }} ? null : {{ $i }})" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:#fff;border:none;cursor:pointer;text-align:left;">
+                    <div style="min-width:0;">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span style="font-weight:800;font-size:13px;color:#0f172a;">{{ $p->codigo }}</span>
+                            <span style="font-size:10px;font-weight:800;background:{{ $estadoOcupacion[1] }};color:{{ $estadoOcupacion[2] }};border-radius:99px;padding:2px 9px;">{{ $estadoOcupacion[0] }}</span>
+                        </div>
+                        <div style="font-size:11.5px;color:#64748b;margin-top:3px;">{{ $p->direccion }} <span style="color:#94a3b8;">· {{ ucfirst($p->estado) }}</span></div>
+                        @if($contrato)
+                        <div style="font-size:11.5px;color:#334155;margin-top:2px;">🔑 {{ $contrato->arrendatario?->nombre_completo ?? 'Sin arrendatario' }}</div>
+                        @endif
+                    </div>
+                    <svg x-show="open !== {{ $i }}" style="width:16px;height:16px;color:#94a3b8;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    <svg x-show="open === {{ $i }}" x-cloak style="width:16px;height:16px;color:#E11D48;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <div x-show="open === {{ $i }}" x-cloak style="border-top:1px solid #f1f5f9;background:#fafbfc;">
+                    @if(!$contrato)
+                        <div style="padding:16px;font-size:12px;color:#94a3b8;">Este inmueble no tiene un contrato de arriendo activo actualmente.</div>
+                    @elseif($facturas->isEmpty())
+                        <div style="padding:16px;font-size:12px;color:#94a3b8;">Sin facturas generadas todavía para este contrato.</div>
+                    @else
+                        <table class="t-table">
+                            <thead><tr><th>Período</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead>
+                            <tbody>
+                            @foreach($facturas as $f)
+                                @php [$c1,$c2] = $estadoBillColor[$f->estado] ?? ['#64748b','#f8fafc']; @endphp
+                                <tr>
+                                    <td>{{ $mesesNombre[str_pad($f->mes,2,'0',STR_PAD_LEFT)] ?? $f->mes }} {{ $f->anio }}</td>
+                                    <td class="t-num">{{ $fmt($f->total_factura) }}</td>
+                                    <td class="t-num" style="color:#16a34a;">{{ $fmt($f->total_pagado) }}</td>
+                                    <td class="t-num" style="color:{{ $f->saldo_pendiente > 0 ? '#dc2626' : '#94a3b8' }};">{{ $fmt($f->saldo_pendiente) }}</td>
+                                    <td><span class="t-badge" style="background:{{ $c2 }};color:{{ $c1 }};">{{ ucfirst(str_replace('_',' ',$f->estado)) }}</span></td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </div>
+            </div>
         @endforeach
         </div>
     </div>

@@ -158,6 +158,33 @@ class ThirdExpediente extends Page
         return $this->record->properties()->get();
     }
 
+    /**
+     * Para cada inmueble del propietario: su contrato de arriendo activo
+     * (con el inquilino) y el historial de facturas de ese contrato, para
+     * poder mostrar en el expediente quién vive ahí y si está al día o en mora.
+     */
+    public function getPropiedadesDetalleProperty()
+    {
+        return $this->record->properties()
+            ->with(['rentalContracts' => function ($q) {
+                $q->where('estado', 'activo')
+                    ->with(['arrendatario', 'rentBills' => fn ($q2) => $q2->orderByDesc('anio')->orderByDesc('mes')]);
+            }])
+            ->get()
+            ->map(function ($property) {
+                $contrato = $property->rentalContracts->first();
+                $bills = $contrato?->rentBills ?? collect();
+
+                return [
+                    'property'  => $property,
+                    'contrato'  => $contrato,
+                    'facturas'  => $bills,
+                    'en_mora'   => $bills->whereIn('estado', ['en_mora', 'vencida'])->count(),
+                    'al_dia'    => $contrato && $bills->whereIn('estado', ['en_mora', 'vencida', 'pendiente'])->isEmpty(),
+                ];
+            });
+    }
+
     public function getCarteraHeredadaProperty()
     {
         return $this->record->cuentasPorCobrar()->where('tipo', 'saldo_inicial_siinmob')->get();
