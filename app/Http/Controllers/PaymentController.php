@@ -26,6 +26,11 @@ class PaymentController extends Controller
                 ->with('status', 'pagada');
         }
 
+        if ($bill->estado === 'anulada') {
+            return view('payment.show', compact('bill', 'company', 'token'))
+                ->with('status', 'expirado');
+        }
+
         if ($bill->payment_token_expires_at && $bill->payment_token_expires_at->isPast()) {
             return view('payment.show', compact('bill', 'company', 'token'))
                 ->with('status', 'expirado');

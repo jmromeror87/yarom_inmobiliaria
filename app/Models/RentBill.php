@@ -103,7 +103,11 @@ class RentBill extends Model
         $token = bin2hex(random_bytes(32));
         $this->update([
             'payment_token'            => $token,
-            'payment_token_expires_at' => $this->fecha_limite_pago->endOfDay(),
+            // El link debe seguir funcionando mientras la factura esté sin
+            // pagar (con mora incluida) — antes vencía justo en la fecha
+            // límite, dejando al inquilino sin forma de pagar en línea
+            // apenas se atrasaba un día.
+            'payment_token_expires_at' => $this->fecha_limite_pago->copy()->addMonths(6)->endOfDay(),
         ]);
         return $token;
     }
