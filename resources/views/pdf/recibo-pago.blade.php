@@ -51,7 +51,9 @@
 
     $periodoTexto = null;
     if ($bill?->periodo_inicio && $bill?->periodo_fin) {
-        $periodoTexto = \Carbon\Carbon::parse($bill->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($bill->periodo_fin)->format('Y-m-d');
+        $pIni = \Carbon\Carbon::parse($bill->periodo_inicio);
+        $pFin = \Carbon\Carbon::parse($bill->periodo_fin);
+        $periodoTexto = $pIni->translatedFormat('d \\d\\e F') . ' al ' . $pFin->translatedFormat('d \\d\\e F \\d\\e Y');
     } elseif ($bill?->mes && $bill?->anio) {
         $periodoTexto = ucfirst(\Carbon\Carbon::create($bill->anio, $bill->mes, 1)->translatedFormat('F Y'));
     }
