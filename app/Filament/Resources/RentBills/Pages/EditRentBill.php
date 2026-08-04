@@ -52,7 +52,7 @@ class EditRentBill extends EditRecord
                 ->outlined()
                 ->icon('heroicon-o-adjustments-horizontal')
                 ->modalHeading('Ajustes de la factura')
-                ->modalDescription('Decide si esta factura puntual aplica mora, y si arrastra saldo pendiente de un periodo anterior.')
+                ->modalDescription('Decide si esta factura puntual aplica mora, si arrastra saldo pendiente de un periodo anterior, y corrige el periodo de arriendo si quedó mal.')
                 ->modalSubmitActionLabel('Guardar ajustes')
                 ->schema([
                     Toggle::make('aplicar_mora')
@@ -68,6 +68,23 @@ class EditRentBill extends EditRecord
                         ->placeholder('Ej: saldo pendiente de junio 2026')
                         ->default(fn () => $record->nota_saldo_arrastrado)
                         ->columnSpanFull(),
+
+                    Grid::make(2)->schema([
+                        DatePicker::make('periodo_inicio')
+                            ->label('Período — desde')
+                            ->native(false)
+                            ->default(fn () => $record->periodo_inicio),
+                        DatePicker::make('periodo_fin')
+                            ->label('Período — hasta')
+                            ->native(false)
+                            ->default(fn () => $record->periodo_fin),
+                    ]),
+                    DatePicker::make('fecha_limite_pago')
+                        ->label('Fecha límite de pago')
+                        ->native(false)
+                        ->default(fn () => $record->fecha_limite_pago)
+                        ->helperText('Corrige esto si el período de arriendo de esta factura no coincide con el contrato real.')
+                        ->columnSpanFull(),
                 ])
                 ->action(function (array $data) use ($record) {
                     $data['aplicar_mora'] ??= false;
@@ -76,6 +93,9 @@ class EditRentBill extends EditRecord
                         'aplicar_mora'              => $data['aplicar_mora'],
                         'saldo_anterior_arrastrado' => $data['saldo_anterior_arrastrado'] ?? 0,
                         'nota_saldo_arrastrado'     => $data['nota_saldo_arrastrado'] ?? null,
+                        'periodo_inicio'            => $data['periodo_inicio'] ?? $record->periodo_inicio,
+                        'periodo_fin'               => $data['periodo_fin'] ?? $record->periodo_fin,
+                        'fecha_limite_pago'         => $data['fecha_limite_pago'] ?? $record->fecha_limite_pago,
                     ]);
 
                     if (!$data['aplicar_mora']) {
