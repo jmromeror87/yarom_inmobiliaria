@@ -114,7 +114,7 @@
     <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;">
         <div style="width:38px;height:38px;border-radius:10px;background:{{ $s['bg'] }};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">{{ $s['icon'] }}</div>
         <div>
-            <div style="font-size:22px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
+            <div style="font-size:18px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
             <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:5px;">{{ $s['label'] }}</div>
         </div>
     </div>
@@ -130,7 +130,7 @@
     <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;">
         <div style="width:38px;height:38px;border-radius:10px;background:{{ $s['bg'] }};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">{{ $s['icon'] }}</div>
         <div>
-            <div style="font-size:22px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
+            <div style="font-size:18px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
             <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:5px;">{{ $s['label'] }}</div>
         </div>
     </div>
