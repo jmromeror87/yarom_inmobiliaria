@@ -200,7 +200,7 @@
                         <div style="padding:16px;font-size:12px;color:#94a3b8;">Sin facturas generadas todavía para este contrato.</div>
                     @else
                         <table class="t-table">
-                            <thead><tr><th>Período</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead>
+                            <thead><tr><th>Período</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th></th></tr></thead>
                             <tbody>
                             @foreach($facturas as $f)
                                 @php [$c1,$c2] = $estadoBillColor[$f->estado] ?? ['#64748b','#f8fafc']; @endphp
@@ -210,6 +210,12 @@
                                     <td class="t-num" style="color:#16a34a;">{{ $fmt($f->total_pagado) }}</td>
                                     <td class="t-num" style="color:{{ $f->saldo_pendiente > 0 ? '#dc2626' : '#94a3b8' }};">{{ $fmt($f->saldo_pendiente) }}</td>
                                     <td><span class="t-badge" style="background:{{ $c2 }};color:{{ $c1 }};">{{ ucfirst(str_replace('_',' ',$f->estado)) }}</span></td>
+                                    <td style="text-align:right;">
+                                        <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('edit', ['record' => $f]) }}" target="_blank"
+                                           style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#E11D48;background:#fef2f2;border-radius:8px;padding:5px 10px;text-decoration:none;white-space:nowrap;">
+                                            💳 {{ $f->saldo_pendiente > 0 ? 'Ver / Pagar' : 'Ver factura' }}
+                                        </a>
+                                    </td>
                                 </tr>
                             @endforeach
                             </tbody>
