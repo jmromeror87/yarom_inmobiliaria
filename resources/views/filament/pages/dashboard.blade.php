@@ -284,16 +284,22 @@
     {{-- ── CHARTS + TABLA ── --}}
     <div class="yr-grid-2" style="margin-bottom:16px;">
 
-        {{-- Tendencia recaudo 6 meses --}}
+        {{-- Tendencia recaudo --}}
         <div class="yr-card">
             <div class="yr-card-header">
                 <div>
                     <div class="yr-card-title">Tendencia de Recaudo</div>
-                    <div class="yr-card-sub">Últimos 6 meses · Facturado vs Recaudado</div>
+                    <div class="yr-card-sub" id="chartRecaudoSub">Últimos 6 meses · Facturado vs Recaudado</div>
                 </div>
-                <span class="yr-badge" style="background:#d1fae5;color:#059669;">
-                    ${{ number_format($recaudo6meses->sum('valor'), 0, ',', '.') }} total
-                </span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="display:flex;background:#f1f5f9;border-radius:8px;padding:2px;">
+                        <button type="button" id="btnRecaudoMes" onclick="window.__setRecaudoModo('mes')" style="border:none;background:#fff;color:#0F172A;font-weight:700;font-size:0.68rem;padding:4px 10px;border-radius:6px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08);">Mensual</button>
+                        <button type="button" id="btnRecaudoSemana" onclick="window.__setRecaudoModo('semana')" style="border:none;background:transparent;color:#64748b;font-weight:700;font-size:0.68rem;padding:4px 10px;border-radius:6px;cursor:pointer;">Semanal</button>
+                    </div>
+                    <span class="yr-badge" id="chartRecaudoTotal" style="background:#d1fae5;color:#059669;">
+                        ${{ number_format($recaudo6meses->sum('valor'), 0, ',', '.') }} total
+                    </span>
+                </div>
             </div>
             <div class="yr-card-body">
                 <canvas id="chartRecaudo" height="130"></canvas>
@@ -432,6 +438,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const recaudo6 = @json($recaudo6meses);
+    const recaudo8sem = @json($recaudo8semanas);
     const recaudo7 = @json($recaudo7dias);
     const bucketLabels = @json($bucketLabels);
     const carteraBuckets = @json($carteraBuckets);
@@ -501,27 +508,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Chart 6 meses
-    new Chart(document.getElementById('chartRecaudo'), {
-        type: 'bar',
+    // Chart tendencia de recaudo (mensual / semanal, tipo línea)
+    const chartRecaudo = new Chart(document.getElementById('chartRecaudo'), {
+        type: 'line',
         data: {
             labels: recaudo6.map(r => r.mes),
             datasets: [
                 {
                     label: 'Facturado',
                     data: recaudo6.map(r => r.factu),
-                    backgroundColor: 'rgba(37,99,235,0.15)',
                     borderColor: '#2563EB',
+                    backgroundColor: 'rgba(37,99,235,0.08)',
+                    fill: true,
+                    tension: 0.35,
                     borderWidth: 2,
-                    borderRadius: 6,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#2563EB',
                 },
                 {
                     label: 'Recaudado',
                     data: recaudo6.map(r => r.valor),
-                    backgroundColor: 'rgba(5,150,105,0.7)',
                     borderColor: '#059669',
-                    borderWidth: 0,
-                    borderRadius: 6,
+                    backgroundColor: 'rgba(5,150,105,0.1)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#059669',
                 }
             ]
         },
@@ -534,6 +547,33 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // Toggle Mensual / Semanal
+    window.__setRecaudoModo = function (modo) {
+        const fmt = v => '$' + Number(v).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const btnMes = document.getElementById('btnRecaudoMes');
+        const btnSem = document.getElementById('btnRecaudoSemana');
+        const sub = document.getElementById('chartRecaudoSub');
+        const total = document.getElementById('chartRecaudoTotal');
+
+        const fuente = modo === 'semana' ? recaudo8sem : recaudo6;
+        const clave   = modo === 'semana' ? 'semana' : 'mes';
+
+        chartRecaudo.data.labels = fuente.map(r => r[clave]);
+        chartRecaudo.data.datasets[0].data = fuente.map(r => r.factu);
+        chartRecaudo.data.datasets[1].data = fuente.map(r => r.valor);
+        chartRecaudo.update();
+
+        sub.textContent = modo === 'semana' ? 'Últimas 8 semanas · Facturado vs Recaudado' : 'Últimos 6 meses · Facturado vs Recaudado';
+        total.textContent = fmt(fuente.reduce((s, r) => s + r.valor, 0)) + ' total';
+
+        btnMes.style.background = modo === 'mes' ? '#fff' : 'transparent';
+        btnMes.style.color = modo === 'mes' ? '#0F172A' : '#64748b';
+        btnMes.style.boxShadow = modo === 'mes' ? '0 1px 2px rgba(0,0,0,.08)' : 'none';
+        btnSem.style.background = modo === 'semana' ? '#fff' : 'transparent';
+        btnSem.style.color = modo === 'semana' ? '#0F172A' : '#64748b';
+        btnSem.style.boxShadow = modo === 'semana' ? '0 1px 2px rgba(0,0,0,.08)' : 'none';
+    };
 
     // Chart 7 días
     new Chart(document.getElementById('chartDiario'), {

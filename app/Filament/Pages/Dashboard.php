@@ -70,6 +70,17 @@ class Dashboard extends BaseDashboard
                 ->where('anio', now()->subMonths($i)->year)->sum('total_factura'),
         ])->values();
 
+        // ── Tendencia recaudo 8 semanas ───────────────────────────────────
+        $recaudo8semanas = collect(range(7, 0))->map(function ($i) {
+            $inicio = now()->subWeeks($i)->startOfWeek();
+            $fin    = now()->subWeeks($i)->endOfWeek();
+            return [
+                'semana' => $inicio->format('d/m') . '-' . $fin->format('d/m'),
+                'valor'  => (float) RentPayment::whereBetween('fecha_pago', [$inicio, $fin])->sum('total_pagado'),
+                'factu'  => (float) RentBill::whereBetween('fecha_limite_pago', [$inicio, $fin])->sum('total_factura'),
+            ];
+        })->values();
+
         // ── Últimas facturas ──────────────────────────────────────────────
         $ultimasFacturas = RentBill::with(['rentalContract.arrendatario', 'rentalContract.property'])
             ->orderByDesc('created_at')->limit(8)->get();
@@ -172,6 +183,7 @@ class Dashboard extends BaseDashboard
             'liquidPend'        => $liquidPend,
             'recaudo7dias'      => $recaudo7dias,
             'recaudo6meses'     => $recaudo6meses,
+            'recaudo8semanas'   => $recaudo8semanas,
             'ultimasFacturas'   => $ultimasFacturas,
             'contratosPorVencer'=> $contratosPorVencer,
             'accesos'           => $accesos,
