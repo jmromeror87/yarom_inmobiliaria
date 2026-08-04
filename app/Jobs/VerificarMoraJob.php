@@ -42,8 +42,12 @@ class VerificarMoraJob implements ShouldQueue
         $actualizadas = 0;
 
         foreach ($bills as $bill) {
-            $fechaInicioMora = $bill->fecha_limite_pago->copy()->addDays($bill->dias_gracia);
-            $diasMora = (int) $fechaInicioMora->startOfDay()->diffInDays(now()->startOfDay());
+            // El período de gracia es solo el "colchón" antes de que la mora
+            // empiece a aplicar (por eso el filtro de arriba exige que ya se
+            // haya superado fecha_limite + dias_gracia). Pero una vez se
+            // supera, la mora se cobra completa desde la fecha límite
+            // ORIGINAL — no se descuentan los días de gracia del conteo.
+            $diasMora = (int) $bill->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
 
             // Si el contrato indica mora solo sobre canon (admin la cobra el edificio),
             // usar canon_base como base de cálculo en lugar del saldo_pendiente completo.
@@ -59,7 +63,7 @@ class VerificarMoraJob implements ShouldQueue
                 'estado'            => 'en_mora',
                 'dias_mora'         => $diasMora,
                 'mora_acumulada'    => $mora,
-                'fecha_inicio_mora' => $bill->fecha_inicio_mora ?? $fechaInicioMora->toDateString(),
+                'fecha_inicio_mora' => $bill->fecha_inicio_mora ?? $bill->fecha_limite_pago->toDateString(),
             ]);
 
             // Renovar token de pago si expiró (inquilino en mora debe poder pagar en línea)
