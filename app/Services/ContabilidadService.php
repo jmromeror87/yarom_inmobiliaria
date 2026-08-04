@@ -111,8 +111,11 @@ class ContabilidadService
         // ni del propietario — es un valor de paso hacia ASURA. Se contabiliza
         // en su propia cuenta pasiva, nunca mezclado con el canon (la comisión
         // se calcula SOLO sobre canon + administración).
-        $seguroTotal = (float) ($bill->valor_seguro_sura ?? 0) + (float) ($bill->iva_seguro_sura ?? 0) + (float) ($bill->redondeo_seguro ?? 0);
-        $total   = $canon + $admCob + $seguroTotal;
+        $seguroSura  = (float) ($bill->valor_seguro_sura ?? 0) + (float) ($bill->iva_seguro_sura ?? 0);
+        // El redondeo del seguro (diferencia entre lo cobrado al inquilino y el
+        // total exacto) SÍ es del propietario — es canon adicional, no de SURA.
+        $redondeo    = (float) ($bill->redondeo_seguro ?? 0);
+        $total   = $canon + $admCob + $seguroSura + $redondeo;
         if ($total <= 0) return null;
 
         $company      = Company::first();
@@ -133,9 +136,10 @@ class ContabilidadService
         $iva          = $aplicaIva ? round($comision * ($ivaPct / 100), 2) : 0;
         $rete         = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
         // netoProp NO descuenta rete: la retención es anticipo de impuesto de la inmobiliaria,
-        // no un descuento al propietario. El propietario recibe (canon + admin - comision - iva)
-        // — el seguro SURA nunca toca el neto del propietario, es un valor de paso a ASURA.
-        $netoProp     = round(($canon + $admCob) - $comision - $iva, 2);
+        // no un descuento al propietario. El propietario recibe (canon + admin + redondeo
+        // - comision - iva) — el seguro SURA en sí nunca toca el neto del propietario
+        // (es un valor de paso a ASURA), pero el redondeo del seguro sí es suyo.
+        $netoProp     = round(($canon + $admCob + $redondeo) - $comision - $iva, 2);
 
         // Autorretención (persona jurídica obligada según Decreto 2418/2013)
         $autoRete     = round($comision * 0.035, 2);  // 3.5% sobre comisión
@@ -162,8 +166,8 @@ class ContabilidadService
             $lineas[] = ['account_id' => $cuentaIva, 'debito' => 0, 'credito' => $iva, 'descripcion' => "IVA {$ivaPct}% sobre comisión", 'third_id' => null];
         }
 
-        if ($seguroTotal > 0 && $cuentaSura) {
-            $lineas[] = ['account_id' => $cuentaSura, 'debito' => 0, 'credito' => round($seguroTotal, 2), 'descripcion' => "Seguro SURA — {$bill->numero}", 'third_id' => null];
+        if ($seguroSura > 0 && $cuentaSura) {
+            $lineas[] = ['account_id' => $cuentaSura, 'debito' => 0, 'credito' => round($seguroSura, 2), 'descripcion' => "Seguro SURA — {$bill->numero}", 'third_id' => null];
         }
 
         $lineas[] = ['account_id' => $cuentaXPagarProp, 'debito' => 0, 'credito' => $netoProp, 'descripcion' => "Neto a girar propietario {$bill->numero}", 'third_id' => $property?->propietario_id];

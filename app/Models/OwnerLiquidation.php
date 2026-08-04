@@ -126,16 +126,13 @@ class OwnerLiquidation extends Model
         $ivaPct  = (float)($propietario?->tarifa_iva_pactada ?: $company?->tarifa_iva ?? 19);
         $retePct = (float)($propietario?->tarifa_retefuente_pactada ?: $company?->tarifa_retefuente_arrendamiento ?? 3.5);
 
-        // Canon base del propietario: lo que pagó el inquilino menos el seguro SURA
-        // Si el contrato tiene canon_cobrado_inquilino (SURA), la base del propietario =
-        //   total cobrado al inquilino − seguro − IVA seguro (la diferencia/redondeo va al propietario)
-        $seguroTotal = (float)($bill->valor_seguro_sura ?? 0) + (float)($bill->iva_seguro_sura ?? 0);
-        $canon = $seguroTotal > 0
-            ? (float)$bill->total_factura - $seguroTotal
-            : (float)$bill->canon_base;
+        // Canon base del propietario: el canon pactado (nunca incluye el seguro
+        // SURA en sí — eso es de paso hacia ASURA). La comisión se calcula
+        // SOLO sobre este canon puro, nunca sobre el seguro ni su redondeo.
+        $canon = (float) $bill->canon_base;
 
         // Si la cuota de administración la cobra la inmobiliaria para el propietario, incluirla
-        if ($contrato->admin_cobrada_por === 'inmobiliaria' && $seguroTotal === 0.0) {
+        if ($contrato->admin_cobrada_por === 'inmobiliaria') {
             $canon += (float)$bill->cuota_administracion;
         }
 
@@ -143,8 +140,13 @@ class OwnerLiquidation extends Model
         $ivaComision   = $aplicaIva ? round($comisionValor * ($ivaPct / 100), 2) : 0;
         $retefuente    = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
 
-        // Seguro SURA: se cobró al inquilino pero la inmobiliaria lo paga a ASURA — no va al propietario
+        // Seguro SURA: se cobró al inquilino pero la inmobiliaria lo paga a ASURA — no va al propietario.
         $seguroSura = (float)($bill->valor_seguro_sura ?? 0) + (float)($bill->iva_seguro_sura ?? 0);
+        // El redondeo del seguro (diferencia entre lo cobrado al inquilino y el
+        // total exacto) SÍ es del propietario — se suma al canon mostrado, pero
+        // no lleva comisión (ya se calculó arriba sobre el canon puro).
+        $redondeo = (float)($bill->redondeo_seguro ?? 0);
+        $canonMostrado = $canon + $redondeo;
 
         $liq = static::create([
             'rental_contract_id'  => $bill->rental_contract_id,
@@ -154,7 +156,7 @@ class OwnerLiquidation extends Model
             'anio'                => $bill->anio,
             'periodo_inicio'      => $bill->periodo_inicio,
             'periodo_fin'         => $bill->periodo_fin,
-            'canon_cobrado'       => $canon,
+            'canon_cobrado'       => $canonMostrado,
             'comision_porcentaje' => $comisionPct,
             'comision_valor'      => $comisionValor,
             'iva_comision'        => $ivaComision,
@@ -162,7 +164,7 @@ class OwnerLiquidation extends Model
             'retefuente_valor'    => $retefuente,
             'seguro_sura_deducido'=> $seguroSura,
             'otros_descuentos'    => 0,
-            'total_giro'          => max(0, $canon - $comisionValor - $ivaComision - $retefuente),
+            'total_giro'          => max(0, $canonMostrado - $comisionValor - $ivaComision - $retefuente),
             'estado'              => 'pendiente',
         ]);
 
