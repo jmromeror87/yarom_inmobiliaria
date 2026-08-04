@@ -77,6 +77,22 @@ class OwnerLiquidation extends Model
                     'cambiado_en'     => now(),
                 ]);
             }
+
+            // Si se editó manualmente algún componente de la liquidación
+            // económica, el total a girar se recalcula siempre a partir de
+            // ellos — nunca queda desincronizado. El seguro SURA NO se resta
+            // aquí: "canon_cobrado" ya viene neto de seguro (ver
+            // generarDesdeFact) — el campo seguro_sura_deducido es solo
+            // informativo, para mostrar cuánto se le transfiere a ASURA.
+            if ($l->isDirty(['canon_cobrado', 'comision_porcentaje', 'comision_valor', 'iva_comision', 'retefuente_valor', 'otros_descuentos'])) {
+                $l->total_giro = max(0,
+                    (float) $l->canon_cobrado
+                    - (float) $l->comision_valor
+                    - (float) $l->iva_comision
+                    - (float) $l->retefuente_valor
+                    - (float) $l->otros_descuentos
+                );
+            }
         });
 
         // Contabilización manejada exclusivamente por OwnerLiquidationObserver — no duplicar aquí

@@ -67,32 +67,32 @@ class OwnerLiquidationForm
             Section::make('Liquidación económica')
                 ->icon('heroicon-o-banknotes')
                 ->columns(2)
-                ->description('Los valores calculados no son editables — se generan automáticamente desde la factura pagada.')
+                ->description('Corrige estos valores solo si la liquidación quedó mal calculada — el total a girar se recalcula automáticamente al guardar.')
                 ->schema([
                     TextInput::make('canon_cobrado')
                         ->label('Canon cobrado al inquilino')
-                        ->prefix('$')->numeric()->disabled(),
+                        ->prefix('$')->numeric()->live(onBlur: true),
 
                     TextInput::make('comision_porcentaje')
                         ->label('Comisión administración')
-                        ->suffix('%')->numeric()->disabled(),
+                        ->suffix('%')->numeric()->live(onBlur: true),
 
                     TextInput::make('comision_valor')
                         ->label('Valor comisión')
-                        ->prefix('$')->numeric()->disabled(),
+                        ->prefix('$')->numeric()->live(onBlur: true),
 
                     TextInput::make('iva_comision')
                         ->label('IVA sobre comisión (19%)')
-                        ->prefix('$')->numeric()->disabled(),
+                        ->prefix('$')->numeric()->live(onBlur: true),
 
                     TextInput::make('retefuente_valor')
                         ->label('Retefuente')
-                        ->prefix('$')->numeric()->disabled()
+                        ->prefix('$')->numeric()->live(onBlur: true)
                         ->helperText('Solo aplica si el arrendatario es persona jurídica'),
 
                     TextInput::make('seguro_sura_deducido')
                         ->label('🛡️ Seguro SURA (pagado a ASURA)')
-                        ->prefix('$')->numeric()->disabled()
+                        ->prefix('$')->numeric()->live(onBlur: true)
                         ->helperText('Base + IVA cobrado al inquilino — la inmobiliaria lo transfiere a ASURA')
                         ->visible(fn ($record) => $record && (float)$record->seguro_sura_deducido > 0),
 
@@ -114,10 +114,10 @@ class OwnerLiquidationForm
                                 . '<span style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">Total a girar al propietario</span>'
                                 . '<span style="font-size:22px;font-weight:800;color:#fff;">$' . number_format(
                                     max(0,
-                                        (float) ($record?->canon_cobrado ?? 0)
-                                        - (float) ($record?->comision_valor ?? 0)
-                                        - (float) ($record?->iva_comision ?? 0)
-                                        - (float) ($record?->retefuente_valor ?? 0)
+                                        (float) ($get('canon_cobrado') ?? $record?->canon_cobrado ?? 0)
+                                        - (float) ($get('comision_valor') ?? $record?->comision_valor ?? 0)
+                                        - (float) ($get('iva_comision') ?? $record?->iva_comision ?? 0)
+                                        - (float) ($get('retefuente_valor') ?? $record?->retefuente_valor ?? 0)
                                         - (float) ($get('otros_descuentos') ?? 0)
                                     ),
                                     0, ',', '.'
