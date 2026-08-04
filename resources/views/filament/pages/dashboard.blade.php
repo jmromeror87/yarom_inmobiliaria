@@ -52,13 +52,14 @@
 }
 
 /* ── Sección dos columnas ── */
-.yr-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
-.yr-grid-3 { display:grid; grid-template-columns:1fr 1fr 340px; gap:16px; margin-bottom:16px; }
+.yr-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; align-items:start; }
+.yr-grid-3 { display:grid; grid-template-columns:1fr 1fr 340px; gap:16px; margin-bottom:16px; align-items:start; }
 @media(max-width:1200px) { .yr-grid-2,.yr-grid-3 { grid-template-columns:1fr; } }
 
 .yr-card {
     background:#fff; border-radius:16px; border:1px solid rgba(226,232,240,.8);
     box-shadow:0 2px 12px rgba(15,23,42,.05); overflow:hidden;
+    display:flex; flex-direction:column;
 }
 .yr-card-header {
     padding:16px 20px; border-bottom:1px solid #f1f5f9;
@@ -437,6 +438,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    Chart.defaults.animation = false;
+
     const recaudo6 = @json($recaudo6meses);
     const recaudo8sem = @json($recaudo8semanas);
     const recaudo7 = @json($recaudo7dias);
