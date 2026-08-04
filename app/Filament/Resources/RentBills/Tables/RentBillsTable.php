@@ -177,14 +177,23 @@ class RentBillsTable
             ])
             ->recordActions([
                 Action::make('send_payment_link')
-                    ->label('Enviar link')
-                    ->icon('heroicon-o-paper-airplane')
-                    ->color('success')
+                    ->label(fn ($record) => $record->wap_enviado ? 'Reenviar link' : 'Enviar link')
+                    ->icon(fn ($record) => $record->wap_enviado ? 'heroicon-o-arrow-path' : 'heroicon-o-paper-airplane')
+                    ->color(fn ($record) => $record->wap_enviado ? 'gray' : 'success')
                     ->outlined()
+                    ->tooltip(fn ($record) => $record->wap_enviado && $record->wap_enviado_at
+                        ? 'Ya enviado el ' . $record->wap_enviado_at->format('d/m/Y h:i A') . ' — clic para reenviar'
+                        : null)
                     ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'en_mora', 'parcial', 'vencida']))
                     ->requiresConfirmation()
-                    ->modalHeading('Enviar link de pago por WhatsApp')
-                    ->modalDescription(fn ($record) => "Se enviará el link de pago a {$record->arrendatario?->nombre_completo} al número {$record->arrendatario?->celular}.")
+                    ->modalHeading(fn ($record) => $record->wap_enviado ? 'Reenviar link de pago por WhatsApp' : 'Enviar link de pago por WhatsApp')
+                    ->modalDescription(function ($record) {
+                        $base = "Se enviará el link de pago a {$record->arrendatario?->nombre_completo} al número {$record->arrendatario?->celular}.";
+                        if ($record->wap_enviado && $record->wap_enviado_at) {
+                            $base = "⚠️ Ya se envió el " . $record->wap_enviado_at->format('d/m/Y \\a \\l\\a\\s h:i A') . ". " . $base;
+                        }
+                        return $base;
+                    })
                     ->action(function ($record) {
                         if (!$record->arrendatario?->celular) {
                             Notification::make()
@@ -207,7 +216,11 @@ class RentBillsTable
                             . "Puede pagar con PSE, Nequi, tarjeta débito/crédito o en nuestra oficina.\n"
                             . "— Serviarrendar S.A.S";
 
-                        app(\App\Services\WhatsAppService::class)->enviar($record->arrendatario->celular, $msg);
+                        $resultado = app(\App\Services\WhatsAppService::class)->enviar($record->arrendatario->celular, $msg);
+
+                        if ($resultado['ok'] ?? false) {
+                            $record->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
+                        }
 
                         Notification::make()
                             ->title('Link enviado')
