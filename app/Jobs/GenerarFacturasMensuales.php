@@ -83,13 +83,13 @@ class GenerarFacturasMensuales implements ShouldQueue
                 $fechaLimite = $contrato->fecha_entrega_efectiva->toDateString();
             }
 
-            // Período de arriendo: mismo ciclo rotativo que Siinmob — desde el
-            // día de pago del mes anterior + 1, hasta el día de pago de este
-            // mes − 1 (nunca el mes calendario, que no coincide con el día
-            // de pago pactado en el contrato).
+            // Período de arriendo: mismo ciclo que Siinmob — el canon se paga
+            // anticipado, así que el período va DESDE la fecha límite de pago
+            // HACIA ADELANTE un mes (nunca el mes calendario, que no coincide
+            // con el día de pago pactado en el contrato).
             $fechaLimiteCarbon = \Carbon\Carbon::parse($fechaLimite);
-            $periodoFin    = $fechaLimiteCarbon->copy()->subDay()->toDateString();
-            $periodoInicio = $fechaLimiteCarbon->copy()->subMonthNoOverflow()->addDay()->toDateString();
+            $periodoInicio = $fechaLimiteCarbon->copy()->toDateString();
+            $periodoFin    = $fechaLimiteCarbon->copy()->addMonthNoOverflow()->subDay()->toDateString();
 
             // ── Seguro SURA: valores precalculados y guardados en el inmueble ──
             $tieneSeguroSura = (bool)($contrato->property?->tiene_seguro_sura);
