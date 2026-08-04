@@ -148,6 +148,66 @@ class ThirdExpediente extends Page
         ];
     }
 
+    /**
+     * Score de comportamiento de pago del arrendatario: combina efectividad
+     * (cuánto de lo facturado efectivamente pagó), puntualidad (cuánto de lo
+     * pagado lo hizo a tiempo) y mora actual, en un puntaje 0-100 con
+     * etiqueta legible para que el asesor sepa de un vistazo si es buen pagador.
+     */
+    public function getScorePagoProperty(): array
+    {
+        $r = $this->record;
+        if (!$r->es_arrendatario) {
+            return ['aplica' => false];
+        }
+
+        $bills = RentBill::where('arrendatario_id', $r->id)->get();
+        $total = $bills->count();
+
+        if ($total === 0) {
+            return ['aplica' => true, 'sin_historial' => true];
+        }
+
+        $facturado = (float) $bills->sum('total_factura');
+        $pagado    = (float) $bills->sum('total_pagado');
+        $efectividad = $facturado > 0 ? min(100, round($pagado / $facturado * 100, 1)) : 0;
+
+        $pagadas = $bills->where('estado', 'pagada');
+        $pagadasATiempo = $pagadas->filter(fn ($b) => $b->fecha_pago && $b->fecha_limite_pago && $b->fecha_pago->lte($b->fecha_limite_pago))->count();
+        $puntualidad = $pagadas->count() > 0 ? round($pagadasATiempo / $pagadas->count() * 100, 1) : null;
+
+        $enMoraActual = $bills->whereIn('estado', ['en_mora', 'vencida'])->count();
+        $moraActualPct = round($enMoraActual / $total * 100, 1);
+
+        $diasMoraPromedio = $bills->where('dias_mora', '>', 0)->avg('dias_mora');
+
+        $componentePuntualidad = $puntualidad ?? 70; // sin pagos registrados aún: neutral, no penaliza ni premia
+        $score = round(
+            ($efectividad * 0.5) + ($componentePuntualidad * 0.3) + ((100 - $moraActualPct) * 0.2)
+        );
+        $score = max(0, min(100, $score));
+
+        $nivel = match (true) {
+            $score >= 90 => ['label' => '🏆 Excelente pagador', 'color' => '#166534', 'bg' => '#f0fdf4'],
+            $score >= 75 => ['label' => '✅ Buen pagador',       'color' => '#15803d', 'bg' => '#f0fdf4'],
+            $score >= 55 => ['label' => '⚠️ Pagador irregular',  'color' => '#92400e', 'bg' => '#fffbeb'],
+            default      => ['label' => '🔴 Alto riesgo',        'color' => '#991b1b', 'bg' => '#fef2f2'],
+        };
+
+        return [
+            'aplica'            => true,
+            'sin_historial'     => false,
+            'score'             => $score,
+            'nivel'             => $nivel,
+            'efectividad'       => $efectividad,
+            'puntualidad'       => $puntualidad,
+            'mora_actual_pct'   => $moraActualPct,
+            'facturas_en_mora'  => $enMoraActual,
+            'total_facturas'    => $total,
+            'dias_mora_promedio'=> $diasMoraPromedio ? round($diasMoraPromedio) : null,
+        ];
+    }
+
     public function getContratosProperty()
     {
         return $this->record->rentalContracts()->with('property')->orderByDesc('fecha_inicio')->get();

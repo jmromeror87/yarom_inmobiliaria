@@ -107,29 +107,86 @@
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px;">
     @if($r->es_arrendatario)
     @foreach([
-        ['v'=>$k['total_facturado'],'label'=>'Total Facturado','color'=>'#2563EB','border'=>'#2563EB'],
-        ['v'=>$k['total_pagado'],   'label'=>'Total Pagado',   'color'=>'#16a34a','border'=>'#16a34a'],
-        ['v'=>$k['total_pendiente'],'label'=>'Saldo Pendiente', 'color'=>$k['total_pendiente']>0?'#dc2626':'#64748b','border'=>$k['total_pendiente']>0?'#dc2626':'#e2e8f0'],
+        ['v'=>$k['total_facturado'],'label'=>'Total Facturado','color'=>'#2563EB','border'=>'#2563EB','icon'=>'🧾','bg'=>'#eff6ff'],
+        ['v'=>$k['total_pagado'],   'label'=>'Total Pagado',   'color'=>'#16a34a','border'=>'#16a34a','icon'=>'✅','bg'=>'#f0fdf4'],
+        ['v'=>$k['total_pendiente'],'label'=>'Saldo Pendiente', 'color'=>$k['total_pendiente']>0?'#dc2626':'#64748b','border'=>$k['total_pendiente']>0?'#dc2626':'#e2e8f0','icon'=>'⏳','bg'=>$k['total_pendiente']>0?'#fef2f2':'#f8fafc'],
     ] as $s)
-    <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
-        <div style="font-size:24px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
-        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:6px;">{{ $s['label'] }}</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:{{ $s['bg'] }};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">{{ $s['icon'] }}</div>
+        <div>
+            <div style="font-size:22px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
+            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:5px;">{{ $s['label'] }}</div>
+        </div>
     </div>
     @endforeach
     @endif
     @if($r->es_propietario)
     @foreach([
-        ['v'=>$k['total_liquidado'],'label'=>'Canon Liquidado','color'=>'#7c3aed','border'=>'#7c3aed'],
-        ['v'=>$k['total_girado'],   'label'=>'Total Girado',   'color'=>'#16a34a','border'=>'#16a34a'],
-        ['v'=>$k['total_por_girar_hoy'],'label'=>'Pendiente por Girar (HOY)','color'=>$k['total_por_girar_hoy']>0?'#dc2626':'#64748b','border'=>$k['total_por_girar_hoy']>0?'#dc2626':'#e2e8f0'],
-        ['v'=>$k['total_comision'], 'label'=>'Comisiones',     'color'=>'#E11D48','border'=>'#E11D48'],
+        ['v'=>$k['total_liquidado'],'label'=>'Canon Liquidado','color'=>'#7c3aed','border'=>'#7c3aed','icon'=>'📋','bg'=>'#f5f3ff'],
+        ['v'=>$k['total_girado'],   'label'=>'Total Girado',   'color'=>'#16a34a','border'=>'#16a34a','icon'=>'💸','bg'=>'#f0fdf4'],
+        ['v'=>$k['total_por_girar_hoy'],'label'=>'Pendiente por Girar (HOY)','color'=>$k['total_por_girar_hoy']>0?'#dc2626':'#64748b','border'=>$k['total_por_girar_hoy']>0?'#dc2626':'#e2e8f0','icon'=>'⏳','bg'=>$k['total_por_girar_hoy']>0?'#fef2f2':'#f8fafc'],
+        ['v'=>$k['total_comision'], 'label'=>'Comisiones',     'color'=>'#E11D48','border'=>'#E11D48','icon'=>'💼','bg'=>'#fff1f2'],
     ] as $s)
-    <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
-        <div style="font-size:24px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
-        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:6px;">{{ $s['label'] }}</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid {{ $s['border'] }};border-radius:1rem;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;gap:14px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:{{ $s['bg'] }};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">{{ $s['icon'] }}</div>
+        <div>
+            <div style="font-size:22px;font-weight:900;color:{{ $s['color'] }};line-height:1;">{{ $fmt($s['v']) }}</div>
+            <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-top:5px;">{{ $s['label'] }}</div>
+        </div>
     </div>
     @endforeach
     @endif
+</div>
+@endif
+
+{{-- ── SCORE DE COMPORTAMIENTO DE PAGO (arrendatario) ─────────────────── --}}
+@php $sp = $this->scorePago; @endphp
+@if(($sp['aplica'] ?? false) && !($sp['sin_historial'] ?? false))
+<div style="background:linear-gradient(135deg,#0F172A 0%,#1e2d45 100%);border-radius:1.25rem;padding:24px 28px;margin-bottom:20px;position:relative;overflow:hidden;">
+    <div style="position:absolute;right:-30px;top:-30px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,{{ $sp['nivel']['color'] }}22,transparent 70%);pointer-events:none;"></div>
+    <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;position:relative;">
+        {{-- Puntaje circular --}}
+        <div style="flex-shrink:0;text-align:center;">
+            <div style="width:96px;height:96px;border-radius:50%;background:conic-gradient({{ $sp['nivel']['color'] }} {{ $sp['score'] * 3.6 }}deg, rgba(255,255,255,.1) 0deg);display:flex;align-items:center;justify-content:center;">
+                <div style="width:76px;height:76px;border-radius:50%;background:#0F172A;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span style="font-size:24px;font-weight:900;color:#fff;line-height:1;">{{ $sp['score'] }}</span>
+                    <span style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;">score</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="flex:1;min-width:220px;">
+            <div style="font-size:9.5px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">📊 Comportamiento de pago</div>
+            <div style="display:inline-block;font-size:14px;font-weight:800;background:{{ $sp['nivel']['bg'] }};color:{{ $sp['nivel']['color'] }};border-radius:99px;padding:4px 14px;margin-bottom:4px;">{{ $sp['nivel']['label'] }}</div>
+            <div style="font-size:11.5px;color:rgba(255,255,255,.55);">Basado en {{ $sp['total_facturas'] }} factura(s) históricas de este arrendatario.</div>
+        </div>
+
+        {{-- Sub-métricas --}}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
+                <div style="font-size:9px;">💰</div>
+                <div style="font-size:17px;font-weight:900;color:#fff;margin-top:2px;">{{ $sp['efectividad'] }}%</div>
+                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Efectividad</div>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
+                <div style="font-size:9px;">⏱️</div>
+                <div style="font-size:17px;font-weight:900;color:#fff;margin-top:2px;">{{ $sp['puntualidad'] !== null ? $sp['puntualidad'].'%' : '—' }}</div>
+                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Puntualidad</div>
+            </div>
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
+                <div style="font-size:9px;">🔴</div>
+                <div style="font-size:17px;font-weight:900;color:{{ $sp['mora_actual_pct'] > 0 ? '#f87171' : '#fff' }};margin-top:2px;">{{ $sp['mora_actual_pct'] }}%</div>
+                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">En mora ({{ $sp['facturas_en_mora'] }})</div>
+            </div>
+            @if($sp['dias_mora_promedio'])
+            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px;">
+                <div style="font-size:9px;">📅</div>
+                <div style="font-size:17px;font-weight:900;color:#fff;margin-top:2px;">{{ $sp['dias_mora_promedio'] }}d</div>
+                <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Mora promedio</div>
+            </div>
+            @endif
+        </div>
+    </div>
 </div>
 @endif
 
