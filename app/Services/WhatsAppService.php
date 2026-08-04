@@ -43,8 +43,20 @@ class WhatsAppService
         }
     }
 
+    /**
+     * Limpia espacios, guiones y paréntesis del número — el microservicio de
+     * WhatsApp necesita solo dígitos (con indicativo si aplica) para resolver
+     * el JID correctamente. Un espacio suelto ("320 6618761") hace que el
+     * envío falle silenciosamente.
+     */
+    private function limpiarTelefono(string $telefono): string
+    {
+        return preg_replace('/[^0-9]/', '', $telefono);
+    }
+
     public function enviar(string $telefono, string $mensaje): array
     {
+        $telefono = $this->limpiarTelefono($telefono);
         try {
             $res = Http::timeout(15)->post($this->baseUrl . '/send', [
                 'telefono' => $telefono,
@@ -60,6 +72,7 @@ class WhatsAppService
 
     public function enviarConArchivo(string $telefono, string $mensaje, string $rutaArchivo, string $nombreArchivo = ''): array
     {
+        $telefono = $this->limpiarTelefono($telefono);
         try {
             $res  = Http::timeout(30)->post($this->baseUrl . '/send-doc', [
                 'telefono'       => $telefono,
