@@ -153,7 +153,18 @@ class OwnerLiquidationResource extends Resource
                         Forms\Components\Select::make('forma_giro')
                             ->label('Forma de giro')
                             ->options(['transferencia'=>'Transferencia','consignacion'=>'Consignación','cheque'=>'Cheque','efectivo'=>'Efectivo'])
+                            ->live()
                             ->required(),
+                        Forms\Components\Select::make('banco_giro_id')
+                            ->label('Cuenta de la que sale el dinero')
+                            ->options(fn () => \App\Models\Bank::where('is_active', true)
+                                ->where('tipo_cuenta', '!=', 'caja')
+                                ->get()
+                                ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
+                            ->searchable()
+                            ->visible(fn (Forms\Get $get) => $get('forma_giro') !== 'efectivo')
+                            ->required(fn (Forms\Get $get) => $get('forma_giro') !== 'efectivo')
+                            ->helperText('De qué cuenta (Bancolombia, Crediservir, etc.) realmente salió la plata.'),
                         Forms\Components\TextInput::make('referencia_giro')
                             ->label('Referencia / N° transacción'),
                         Forms\Components\FileUpload::make('comprobante_giro_path')
@@ -167,6 +178,7 @@ class OwnerLiquidationResource extends Resource
                             'estado'                => 'pagada',
                             'fecha_giro'            => $data['fecha_giro'],
                             'forma_giro'            => $data['forma_giro'],
+                            'banco_giro_id'         => $data['banco_giro_id'] ?? null,
                             'referencia_giro'       => $data['referencia_giro'] ?? null,
                             'comprobante_giro_path' => $data['comprobante_giro_path'] ?? null,
                         ]);

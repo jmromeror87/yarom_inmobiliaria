@@ -141,7 +141,18 @@ class OwnerLiquidationForm
                             'consignacion'  => 'Consignación',
                             'cheque'        => 'Cheque',
                             'efectivo'      => 'Efectivo',
-                        ]),
+                        ])
+                        ->live(),
+
+                    Select::make('banco_giro_id')
+                        ->label('Cuenta de la que salió el dinero')
+                        ->options(fn () => \App\Models\Bank::where('is_active', true)
+                            ->where('tipo_cuenta', '!=', 'caja')
+                            ->get()
+                            ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
+                        ->searchable()
+                        ->visible(fn (Get $get) => $get('forma_giro') !== 'efectivo')
+                        ->helperText('De qué cuenta (Bancolombia, Crediservir, etc.) realmente salió la plata.'),
 
                     TextInput::make('referencia_giro')
                         ->label('N° transacción / referencia')->columnSpanFull(),
