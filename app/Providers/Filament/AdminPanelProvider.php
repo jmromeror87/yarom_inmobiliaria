@@ -301,6 +301,36 @@ class AdminPanelProvider extends PanelProvider
                     .fi-page{max-width:100%!important;width:100%!important;}
                     /* Widget KIPs — sin padding ni borde del wrapper */
                     .fi-page-header-widgets .fi-wi{padding:0!important;background:transparent!important;border:none!important;box-shadow:none!important;}
+
+                    /* ══ TOPBAR RESPONSIVE — Android / iOS ══════════════════════ */
+                    @media(max-width:900px){
+                        .yr-topbar{padding:0 14px!important;}
+                        .yr-clock-date{display:none!important;}
+                        .yr-status-sub{display:none!important;}
+                        .yr-status-name{font-size:10px!important;}
+                        .yr-search-ctn{width:150px!important;}
+                    }
+                    @media(max-width:680px){
+                        .yr-clock,.yr-status,.yr-divider{display:none!important;}
+                        .yr-topbar-right{gap:8px!important;}
+                        /* Buscador colapsado a icono — se expande al enfocar */
+                        .yr-search-ctn{width:36px!important;flex-shrink:0!important;}
+                        .yr-search-field{
+                            width:36px!important;height:36px!important;
+                            padding:0!important;border-radius:50%!important;justify-content:center!important;
+                            overflow:hidden!important;transition:width .18s ease,border-radius .18s ease!important;
+                        }
+                        .yr-search-input{width:0!important;padding:0!important;flex:none!important;}
+                        .yr-search-field:focus-within{
+                            width:170px!important;border-radius:10px!important;padding:0 12px!important;justify-content:flex-start!important;
+                        }
+                        .yr-search-field:focus-within .yr-search-input{width:100%!important;flex:1!important;padding:9px 0!important;}
+                    }
+                    @media(max-width:420px){
+                        .yr-topbar{padding:0 10px!important;gap:0!important;}
+                        .yr-brand svg{width:30px!important;height:30px!important;}
+                        .yr-topbar-right{gap:6px!important;}
+                    }
                 </style>
                 '
             )
