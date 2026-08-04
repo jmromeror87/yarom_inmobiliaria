@@ -101,6 +101,9 @@
 @php
     $arr        = $bill->arrendatario;
     $mesAnio    = \Carbon\Carbon::create($bill->anio, $bill->mes, 1)->translatedFormat('F Y');
+    $periodoArriendo = ($bill->periodo_inicio && $bill->periodo_fin)
+        ? 'arriendo del mes ' . \Carbon\Carbon::parse($bill->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($bill->periodo_fin)->format('Y-m-d')
+        : $mesAnio;
     // La retefuente solo la practica un arrendatario persona jurídica (agente
     // retenedor obligado por ley) — igual que en ContabilidadService::generarParaFactura.
     // Antes esta plantilla la restaba siempre, sin importar el tipo de persona.
@@ -296,7 +299,7 @@
         <td class="foot-left">
             <div class="lbl">Notas</div>
             <div style="margin-bottom:6pt;">
-                SE FACTURA EL PERIODO {{ ucfirst($mesAnio) }}.
+                SE FACTURA EL PERIODO: {{ $periodoArriendo }}.
                 {{ $bill->notas }}
             </div>
             <div class="lbl">Son</div>

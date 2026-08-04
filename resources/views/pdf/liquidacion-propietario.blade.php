@@ -55,6 +55,9 @@
 @php
     $money = fn ($v) => number_format((float) $v, 0, ',', '.');
     $periodoTexto = $liquidation->periodoLabel;
+    $periodoArriendo = ($liquidation->periodo_inicio && $liquidation->periodo_fin)
+        ? 'arriendo del mes ' . \Carbon\Carbon::parse($liquidation->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($liquidation->periodo_fin)->format('Y-m-d')
+        : $periodoTexto;
 
     $selloTexto = match ($liquidation->estado) {
         'pagada'   => 'PAGADA',
@@ -175,7 +178,7 @@
 </table>
 
 <div class="notas">
-    SE LIQUIDA EL CANON DEL PERIODO {{ $periodoTexto }} AL PROPIETARIO DEL INMUEBLE {{ $liquidation->property?->codigo }}.
+    SE LIQUIDA EL CANON DEL PERIODO: {{ $periodoArriendo }}. PROPIETARIO DEL INMUEBLE {{ $liquidation->property?->codigo }}.
     {{ $liquidation->notas }}
 </div>
 
