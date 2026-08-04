@@ -10,6 +10,7 @@ use App\Helpers\WhatsApp;
 use App\Services\WhatsAppService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -204,6 +205,38 @@ class EditRentBill extends EditRecord
                         ->maxSize(5120)
                         ->columnSpanFull(),
                     Textarea::make('notas')->label('Notas')->rows(2)->columnSpanFull(),
+
+                    Placeholder::make('resumen_confirmacion')
+                        ->label('')
+                        ->columnSpanFull()
+                        ->content(function (Get $get) use ($record) {
+                            $valor  = number_format((float) ($get('total_pagado') ?? 0), 0, ',', '.');
+                            $fecha  = $get('fecha_pago') ? \Carbon\Carbon::parse($get('fecha_pago'))->format('d/m/Y') : '—';
+                            $formas = [
+                                'efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'consignacion' => 'Consignación',
+                                'nequi' => 'Nequi', 'daviplata' => 'Daviplata', 'pse' => 'PSE', 'cheque' => 'Cheque',
+                            ];
+                            $forma = $formas[$get('forma_pago')] ?? '—';
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;">'
+                                . '⚠️ <strong>Estás a punto de registrar este pago:</strong>'
+                                . '<div style="margin-top:6px;line-height:1.6;">'
+                                . '💰 Valor: <strong>$' . $valor . '</strong><br>'
+                                . '📅 Fecha: <strong>' . $fecha . '</strong><br>'
+                                . '💳 Forma de pago: <strong>' . e($forma) . '</strong><br>'
+                                . '📋 Factura: <strong>' . e($record->numero) . '</strong> — ' . e($record->arrendatario?->nombre_completo)
+                                . '</div>'
+                                . '<div style="margin-top:8px;font-style:italic;color:#92400e;">Verifica los datos antes de confirmar — una vez registrado, este pago no podrá revertirse desde aquí.</div>'
+                                . '</div>'
+                            );
+                        }),
+                    Checkbox::make('confirmo_registro')
+                        ->label('Confirmo que los datos son correctos y entiendo que esta acción no se puede reversar.')
+                        ->columnSpanFull()
+                        ->required()
+                        ->accepted()
+                        ->dehydrated(false),
                 ])
                 ->action(function (array $data) {
                     $mora  = $this->record->mora_acumulada;

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\OwnerLiquidations\Schemas;
 
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -55,6 +56,7 @@ class OwnerLiquidationForm
                             'pagada'    => 'Pagada',
                             'anulada'   => 'Anulada',
                         ])
+                        ->live()
                         ->required(),
                 ]),
 
@@ -148,6 +150,46 @@ class OwnerLiquidationForm
 
                     Textarea::make('notas')
                         ->label('Notas internas')->rows(3)->columnSpanFull(),
+
+                    Placeholder::make('resumen_confirmacion_giro')
+                        ->label('')
+                        ->columnSpanFull()
+                        ->visible(fn (Get $get) => $get('estado') === 'pagada')
+                        ->content(function (Get $get, $record) {
+                            $totalGiro = max(0,
+                                (float) ($record?->canon_cobrado ?? 0)
+                                - (float) ($record?->comision_valor ?? 0)
+                                - (float) ($record?->iva_comision ?? 0)
+                                - (float) ($record?->retefuente_valor ?? 0)
+                                - (float) ($get('otros_descuentos') ?? 0)
+                            );
+                            $formas = [
+                                'transferencia' => 'Transferencia bancaria', 'consignacion' => 'Consignación',
+                                'cheque' => 'Cheque', 'efectivo' => 'Efectivo',
+                            ];
+                            $forma = $formas[$get('forma_giro') ?? ''] ?? '—';
+                            $fecha = $get('fecha_giro') ? \Carbon\Carbon::parse($get('fecha_giro'))->format('d/m/Y') : '—';
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;">'
+                                . '⚠️ <strong>Estás a punto de marcar esta liquidación como pagada:</strong>'
+                                . '<div style="margin-top:6px;line-height:1.6;">'
+                                . '💰 Total a girar: <strong>$' . number_format($totalGiro, 0, ',', '.') . '</strong><br>'
+                                . '📅 Fecha del giro: <strong>' . $fecha . '</strong><br>'
+                                . '🏦 Forma de giro: <strong>' . e($forma) . '</strong><br>'
+                                . '👤 Propietario: <strong>' . e($record?->propietario?->nombre_completo) . '</strong>'
+                                . '</div>'
+                                . '<div style="margin-top:8px;font-style:italic;color:#92400e;">Verifica los datos antes de guardar — una vez pagada, la liquidación queda bloqueada para edición.</div>'
+                                . '</div>'
+                            );
+                        }),
+                    Checkbox::make('confirmo_giro')
+                        ->label('Confirmo que los datos son correctos y entiendo que esta acción no se puede reversar.')
+                        ->columnSpanFull()
+                        ->visible(fn (Get $get) => $get('estado') === 'pagada')
+                        ->required(fn (Get $get) => $get('estado') === 'pagada')
+                        ->accepted(fn (Get $get) => $get('estado') === 'pagada')
+                        ->dehydrated(false),
                 ]),
 
         ]);
