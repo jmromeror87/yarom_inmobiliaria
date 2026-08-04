@@ -49,12 +49,19 @@ class VerificarMoraJob implements ShouldQueue
             // ORIGINAL — no se descuentan los días de gracia del conteo.
             $diasMora = (int) $bill->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
 
-            // Si el contrato indica mora solo sobre canon (admin la cobra el edificio),
-            // usar canon_base como base de cálculo en lugar del saldo_pendiente completo.
-            $baseParaMora = $bill->saldo_pendiente;
+            // La mora se calcula sobre el CAPITAL (factura + saldo arrastrado - pagado),
+            // nunca sobre saldo_pendiente: ese campo puede incluir mora de días
+            // anteriores (no se resincroniza salvo al registrar un pago), y usarlo
+            // como base generaría interés sobre interés silenciosamente.
+            $capital = round(
+                (float) $bill->total_factura + (float) $bill->saldo_anterior_arrastrado - (float) $bill->total_pagado,
+                2
+            );
+
+            $baseParaMora = $capital;
             if ($bill->rentalContract?->mora_solo_sobre_canon && $bill->canon_base > 0) {
                 $proporcionCanon = $bill->canon_base / max($bill->total_factura, 1);
-                $baseParaMora    = round($bill->saldo_pendiente * $proporcionCanon, 2);
+                $baseParaMora    = round($capital * $proporcionCanon, 2);
             }
 
             $mora = round($baseParaMora * ($bill->tasa_mora_diaria / 100) * $diasMora, 2);
@@ -63,6 +70,7 @@ class VerificarMoraJob implements ShouldQueue
                 'estado'            => 'en_mora',
                 'dias_mora'         => $diasMora,
                 'mora_acumulada'    => $mora,
+                'saldo_pendiente'   => max(0, round($capital + $mora, 2)),
                 'fecha_inicio_mora' => $bill->fecha_inicio_mora ?? $bill->fecha_limite_pago->toDateString(),
             ]);
 
