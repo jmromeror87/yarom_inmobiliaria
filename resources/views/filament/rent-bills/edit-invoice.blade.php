@@ -66,6 +66,9 @@
   $r        = $this->record->load(['rentalContract','arrendatario','property.tipo','property.municipio','payments.registradoPor']);
   $company  = \App\Models\Company::with(['municipio'])->first();
   $mesAnio  = \Carbon\Carbon::create($r->anio, $r->mes, 1)->translatedFormat('F Y');
+  $periodoArriendo = ($r->periodo_inicio && $r->periodo_fin)
+      ? 'arriendo del mes ' . \Carbon\Carbon::parse($r->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($r->periodo_fin)->format('Y-m-d')
+      : $mesAnio;
   // La retefuente solo la practica un arrendatario persona jurídica — igual que
   // ContabilidadService::generarParaFactura y la plantilla del PDF.
   $aplicaRete = $r->arrendatario?->tipo_persona === 'juridica';
@@ -161,7 +164,7 @@
       <div class="fac-block">
         <div class="fac-block-title">Condiciones de pago</div>
         <div class="fac-row"><label>Contrato</label><span>{{ $r->rentalContract?->numero_contrato }}</span></div>
-        <div class="fac-row"><label>Período</label><span>{{ ucfirst($mesAnio) }}</span></div>
+        <div class="fac-row"><label>Período</label><span>{{ $periodoArriendo }}</span></div>
         <div class="fac-row"><label>Fecha límite</label><span style="color:{{ $r->estaEnMora() ? 'var(--color-text-danger)' : 'var(--color-text-primary)' }};">{{ $r->fecha_limite_pago?->format('d/m/Y') }}</span></div>
         <div class="fac-row"><label>Días de gracia</label><span>{{ $r->dias_gracia }} días</span></div>
         <div class="fac-row"><label>Forma de pago</label><span>Transferencia / Consignación</span></div>

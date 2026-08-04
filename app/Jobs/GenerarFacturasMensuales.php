@@ -142,7 +142,7 @@ class GenerarFacturasMensuales implements ShouldQueue
                     $msg = "🏠 *Factura de Arrendamiento*\n\n"
                         . "Estimado(a) {$nombre},\n\n"
                         . "📋 *{$bill->numero}*\n"
-                        . "📅 Período: " . $periodoBase->translatedFormat('F Y') . "\n"
+                        . "📅 Período: arriendo del mes " . \Carbon\Carbon::parse($periodoInicio)->format('Y-m-d') . " al " . \Carbon\Carbon::parse($periodoFin)->format('Y-m-d') . "\n"
                         . "🏠 Inmueble: {$inmueble}\n\n"
                         . "💰 Canon: \$" . number_format($canonBase, 0, ',', '.') . " COP\n"
                         . ($admin > 0
