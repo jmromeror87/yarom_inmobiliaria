@@ -295,7 +295,10 @@
     <tr>
         <td class="foot-left">
             <div class="lbl">Notas</div>
-            <div style="margin-bottom:6pt;">{{ $bill->notas ?: '—' }}</div>
+            <div style="margin-bottom:6pt;">
+                SE FACTURA EL PERIODO {{ ucfirst($mesAnio) }}.
+                {{ $bill->notas }}
+            </div>
             <div class="lbl">Son</div>
             <div>{{ \App\Helpers\NumeroALetras::convertir((float) $neto) }}</div>
         </td>
