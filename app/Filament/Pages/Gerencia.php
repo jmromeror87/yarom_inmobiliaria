@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\AccountingEntry;
 use App\Models\AccountingEntryLine;
 use App\Models\OwnerLiquidation;
 use App\Models\Property;
@@ -99,6 +100,19 @@ class Gerencia extends Page
         $utilidadNeta = $ingresoOperativoMes - $gastosMes;
         $margen = $ingresoOperativoMes > 0 ? round($utilidadNeta / $ingresoOperativoMes * 100, 1) : 0;
 
+        // ── Gastos del mes (detalle) ──────────────────────────────────
+        $gastosDetalle = \App\Models\AccountingEntry::where('tipo', 'CE')
+            ->whereYear('fecha', $anio)->whereMonth('fecha', $mes)
+            ->whereIn('estado', ['contabilizado', 'aprobado'])
+            ->with('third')
+            ->orderByDesc('fecha')
+            ->limit(8)
+            ->get();
+        $totalGastosMes = AccountingEntry::where('tipo', 'CE')
+            ->whereYear('fecha', $anio)->whereMonth('fecha', $mes)
+            ->whereIn('estado', ['contabilizado', 'aprobado'])
+            ->count();
+
         // ── Ocupación general ─────────────────────────────────────────
         $totalInm = Property::count();
         $arrendados = Property::where('estado', 'arrendado')->count();
@@ -116,7 +130,7 @@ class Gerencia extends Page
             'inquilinosPagaron', 'totalInquilinosPagaron',
             'propietariosPagados', 'totalPropietariosPagados', 'montoPropietariosPagados',
             'propietariosPendientes', 'totalPropietariosPendientes', 'montoPropietariosPendientes',
-            'comisionMes', 'ivaComisionMes', 'gastosMes', 'utilidadNeta', 'margen',
+            'comisionMes', 'ivaComisionMes', 'gastosMes', 'gastosDetalle', 'totalGastosMes', 'utilidadNeta', 'margen',
             'totalInm', 'arrendados', 'ocupacion', 'contratosActivos', 'porVencer30',
         );
     }

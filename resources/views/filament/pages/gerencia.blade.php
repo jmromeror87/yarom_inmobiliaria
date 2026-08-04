@@ -122,6 +122,28 @@
         </div>
     </div>
 
+    {{-- GASTOS --}}
+    <div class="gr-section">
+        <div class="gr-section-title">🧾 Gastos</div>
+        <div class="gr-card">
+            <div class="gr-card-head">
+                <div class="gr-card-title">{{ $totalGastosMes }} comprobante(s) este mes</div>
+                <span class="gr-card-badge" style="background:#fee2e2;color:#dc2626;">${{ number_format($gastosMes, 0, ',', '.') }}</span>
+            </div>
+            @forelse($gastosDetalle as $g)
+            <div class="gr-row">
+                <div>
+                    <div class="gr-row-name">{{ $g->third?->nombre_completo ?? $g->descripcion ?? 'Gasto' }}</div>
+                    <div class="gr-row-sub">{{ $g->numero }} · {{ $g->fecha?->format('d/m') }}</div>
+                </div>
+                <div class="gr-row-value" style="color:#dc2626;">${{ number_format($g->total_debitos, 0, ',', '.') }}</div>
+            </div>
+            @empty
+            <div class="gr-empty">Sin gastos registrados este mes.</div>
+            @endforelse
+        </div>
+    </div>
+
     {{-- OCUPACIÓN --}}
     <div class="gr-section">
         <div class="gr-section-title">🏠 Portafolio</div>
