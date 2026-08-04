@@ -12,6 +12,12 @@ body { font-family:'Plus Jakarta Sans',sans-serif!important; margin:0!important;
 .fi-simple-page,
 .fi-simple-page-content { all:unset!important; display:block!important; }
 
+/* Encabezado nativo de Filament ("Entre a su cuenta") duplica nuestro propio
+   encabezado — se oculta. El footer global (id="yr-footer") del panel también
+   se filtra a esta página vía renderHook; no aplica en login. */
+.fi-simple-header,
+#yr-footer { display:none!important; }
+
 .yr-wrap { position:fixed; top:0; left:0; width:100vw; height:100vh; display:flex; z-index:9999; font-family:'Plus Jakarta Sans',sans-serif; }
 
 /* ── Panel izquierdo — formulario ── */
@@ -25,6 +31,24 @@ body { font-family:'Plus Jakarta Sans',sans-serif!important; margin:0!important;
     box-shadow:20px 0 60px rgba(0,0,0,0.06);
     overflow-y:auto;
 }
+
+/* ── Blindaje de labels — colores explícitos, no depender de oklch() de Tailwind
+     (Safari/iOS viejos no soportan oklch() y el texto queda invisible) ── */
+.fi-fo-field-label,
+.fi-fo-field-label-content,
+.fi-fo-field-label-required-mark {
+    color:#0F172A !important;
+    font-size:0.82rem !important;
+    font-weight:600 !important;
+    opacity:1 !important;
+    visibility:visible !important;
+}
+.fi-input,
+.fi-input-wrp input {
+    color:#0F172A !important;
+    -webkit-text-fill-color:#0F172A !important;
+}
+.fi-checkbox-input-label { color:#0F172A !important; }
 
 /* ── Panel derecho — visual ── */
 .yr-right {
@@ -73,6 +97,19 @@ body { font-family:'Plus Jakarta Sans',sans-serif!important; margin:0!important;
 @media(max-width:1024px) {
     .yr-right { display:none; }
     .yr-left { flex:1; }
+}
+
+/* ── Mobile-first: teléfonos ── */
+@media(max-width:640px) {
+    .yr-wrap { display:block; height:auto; min-height:100vh; position:static; overflow-y:auto; }
+    .yr-left {
+        padding:32px 22px 28px;
+        box-shadow:none;
+        min-height:100vh;
+        justify-content:flex-start;
+    }
+    .fi-input-wrp, .fi-input { font-size:16px !important; } /* evita zoom automático de iOS al enfocar */
+    .fi-btn { width:100%; }
 }
 </style>
 
