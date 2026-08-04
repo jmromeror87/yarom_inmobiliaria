@@ -40,9 +40,41 @@
 .acc-cre{color:#16a34a;font-family:monospace;font-weight:700;}
 .acc-total{background:#f8fafc;font-weight:900;border-top:2px solid #e2e8f0;}
 .acc-entry-lines{margin-left:20px;}
+
+.acc-search-wrap{position:relative;flex:1;min-width:280px;max-width:420px;}
+.acc-search-field{
+    display:flex;align-items:center;gap:9px;
+    background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:11px;
+    padding:0 14px;transition:border-color .15s,background .15s;
+}
+.acc-search-field:focus-within{background:#fff;border-color:#E11D48;box-shadow:0 0 0 3px rgba(225,29,72,.08);}
+.acc-search-icon{width:16px;height:16px;color:#94a3b8;flex-shrink:0;}
+.acc-search-field:focus-within .acc-search-icon{color:#E11D48;}
+.acc-search-input{flex:1;background:transparent;border:none;outline:none;box-shadow:none;font-size:13.5px;font-weight:500;color:#0f172a;padding:10px 0;width:100%;}
+.acc-search-input::placeholder{color:#94a3b8;font-weight:500;}
+.acc-search-clear{width:20px;height:20px;border-radius:50%;background:#e2e8f0;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:12px;line-height:1;border:none;}
+.acc-search-clear:hover{background:#cbd5e1;color:#0f172a;}
 </style>
 
 <div>
+    {{-- Buscador --}}
+    <div style="margin-bottom:14px;">
+        <div class="acc-search-wrap" style="max-width:520px;">
+            <div class="acc-search-field">
+                <svg class="acc-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input
+                    type="search"
+                    wire:model.live.debounce.400ms="buscar"
+                    placeholder="Buscar por N° comprobante, descripción, tercero o cuenta…"
+                    class="acc-search-input"
+                />
+                @if($buscar)
+                <button type="button" class="acc-search-clear" wire:click="limpiarBusqueda" title="Limpiar búsqueda">✕</button>
+                @endif
+            </div>
+        </div>
+    </div>
+
     {{-- Filtros --}}
     <div class="acc-filter">
         <label style="font-size:12px;font-weight:700;color:#64748b;">Período:</label>

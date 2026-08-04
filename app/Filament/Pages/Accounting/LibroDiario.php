@@ -24,6 +24,7 @@ class LibroDiario extends Page
     public int $perPage = 25;
     public ?string $fecha_inicio = null;
     public ?string $fecha_fin = null;
+    public ?string $buscar = null;
 
     public function mount(): void
     {
@@ -63,6 +64,17 @@ class LibroDiario extends Page
         $this->resetPage();
     }
 
+    public function updatedBuscar(): void
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarBusqueda(): void
+    {
+        $this->buscar = null;
+        $this->resetPage();
+    }
+
     protected function baseQuery()
     {
         return AccountingEntry::query()
@@ -72,6 +84,19 @@ class LibroDiario extends Page
                 if ($this->fecha_fin) $q->whereDate('fecha', '<=', $this->fecha_fin);
             }, function ($q) {
                 $q->when($this->periodo_id, fn($qq) => $qq->where('period_id', $this->periodo_id));
+            })
+            ->when($this->buscar, function ($q) {
+                $texto = trim($this->buscar);
+                $q->where(function ($qq) use ($texto) {
+                    $qq->where('numero', 'like', "%{$texto}%")
+                        ->orWhere('descripcion', 'like', "%{$texto}%")
+                        ->orWhere('referencia', 'like', "%{$texto}%")
+                        ->orWhereHas('third', fn ($t) => $t->where('nombre_completo', 'like', "%{$texto}%")
+                            ->orWhere('numero_documento', 'like', "%{$texto}%"))
+                        ->orWhereHas('lines.third', fn ($t) => $t->where('nombre_completo', 'like', "%{$texto}%"))
+                        ->orWhereHas('lines.account', fn ($a) => $a->where('nombre', 'like', "%{$texto}%")
+                            ->orWhere('codigo', 'like', "%{$texto}%"));
+                });
             });
     }
 
