@@ -153,6 +153,29 @@ class ThirdExpediente extends Page
         return $this->record->rentalContracts()->with('property')->orderByDesc('fecha_inicio')->get();
     }
 
+    /**
+     * Para cada contrato del arrendatario: el inmueble, su propietario, y el
+     * historial de facturas de ese contrato — para ver en el expediente qué
+     * meses pagó y cuáles debe, igual que se hizo para el propietario.
+     */
+    public function getContratosDetalleProperty()
+    {
+        return $this->record->rentalContracts()
+            ->with(['property.propietario', 'rentBills' => fn ($q) => $q->orderByDesc('anio')->orderByDesc('mes')])
+            ->orderByDesc('fecha_inicio')
+            ->get()
+            ->map(function ($contrato) {
+                $bills = $contrato->rentBills;
+
+                return [
+                    'contrato' => $contrato,
+                    'facturas' => $bills,
+                    'en_mora'  => $bills->whereIn('estado', ['en_mora', 'vencida'])->count(),
+                    'al_dia'   => $bills->whereIn('estado', ['en_mora', 'vencida', 'pendiente'])->isEmpty(),
+                ];
+            });
+    }
+
     public function getPropiedadesProperty()
     {
         return $this->record->properties()->get();
