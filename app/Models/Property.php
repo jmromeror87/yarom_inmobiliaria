@@ -50,7 +50,7 @@ class Property extends Model
         'tiene_ascensor','tiene_piscina','tiene_gym','tiene_salon_comunal',
         'tiene_vigilancia','permite_mascotas','amoblado',
         'canon_arriendo','cuota_administracion',
-        'tiene_seguro_sura','canon_cobrado_inquilino','valor_seguro_sura','iva_seguro_sura',
+        'tiene_seguro_sura','aplica_iva_seguro_sura','canon_cobrado_inquilino','valor_seguro_sura','iva_seguro_sura',
         'precio_venta',
         'avaluo_catastral','avaluo_comercial','anio_avaluo',
         'disponible_arriendo','disponible_venta','estado',
@@ -79,6 +79,7 @@ class Property extends Model
         'requiere_iva_override'         => 'boolean',
         'requiere_retefuente_override'  => 'boolean',
         'tiene_seguro_sura'        => 'boolean',
+        'aplica_iva_seguro_sura'   => 'boolean',
         'canon_cobrado_inquilino'  => 'decimal:2',
         'valor_seguro_sura'        => 'decimal:2',
         'iva_seguro_sura'          => 'decimal:2',
@@ -126,7 +127,9 @@ class Property extends Model
                 $tarifaSura         = (float)($company?->tarifa_seguro_sura ?? 2.50);
                 $tarifaIva          = (float)($company?->tarifa_iva ?? 19);
                 $p->valor_seguro_sura = round((float)$p->canon_arriendo * ($tarifaSura / 100), 2);
-                $p->iva_seguro_sura   = round($p->valor_seguro_sura * ($tarifaIva / 100), 2);
+                $p->iva_seguro_sura   = $p->aplica_iva_seguro_sura
+                    ? round($p->valor_seguro_sura * ($tarifaIva / 100), 2)
+                    : 0;
             } else {
                 $p->valor_seguro_sura = 0;
                 $p->iva_seguro_sura   = 0;

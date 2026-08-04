@@ -50,8 +50,9 @@ class PropertyForm
         $company  = Company::first();
         $tSura    = (float)($company?->tarifa_seguro_sura ?? 2.50);
         $tIva     = (float)($company?->tarifa_iva ?? 19);
+        $aplicaIva = $get('aplica_iva_seguro_sura') !== false;
         $seguro   = round($canon * ($tSura / 100), 2);
-        $iva      = round($seguro * ($tIva / 100), 2);
+        $iva      = $aplicaIva ? round($seguro * ($tIva / 100), 2) : 0;
         $exacto   = $canon + $admin + $seguro + $iva;
         $sugerido = (int)(ceil($exacto / 1000) * 1000);
 
@@ -373,6 +374,14 @@ class PropertyForm
                             })
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo')),
 
+                        Toggle::make('aplica_iva_seguro_sura')
+                            ->label('🧾 El seguro SURA lleva IVA')
+                            ->default(true)
+                            ->helperText('Desactívelo si para este inmueble/propietario el seguro SURA no genera IVA.')
+                            ->live()
+                            ->afterStateUpdated(fn (Get $get, Set $set) => self::recalcularSeguro($get, $set, null, null))
+                            ->visible(fn (Get $get) => (bool)$get('disponible_arriendo') && (bool)$get('tiene_seguro_sura')),
+
                         Placeholder::make('calculadora_sura')
                             ->label('')
                             ->visible(fn (Get $get) => (bool)$get('disponible_arriendo') && (bool)$get('tiene_seguro_sura'))
@@ -384,13 +393,14 @@ class PropertyForm
                                 $company        = Company::first();
                                 $tarifaSura     = (float)($company?->tarifa_seguro_sura ?? 2.50);
                                 $tarifaIva      = (float)($company?->tarifa_iva ?? 19);
+                                $aplicaIva      = $get('aplica_iva_seguro_sura') !== false;
 
                                 if ($canon <= 0) {
                                     return new HtmlString('<div style="padding:12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;color:#94a3b8;font-size:13px;">Digite el canon para ver el desglose.</div>');
                                 }
 
                                 $seguro      = round($canon * ($tarifaSura / 100), 2);
-                                $ivaSeguro   = round($seguro * ($tarifaIva / 100), 2);
+                                $ivaSeguro   = $aplicaIva ? round($seguro * ($tarifaIva / 100), 2) : 0;
                                 $totalExacto = $canon + $admin + $seguro + $ivaSeguro;
                                 $sugerido    = ceil($totalExacto / 1000) * 1000;
                                 $valorFinal  = $canonInquilino > 0 ? $canonInquilino : $sugerido;
