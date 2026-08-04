@@ -107,7 +107,12 @@ class ContabilidadService
 
         $canon   = (float) $bill->canon_base;
         $admCob  = (float) $bill->cuota_administracion;
-        $total   = $canon + $admCob;
+        // El seguro SURA cobrado al inquilino NO es ingreso de la inmobiliaria
+        // ni del propietario — es un valor de paso hacia ASURA. Se contabiliza
+        // en su propia cuenta pasiva, nunca mezclado con el canon (la comisión
+        // se calcula SOLO sobre canon + administración).
+        $seguroTotal = (float) ($bill->valor_seguro_sura ?? 0) + (float) ($bill->iva_seguro_sura ?? 0) + (float) ($bill->redondeo_seguro ?? 0);
+        $total   = $canon + $admCob + $seguroTotal;
         if ($total <= 0) return null;
 
         $company      = Company::first();
@@ -128,8 +133,9 @@ class ContabilidadService
         $iva          = $aplicaIva ? round($comision * ($ivaPct / 100), 2) : 0;
         $rete         = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
         // netoProp NO descuenta rete: la retención es anticipo de impuesto de la inmobiliaria,
-        // no un descuento al propietario. El propietario recibe (total - comision - iva).
-        $netoProp     = round($total - $comision - $iva, 2);
+        // no un descuento al propietario. El propietario recibe (canon + admin - comision - iva)
+        // — el seguro SURA nunca toca el neto del propietario, es un valor de paso a ASURA.
+        $netoProp     = round(($canon + $admCob) - $comision - $iva, 2);
 
         // Autorretención (persona jurídica obligada según Decreto 2418/2013)
         $autoRete     = round($comision * 0.035, 2);  // 3.5% sobre comisión
@@ -143,6 +149,7 @@ class ContabilidadService
         $cuentaRete          = static::cuentaId('136515');
         $cuentaAutoRete      = static::cuentaId('13551502');  // Anticipo autorretención (activo)
         $cuentaAutoRetePorPagar = static::cuentaId('236525'); // Autorretención a título de renta por pagar (pasivo)
+        $cuentaSura          = static::cuentaId('23355501');  // Pasivo — seguro SURA de paso hacia ASURA
 
         if (!$cuentaArrendatarios || !$cuentaComision || !$cuentaIva || !$cuentaXPagarProp) return null;
 
@@ -153,6 +160,10 @@ class ContabilidadService
 
         if ($iva > 0) {
             $lineas[] = ['account_id' => $cuentaIva, 'debito' => 0, 'credito' => $iva, 'descripcion' => "IVA {$ivaPct}% sobre comisión", 'third_id' => null];
+        }
+
+        if ($seguroTotal > 0 && $cuentaSura) {
+            $lineas[] = ['account_id' => $cuentaSura, 'debito' => 0, 'credito' => round($seguroTotal, 2), 'descripcion' => "Seguro SURA — {$bill->numero}", 'third_id' => null];
         }
 
         $lineas[] = ['account_id' => $cuentaXPagarProp, 'debito' => 0, 'credito' => $netoProp, 'descripcion' => "Neto a girar propietario {$bill->numero}", 'third_id' => $property?->propietario_id];
