@@ -57,6 +57,7 @@ class CarteraResource extends Resource
             Select::make('third_id')
                 ->label('Deudor (tercero)')
                 ->relationship('third', 'nombre_completo')
+                ->getOptionLabelFromRecordUsing(fn ($record) => trim($record->nombre_completo ?: $record->razon_social ?: trim(($record->primer_nombre ?? '') . ' ' . ($record->primer_apellido ?? ''))) ?: "Tercero #{$record->id} (sin nombre)")
                 ->searchable()->preload()->required(),
 
             Select::make('rental_contract_id')

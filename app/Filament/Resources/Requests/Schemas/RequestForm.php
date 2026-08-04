@@ -164,6 +164,7 @@ class RequestForm
                                 Select::make('third_id')
                                     ->label('Tercero')
                                     ->relationship('third', 'nombre_completo')
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => trim($record->nombre_completo ?: $record->razon_social ?: trim(($record->primer_nombre ?? '') . ' ' . ($record->primer_apellido ?? ''))) ?: "Tercero #{$record->id} (sin nombre)")
                                     ->searchable()->preload()->required()
                                     ->dehydrated()
                                     ->helperText('Busque por nombre o cédula.'),

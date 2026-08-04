@@ -35,6 +35,7 @@ class OwnerLiquidationForm
                     Select::make('propietario_id')
                         ->label('Propietario')
                         ->relationship('propietario', 'nombre_completo')
+                        ->getOptionLabelFromRecordUsing(fn ($record) => trim($record->nombre_completo ?: $record->razon_social ?: trim(($record->primer_nombre ?? '') . ' ' . ($record->primer_apellido ?? ''))) ?: "Tercero #{$record->id} (sin nombre)")
                         ->disabled()->columnSpan(2),
 
                     Select::make('property_id')
