@@ -331,6 +331,13 @@ class AdminPanelProvider extends PanelProvider
                         .yr-brand svg{width:30px!important;height:30px!important;}
                         .yr-topbar-right{gap:6px!important;}
                     }
+                    /* El menú lateral móvil (overlay, position:fixed, z-index:30) arranca
+                       en top:0 — igual que la barra superior sticky (z-index:50) — por lo
+                       que sus primeros ítems (ej. Gerencia) quedaban tapados debajo de ella.
+                       Se compensa con el alto real de la barra (64px). */
+                    @media(max-width:1024px){
+                        .fi-main-sidebar{padding-top:64px!important;}
+                    }
                 </style>
                 '
             )
