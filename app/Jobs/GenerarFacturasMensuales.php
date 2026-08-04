@@ -68,26 +68,39 @@ class GenerarFacturasMensuales implements ShouldQueue
             $canonBase = (float)$contrato->canon_mensual;
             $admin     = (float)($contrato->cuota_administracion ?? 0);
 
-            // Fecha límite: día de pago propio del contrato si está pactado,
-            // si no, el día de corte global de la empresa.
-            $diaPago     = $contrato->dia_pago ?: $diaCorteGlobal;
-            $diaPago     = min($diaPago, $periodoBase->copy()->endOfMonth()->day); // por si el mes es más corto
-            $fechaLimite = $periodoBase->copy()->startOfMonth()->addDays($diaPago - 1)->toDateString();
+            // El ciclo de facturación se ancla SIEMPRE a la última factura real
+            // del contrato (nunca al calendario de forma independiente) — así
+            // no importa en qué orden o lote se generen los meses, el período
+            // nuevo siempre arranca justo donde terminó el anterior, sin huecos
+            // ni solapamientos.
+            $ultimaFactura = RentBill::where('rental_contract_id', $contrato->id)
+                ->whereNotIn('estado', ['anulada'])
+                ->orderByDesc('periodo_fin')
+                ->first();
 
-            // Primera factura del contrato: si la entrega real ocurrió
-            // después del día de pago normal de este período, el cobro
-            // arranca desde la fecha de entrega (no se le cobra tiempo
-            // que todavía no tenía el inmueble).
-            $esPrimeraFactura = ! RentBill::where('rental_contract_id', $contrato->id)->exists();
-            if ($esPrimeraFactura && $contrato->fecha_entrega_efectiva->toDateString() > $fechaLimite) {
-                $fechaLimite = $contrato->fecha_entrega_efectiva->toDateString();
+            if ($ultimaFactura) {
+                $fechaLimiteCarbon = $ultimaFactura->periodo_fin->copy()->addDay();
+            } else {
+                // Primera factura del contrato: día de pago propio si está
+                // pactado, si no el día de corte global de la empresa. Si la
+                // entrega real ocurrió después del día de pago normal de este
+                // período, el cobro arranca desde la fecha de entrega (no se
+                // le cobra tiempo que todavía no tenía el inmueble).
+                $diaPago     = $contrato->dia_pago ?: $diaCorteGlobal;
+                $diaPago     = min($diaPago, $periodoBase->copy()->endOfMonth()->day); // por si el mes es más corto
+                $fechaLimite = $periodoBase->copy()->startOfMonth()->addDays($diaPago - 1)->toDateString();
+
+                if ($contrato->fecha_entrega_efectiva->toDateString() > $fechaLimite) {
+                    $fechaLimite = $contrato->fecha_entrega_efectiva->toDateString();
+                }
+                $fechaLimiteCarbon = \Carbon\Carbon::parse($fechaLimite);
             }
 
             // Período de arriendo: mismo ciclo que Siinmob — el canon se paga
             // anticipado, así que el período va DESDE la fecha límite de pago
             // HACIA ADELANTE un mes (nunca el mes calendario, que no coincide
             // con el día de pago pactado en el contrato).
-            $fechaLimiteCarbon = \Carbon\Carbon::parse($fechaLimite);
+            $fechaLimite   = $fechaLimiteCarbon->toDateString();
             $periodoInicio = $fechaLimiteCarbon->copy()->toDateString();
             $periodoFin    = $fechaLimiteCarbon->copy()->addMonthNoOverflow()->subDay()->toDateString();
 
