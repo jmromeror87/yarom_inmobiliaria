@@ -56,6 +56,16 @@
 .yr-grid-3 { display:grid; grid-template-columns:1fr 1fr 340px; gap:16px; margin-bottom:16px; align-items:start; }
 @media(max-width:1200px) { .yr-grid-2,.yr-grid-3 { grid-template-columns:1fr; } }
 
+/* ── Mobile: forzar 1 columna incluso donde hay grid-template-columns
+   inline (más específico que la media query de arriba, así que sin este
+   !important esas secciones no colapsaban y quedaban cortadas) ── */
+@media(max-width:768px) {
+    .yr-grid-2, .yr-grid-3 { grid-template-columns:1fr !important; gap:12px !important; }
+    .yr-grid-2 > *, .yr-grid-3 > * { grid-column:auto !important; }
+    .yr-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -1px; }
+    .yr-table { min-width:520px; }
+}
+
 .yr-card {
     background:#fff; border-radius:16px; border:1px solid rgba(226,232,240,.8);
     box-shadow:0 2px 12px rgba(15,23,42,.05); overflow:hidden;
@@ -337,6 +347,7 @@
                 </div>
                 <a href="/admin/facturacion" style="font-size:0.72rem;color:#2563EB;font-weight:700;text-decoration:none;">Ver todas →</a>
             </div>
+            <div class="yr-table-wrap">
             <table class="yr-table">
                 <thead>
                     <tr>
@@ -361,6 +372,7 @@
                 @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         {{-- Panel lateral --}}
