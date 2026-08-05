@@ -51,13 +51,7 @@ class AppServiceProvider extends ServiceProvider
         // Prevents InvalidArgumentException: Malformed UTF-8 characters from DB data
         Livewire::listen('response', function ($payload) {
             return function (&$forward) {
-                $before = json_encode($forward);
                 $forward = AppServiceProvider::sanitizeUtf8Recursive($forward);
-                $after = json_encode($forward);
-                \Illuminate\Support\Facades\Log::info('livewire_response_hook', [
-                    'before_ok' => $before !== false,
-                    'after_ok'  => $after !== false,
-                ]);
             };
         });
     }
