@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\AccountingEntry;
 use App\Models\DailyReviewCheck;
 use App\Models\OwnerLiquidation;
 use App\Models\RentBill;
@@ -28,18 +29,26 @@ class SeguimientoDiario extends Page
     }
 
     public string $tab = 'inquilinos';
+    public string $vista = 'dia'; // 'dia' | 'mes'
     public string $fecha;
+    public string $mes; // formato Y-m
     public string $busqueda = '';
 
     public function mount(): void
     {
         $this->fecha = now()->toDateString();
+        $this->mes   = now()->format('Y-m');
         $this->sincronizarSiHoy();
     }
 
     public function setTab(string $tab): void
     {
         $this->tab = $tab;
+    }
+
+    public function setVista(string $vista): void
+    {
+        $this->vista = $vista;
     }
 
     public function diaAnterior(): void
@@ -75,6 +84,44 @@ class SeguimientoDiario extends Page
         return $this->fecha === now()->toDateString();
     }
 
+    public function mesAnterior(): void
+    {
+        $this->mes = Carbon::parse($this->mes . '-01')->subMonthNoOverflow()->format('Y-m');
+    }
+
+    public function mesSiguiente(): void
+    {
+        $siguiente = Carbon::parse($this->mes . '-01')->addMonthNoOverflow();
+        if ($siguiente->gt(now())) return;
+        $this->mes = $siguiente->format('Y-m');
+    }
+
+    public function irAMesActual(): void
+    {
+        $this->mes = now()->format('Y-m');
+    }
+
+    public function updatedMes(): void
+    {
+        if (Carbon::parse($this->mes . '-01')->gt(now())) {
+            $this->mes = now()->format('Y-m');
+        }
+    }
+
+    public function esMesActual(): bool
+    {
+        return $this->mes === now()->format('Y-m');
+    }
+
+    private function rangoMes(): array
+    {
+        $inicio = Carbon::parse($this->mes . '-01')->startOfMonth();
+        $fin    = $inicio->copy()->endOfMonth();
+        if ($fin->gt(now())) $fin = now();
+
+        return [$inicio->toDateString(), $fin->toDateString()];
+    }
+
     private function sincronizarSiHoy(): void
     {
         if (!$this->esHoy()) return;
@@ -84,24 +131,34 @@ class SeguimientoDiario extends Page
     }
 
     private const TIPOS_COMPROBANTE = ['comprobante_ingreso', 'comprobante_egreso'];
+    private const TIPOS_MES         = ['inquilino_mes', 'propietario_mes'];
 
     public function toggleRevisado(string $tipo, int $id): void
     {
-        // Inquilinos/propietarios se identifican por third_id; los
-        // comprobantes de ingreso/egreso por entry_id (no tienen tercero
-        // único, un mismo comprobante puede tocar varios terceros).
-        $columna = in_array($tipo, self::TIPOS_COMPROBANTE, true) ? 'entry_id' : 'third_id';
+        if (in_array($tipo, self::TIPOS_COMPROBANTE, true)) {
+            // El comprobante se marca revisado con SU PROPIA fecha contable,
+            // no la fecha de la vista donde se hizo clic — así "revisado" es
+            // un estado del comprobante, válido tanto en día como en mes.
+            $fecha   = AccountingEntry::whereKey($id)->value('fecha')?->toDateString() ?? $this->fecha;
+            $columna = 'entry_id';
+        } elseif (in_array($tipo, self::TIPOS_MES, true)) {
+            $fecha   = $this->mes . '-01';
+            $columna = 'third_id';
+        } else {
+            $fecha   = $this->fecha;
+            $columna = 'third_id';
+        }
 
-        $yaRevisado = DailyReviewCheck::where('fecha', $this->fecha)
+        $yaRevisado = DailyReviewCheck::where('fecha', $fecha)
             ->where('tipo', $tipo)->where($columna, $id)
             ->where('revisado', true)->exists();
 
         if ($yaRevisado) {
-            DailyReviewCheck::where('fecha', $this->fecha)->where('tipo', $tipo)->where($columna, $id)
+            DailyReviewCheck::where('fecha', $fecha)->where('tipo', $tipo)->where($columna, $id)
                 ->update(['revisado' => false, 'revisado_por_id' => null, 'revisado_en' => null]);
         } else {
             DailyReviewCheck::updateOrCreate(
-                ['fecha' => $this->fecha, 'tipo' => $tipo, $columna => $id],
+                ['fecha' => $fecha, 'tipo' => $tipo, $columna => $id],
                 ['revisado' => true, 'revisado_por_id' => Auth::id(), 'revisado_en' => now()]
             );
         }
@@ -125,7 +182,12 @@ class SeguimientoDiario extends Page
 
     public function getInquilinosProperty(): array
     {
-        $filas = SeguimientoDiarioService::cargarSnapshot('inquilino', $this->fecha);
+        $esMes = $this->vista === 'mes';
+
+        $filas = $esMes
+            ? SeguimientoDiarioService::adjuntarRevisadoMes(SeguimientoDiarioService::calcularInquilinos(), 'inquilino', $this->mes)
+            : SeguimientoDiarioService::cargarSnapshot('inquilino', $this->fecha);
+
         $filas = $this->filtrarPorBusqueda($filas);
 
         // Estado ACTUAL (en vivo) de cada factura del snapshot — el
@@ -134,13 +196,16 @@ class SeguimientoDiario extends Page
         $numeros = collect($filas)->flatMap(fn ($f) => array_column($f['inmuebles'] ?? [], 'numero'))->unique();
         $billsPorNumero = RentBill::whereIn('numero', $numeros)->get()->keyBy('numero');
 
-        return array_map(function ($fila) use ($billsPorNumero) {
-            // Último pago del inquilino DESDE el día de esta planilla en
-            // adelante — así si lo revisaron hoy y pagó anoche, o si se
-            // mira la planilla de un día pasado y ya pagó después, se ve
-            // reflejado en la misma tarjeta sin tener que buscarlo aparte.
+        // En vista de mes comparamos pagos desde el 1° del mes; en vista de
+        // día, desde el día puntual de la planilla.
+        $desde = $esMes ? ($this->mes . '-01') : $this->fecha;
+
+        return array_map(function ($fila) use ($billsPorNumero, $desde) {
+            // Último pago del inquilino DESDE la fecha base en adelante —
+            // así si lo revisaron hoy y pagó anoche, o si se mira un día/mes
+            // pasado y ya pagó después, se ve reflejado en la misma tarjeta.
             $pago = RentPayment::where('arrendatario_id', $fila['id'])
-                ->where('fecha_pago', '>=', $this->fecha)
+                ->where('fecha_pago', '>=', $desde)
                 ->orderByDesc('fecha_pago')
                 ->first();
 
@@ -198,13 +263,20 @@ class SeguimientoDiario extends Page
 
     public function getPropietariosProperty(): array
     {
-        $filas = SeguimientoDiarioService::cargarSnapshot('propietario', $this->fecha);
+        $esMes = $this->vista === 'mes';
+
+        $filas = $esMes
+            ? SeguimientoDiarioService::adjuntarRevisadoMes(SeguimientoDiarioService::calcularPropietarios(), 'propietario', $this->mes)
+            : SeguimientoDiarioService::cargarSnapshot('propietario', $this->fecha);
+
         $filas = $this->filtrarPorBusqueda($filas);
 
-        return array_map(function ($fila) {
+        $desde = $esMes ? ($this->mes . '-01') : $this->fecha;
+
+        return array_map(function ($fila) use ($desde) {
             $giro = OwnerLiquidation::where('propietario_id', $fila['id'])
                 ->where('estado', 'pagada')
-                ->where('fecha_giro', '>=', $this->fecha)
+                ->where('fecha_giro', '>=', $desde)
                 ->orderByDesc('fecha_giro')
                 ->first();
 
@@ -255,6 +327,13 @@ class SeguimientoDiario extends Page
 
     public function getIngresosProperty(): array
     {
+        if ($this->vista === 'mes') {
+            [$desde, $hasta] = $this->rangoMes();
+            return $this->filtrarComprobantesPorBusqueda(
+                SeguimientoDiarioService::cargarMovimientosCaja('ingreso', $desde, $hasta)
+            );
+        }
+
         return $this->filtrarComprobantesPorBusqueda(
             SeguimientoDiarioService::cargarMovimientosCaja('ingreso', $this->fecha)
         );
@@ -262,6 +341,13 @@ class SeguimientoDiario extends Page
 
     public function getEgresosProperty(): array
     {
+        if ($this->vista === 'mes') {
+            [$desde, $hasta] = $this->rangoMes();
+            return $this->filtrarComprobantesPorBusqueda(
+                SeguimientoDiarioService::cargarMovimientosCaja('egreso', $desde, $hasta)
+            );
+        }
+
         return $this->filtrarComprobantesPorBusqueda(
             SeguimientoDiarioService::cargarMovimientosCaja('egreso', $this->fecha)
         );
@@ -271,5 +357,10 @@ class SeguimientoDiario extends Page
     {
         $f = Carbon::parse($this->fecha);
         return ucfirst($f->translatedFormat('l d \\d\\e F \\d\\e Y'));
+    }
+
+    public function getMesLabelProperty(): string
+    {
+        return ucfirst(Carbon::parse($this->mes . '-01')->translatedFormat('F \\d\\e Y'));
     }
 }

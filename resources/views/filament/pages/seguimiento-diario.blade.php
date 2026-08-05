@@ -2,6 +2,12 @@
     <style>
         .sd-wrap { --sd-ink:#0f172a; --sd-muted:#64748b; --sd-line:#e2e8f0; }
 
+        /* ── Switch Día/Mes ── */
+        .sd-vista-switch { display:inline-flex; gap:3px; background:#f1f5f9; border-radius:10px; padding:3px; margin-bottom:10px; }
+        .sd-vista-btn { border:none; background:transparent; padding:7px 18px; font-size:0.78rem; font-weight:800;
+                        color:#64748b; border-radius:8px; cursor:pointer; transition:.15s; }
+        .sd-vista-btn.active { background:#E11D48; color:#fff; }
+
         /* ── Navegador de fecha ── */
         .sd-datebar { display:flex; align-items:center; gap:10px; background:linear-gradient(135deg,#0f172a,#1e3a5f);
                       border-radius:16px; padding:14px 18px; margin-bottom:18px; flex-wrap:wrap; }
@@ -173,6 +179,13 @@
 
     <div class="sd-wrap" wire:loading.class="opacity-60">
 
+        {{-- ── Switch Día/Mes ── --}}
+        <div class="sd-vista-switch">
+            <button type="button" class="sd-vista-btn {{ $vista === 'dia' ? 'active' : '' }}" wire:click="setVista('dia')">Día</button>
+            <button type="button" class="sd-vista-btn {{ $vista === 'mes' ? 'active' : '' }}" wire:click="setVista('mes')">Mes</button>
+        </div>
+
+        @if($vista === 'dia')
         {{-- ── Navegador de fecha ── --}}
         <div class="sd-datebar">
             <button type="button" class="sd-nav-btn" wire:click="diaAnterior" title="Día anterior">
@@ -196,6 +209,31 @@
                 <button type="button" class="sd-hoy-btn" wire:click="irAHoy">Volver a hoy</button>
             @endunless
         </div>
+        @else
+        {{-- ── Navegador de mes ── --}}
+        <div class="sd-datebar">
+            <button type="button" class="sd-nav-btn" wire:click="mesAnterior" title="Mes anterior">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+
+            <div class="sd-date-center">
+                <div class="sd-date-label">{{ $this->mesLabel }}</div>
+                <span class="sd-date-badge {{ $this->esMesActual() ? 'hoy' : 'pasado' }}">
+                    {{ $this->esMesActual() ? '● Mes en curso' : '📆 Mes cerrado' }}
+                </span>
+            </div>
+
+            <button type="button" class="sd-nav-btn" wire:click="mesSiguiente" @if($this->esMesActual()) disabled @endif title="Mes siguiente">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </button>
+
+            <input type="month" wire:model.live="mes" max="{{ now()->format('Y-m') }}" class="sd-date-input">
+
+            @unless($this->esMesActual())
+                <button type="button" class="sd-hoy-btn" wire:click="irAMesActual">Mes actual</button>
+            @endunless
+        </div>
+        @endif
 
         {{-- ── Tabs ── --}}
         <div class="sd-tabs">
@@ -268,7 +306,7 @@
                                         <span class="sd-total">${{ number_format($inq['total_debe'] ?? 0,0,',','.') }}</span>
                                     @endif
                                     <button type="button"
-                                            wire:click.stop="toggleRevisado('inquilino', {{ $inq['id'] }})"
+                                            wire:click.stop="toggleRevisado('{{ $vista === 'mes' ? 'inquilino_mes' : 'inquilino' }}', {{ $inq['id'] }})"
                                             class="sd-check-btn {{ $inq['revisado'] ? 'on' : 'off' }}">
                                         @if($inq['revisado']) ✅ Revisado @else ☐ Marcar revisado @endif
                                     </button>
@@ -340,6 +378,7 @@
                         <div class="sd-empty-icon">🎉</div>
                         <div class="sd-empty-text">
                             @if($busqueda !== '') No se encontró ningún inquilino con "{{ $busqueda }}".
+                            @elseif($vista === 'mes') No hay inquilinos en mora este mes.
                             @elseif($this->esHoy()) No hay inquilinos en mora por revisar hoy.
                             @else No hay planilla guardada para este día.
                             @endif
@@ -378,7 +417,7 @@
                                         <span class="sd-total">${{ number_format($prop['total_girar'] ?? 0,0,',','.') }}</span>
                                     @endif
                                     <button type="button"
-                                            wire:click.stop="toggleRevisado('propietario', {{ $prop['id'] }})"
+                                            wire:click.stop="toggleRevisado('{{ $vista === 'mes' ? 'propietario_mes' : 'propietario' }}', {{ $prop['id'] }})"
                                             class="sd-check-btn {{ $prop['revisado'] ? 'on' : 'off' }}">
                                         @if($prop['revisado']) ✅ Revisado @else ☐ Marcar revisado @endif
                                     </button>
@@ -432,6 +471,7 @@
                         <div class="sd-empty-icon">🎉</div>
                         <div class="sd-empty-text">
                             @if($busqueda !== '') No se encontró ningún propietario con "{{ $busqueda }}".
+                            @elseif($vista === 'mes') No hay giros pendientes este mes.
                             @elseif($this->esHoy()) No hay giros pendientes por revisar hoy.
                             @else No hay planilla guardada para este día.
                             @endif

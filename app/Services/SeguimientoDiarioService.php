@@ -199,7 +199,7 @@ class SeguimientoDiarioService
      * dinero ese día (pago de inquilino, depósito, otro ingreso); si
      * acredita, salió (giro a propietario, gasto, devolución de depósito).
      */
-    public static function cargarMovimientosCaja(string $direccion, string $fecha): array
+    public static function cargarMovimientosCaja(string $direccion, string $fecha, ?string $fechaFin = null): array
     {
         $cuentasDisponible = Bank::whereNotNull('accounting_account_id')
             ->pluck('accounting_account_id')->unique()->values();
@@ -211,13 +211,20 @@ class SeguimientoDiarioService
 
         $lineas = AccountingEntryLine::whereIn('account_id', $cuentasDisponible)
             ->where($campoMonto, '>', 0)
-            ->whereHas('entry', fn ($q) => $q->where('estado', 'contabilizado')->whereDate('fecha', $fecha))
+            ->whereHas('entry', function ($q) use ($fecha, $fechaFin) {
+                $q->where('estado', 'contabilizado');
+                $fechaFin ? $q->whereBetween('fecha', [$fecha, $fechaFin]) : $q->whereDate('fecha', $fecha);
+            })
             ->with(['entry.lines.account', 'entry.lines.third', 'entry.third', 'account'])
             ->get()
             ->unique('entry_id') // un comprobante puede tocar caja en más de una línea (p.ej. traspaso entre bancos)
             ->values();
 
-        $checks = DailyReviewCheck::where('fecha', $fecha)->where('tipo', $tipoCheck)
+        // El check de revisión de un comprobante se guarda una sola vez con
+        // la fecha real del comprobante (no la fecha de la vista donde se
+        // marcó) — así "revisado" es un estado del comprobante en sí, válido
+        // tanto en la vista de día como en la de mes.
+        $checks = DailyReviewCheck::where('tipo', $tipoCheck)
             ->with('revisadoPor')
             ->get()
             ->keyBy('entry_id');
@@ -256,5 +263,32 @@ class SeguimientoDiarioService
             ->sortBy('numero')
             ->values()
             ->toArray();
+    }
+
+    /**
+     * Revisión mensual de inquilinos/propietarios: la deuda/pendiente que se
+     * muestra es siempre el estado ACTUAL en vivo (no tiene sentido congelar
+     * un snapshot de "cuánto debía" a mitad de mes), pero el check de
+     * "revisado" es uno solo por persona por mes (no uno por día), para que
+     * gerencia pueda marcar "ya revisé a fulano este mes" sin repetirlo cada
+     * vez que entra.
+     */
+    public static function adjuntarRevisadoMes(array $filas, string $tipo, string $mesYm): array
+    {
+        $primerDiaMes = $mesYm . '-01';
+        $tipoCheck    = $tipo === 'inquilino' ? 'inquilino_mes' : 'propietario_mes';
+
+        $checks = DailyReviewCheck::where('fecha', $primerDiaMes)->where('tipo', $tipoCheck)
+            ->with('revisadoPor')
+            ->get()
+            ->keyBy('third_id');
+
+        return array_map(function ($fila) use ($checks) {
+            $check = $checks->get($fila['id']);
+            $fila['revisado']     = $check?->revisado ?? false;
+            $fila['revisado_por'] = $check?->revisadoPor?->name;
+            $fila['revisado_en']  = $check?->revisado_en;
+            return $fila;
+        }, $filas);
     }
 }
