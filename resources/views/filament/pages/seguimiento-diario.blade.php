@@ -431,18 +431,18 @@
                     <div class="sd-card {{ $comp['revisado'] ? 'revisado' : '' }}">
                         <details>
                             <summary class="sd-comp-head">
-                                <div class="sd-comp-avatar ci">CI</div>
+                                <div class="sd-comp-avatar ci">↓</div>
                                 <div class="sd-comp-id-block">
                                     <div class="sd-comp-numero">{{ $comp['numero'] }}</div>
                                     <div class="sd-comp-desc" title="{{ $comp['descripcion'] }}">{{ $comp['descripcion'] }}</div>
-                                    @if($comp['tercero'])
-                                        <div class="sd-comp-tercero">{{ $comp['tercero'] }}</div>
-                                    @endif
+                                    <div class="sd-comp-tercero">
+                                        @if($comp['tercero']){{ $comp['tercero'] }} · @endif{{ $comp['cuenta'] }}
+                                    </div>
                                 </div>
                                 <div class="sd-comp-amounts">
                                     <div>
-                                        <div class="sd-comp-amt-label">Total</div>
-                                        <div class="sd-comp-amt-value" style="color:#16a34a;">${{ number_format($comp['total_creditos'],0,',','.') }}</div>
+                                        <div class="sd-comp-amt-label">Ingresó</div>
+                                        <div class="sd-comp-amt-value" style="color:#16a34a;">${{ number_format($comp['monto'],0,',','.') }}</div>
                                     </div>
                                     <button type="button"
                                             wire:click.stop="toggleRevisado('comprobante_ingreso', {{ $comp['id'] }})"
@@ -501,18 +501,18 @@
                     <div class="sd-card {{ $comp['revisado'] ? 'revisado' : '' }}">
                         <details>
                             <summary class="sd-comp-head">
-                                <div class="sd-comp-avatar ce">CE</div>
+                                <div class="sd-comp-avatar ce">↑</div>
                                 <div class="sd-comp-id-block">
                                     <div class="sd-comp-numero">{{ $comp['numero'] }}</div>
                                     <div class="sd-comp-desc" title="{{ $comp['descripcion'] }}">{{ $comp['descripcion'] }}</div>
-                                    @if($comp['tercero'])
-                                        <div class="sd-comp-tercero">{{ $comp['tercero'] }}</div>
-                                    @endif
+                                    <div class="sd-comp-tercero">
+                                        @if($comp['tercero']){{ $comp['tercero'] }} · @endif{{ $comp['cuenta'] }}
+                                    </div>
                                 </div>
                                 <div class="sd-comp-amounts">
                                     <div>
-                                        <div class="sd-comp-amt-label">Total</div>
-                                        <div class="sd-comp-amt-value" style="color:#dc2626;">${{ number_format($comp['total_debitos'],0,',','.') }}</div>
+                                        <div class="sd-comp-amt-label">Salió</div>
+                                        <div class="sd-comp-amt-value" style="color:#dc2626;">${{ number_format($comp['monto'],0,',','.') }}</div>
                                     </div>
                                     <button type="button"
                                             wire:click.stop="toggleRevisado('comprobante_egreso', {{ $comp['id'] }})"

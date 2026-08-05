@@ -256,14 +256,14 @@ class SeguimientoDiario extends Page
     public function getIngresosProperty(): array
     {
         return $this->filtrarComprobantesPorBusqueda(
-            SeguimientoDiarioService::cargarComprobantes('CI', $this->fecha)
+            SeguimientoDiarioService::cargarMovimientosCaja('ingreso', $this->fecha)
         );
     }
 
     public function getEgresosProperty(): array
     {
         return $this->filtrarComprobantesPorBusqueda(
-            SeguimientoDiarioService::cargarComprobantes('CE', $this->fecha)
+            SeguimientoDiarioService::cargarMovimientosCaja('egreso', $this->fecha)
         );
     }
 

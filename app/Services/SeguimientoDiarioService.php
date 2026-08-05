@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\AccountingEntry;
+use App\Models\AccountingEntryLine;
+use App\Models\Bank;
 use App\Models\DailyReviewCheck;
 use App\Models\OwnerLiquidation;
 use App\Models\RentBill;
@@ -189,39 +190,57 @@ class SeguimientoDiarioService
     }
 
     /**
-     * Comprobantes de ingreso (CI) o egreso (CE) contabilizados en la fecha
-     * dada, con su estado de revisión. A diferencia de inquilinos/propietarios
-     * no hace falta "congelar" un snapshot: el comprobante ya es un registro
-     * fijo una vez contabilizado, así que se lee en vivo directo del libro.
+     * Movimientos REALES de plata (banco/caja) del día — no se basa en el
+     * tipo de comprobante contable (CI/CE/CR...) porque eso mezcla cosas que
+     * no son caja: p.ej. la factura al inquilino se contabiliza tipo CI el
+     * día del período pero ahí no entra ni sale un peso, es causación. Lo
+     * que sí es plata real es cualquier línea que toque una cuenta de banco
+     * o caja (las mismas configuradas en Bancos): si esa línea debita, entró
+     * dinero ese día (pago de inquilino, depósito, otro ingreso); si
+     * acredita, salió (giro a propietario, gasto, devolución de depósito).
      */
-    public static function cargarComprobantes(string $tipoEntry, string $fecha): array
+    public static function cargarMovimientosCaja(string $direccion, string $fecha): array
     {
-        $tipoCheck = $tipoEntry === 'CI' ? 'comprobante_ingreso' : 'comprobante_egreso';
+        $cuentasDisponible = Bank::whereNotNull('accounting_account_id')
+            ->pluck('accounting_account_id')->unique()->values();
 
-        $entries = AccountingEntry::where('tipo', $tipoEntry)
-            ->where('estado', 'contabilizado')
-            ->whereDate('fecha', $fecha)
-            ->with(['third', 'lines.account', 'lines.third'])
-            ->orderBy('numero')
-            ->get();
+        if ($cuentasDisponible->isEmpty()) return [];
+
+        $campoMonto = $direccion === 'ingreso' ? 'debito' : 'credito';
+        $tipoCheck  = $direccion === 'ingreso' ? 'comprobante_ingreso' : 'comprobante_egreso';
+
+        $lineas = AccountingEntryLine::whereIn('account_id', $cuentasDisponible)
+            ->where($campoMonto, '>', 0)
+            ->whereHas('entry', fn ($q) => $q->where('estado', 'contabilizado')->whereDate('fecha', $fecha))
+            ->with(['entry.lines.account', 'entry.lines.third', 'entry.third', 'account'])
+            ->get()
+            ->unique('entry_id') // un comprobante puede tocar caja en más de una línea (p.ej. traspaso entre bancos)
+            ->values();
 
         $checks = DailyReviewCheck::where('fecha', $fecha)->where('tipo', $tipoCheck)
             ->with('revisadoPor')
             ->get()
             ->keyBy('entry_id');
 
-        return $entries->map(function (AccountingEntry $entry) use ($checks) {
+        return $lineas->map(function (AccountingEntryLine $linea) use ($checks, $campoMonto, $cuentasDisponible) {
+            $entry = $linea->entry;
             $check = $checks->get($entry->id);
 
+            // Monto real movido en caja/banco para este comprobante (suma
+            // todas sus líneas de disponible, normalmente es solo una).
+            $monto = $entry->lines
+                ->whereIn('account_id', $cuentasDisponible)
+                ->sum($campoMonto);
+
             return [
-                'id'              => $entry->id,
-                'numero'          => $entry->numero,
-                'fecha'           => $entry->fecha,
-                'descripcion'     => $entry->descripcion,
-                'tercero'         => $entry->third?->nombre_completo,
-                'total_debitos'   => (float) $entry->total_debitos,
-                'total_creditos'  => (float) $entry->total_creditos,
-                'lineas'          => $entry->lines->map(fn ($l) => [
+                'id'           => $entry->id,
+                'numero'       => $entry->numero,
+                'fecha'        => $entry->fecha,
+                'descripcion'  => $entry->descripcion,
+                'tercero'      => $entry->third?->nombre_completo,
+                'cuenta'       => $linea->account?->nombre,
+                'monto'        => (float) $monto,
+                'lineas'       => $entry->lines->map(fn ($l) => [
                     'cuenta_codigo' => $l->account?->codigo,
                     'cuenta_nombre' => $l->account?->nombre,
                     'tercero'       => $l->third?->nombre_completo,
@@ -229,10 +248,13 @@ class SeguimientoDiarioService
                     'debito'        => (float) $l->debito,
                     'credito'       => (float) $l->credito,
                 ])->toArray(),
-                'revisado'        => $check?->revisado ?? false,
-                'revisado_por'    => $check?->revisadoPor?->name,
-                'revisado_en'     => $check?->revisado_en,
+                'revisado'     => $check?->revisado ?? false,
+                'revisado_por' => $check?->revisadoPor?->name,
+                'revisado_en'  => $check?->revisado_en,
             ];
-        })->values()->toArray();
+        })
+            ->sortBy('numero')
+            ->values()
+            ->toArray();
     }
 }
