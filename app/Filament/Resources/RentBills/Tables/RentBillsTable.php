@@ -9,10 +9,12 @@ use App\Services\FacturacionElectronicaService;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class RentBillsTable
 {
@@ -90,11 +92,15 @@ class RentBillsTable
                         'vencida'   => 'Vencida',
                         'anulada'   => 'Anulada',
                         default     => $state,
-                    }),
+                    })
+                    ->tooltip(fn ($record) => $record->estado === 'anulada'
+                        ? "Anulada por {$record->anuladoPor?->name} el {$record->anulado_en?->format('d/m/Y h:i A')}\nMotivo: {$record->motivo_anulacion}"
+                        : null),
 
                 TextColumn::make('tipo_documento')->label('Doc.')
                     ->badge()->color('gray')
-                    ->formatStateUsing(fn ($state) => $state === 'factura_electronica' ? 'FE' : 'DE'),
+                    ->formatStateUsing(fn ($state) => $state === 'factura_electronica' ? 'FE' : 'DE')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('contabilizado')
                     ->label('Cont.')
@@ -108,7 +114,8 @@ class RentBillsTable
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor(fn ($record) => $record->contabilizado_via_historico ? 'info' : 'success')
-                    ->falseColor('gray'),
+                    ->falseColor('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('fe_estado')
                     ->label('FE DIAN')
@@ -230,7 +237,12 @@ class RentBillsTable
             ])
             ->recordActions([
                 Action::make('send_payment_link')
-                    ->label(fn ($record) => $record->wap_enviado ? 'Reenviar link' : 'Enviar link')
+                    // El tooltip (hover) no funciona en mobile, así que la
+                    // fecha de envío va directo en el label del botón —
+                    // visible sin necesidad de pasar el mouse.
+                    ->label(fn ($record) => $record->wap_enviado && $record->wap_enviado_at
+                        ? 'Enviado ' . $record->wap_enviado_at->format('d/m/y h:i A')
+                        : 'Enviar link')
                     ->icon(fn ($record) => $record->wap_enviado ? 'heroicon-o-arrow-path' : 'heroicon-o-paper-airplane')
                     ->color(fn ($record) => $record->wap_enviado ? 'gray' : 'success')
                     ->outlined()
@@ -340,6 +352,37 @@ class RentBillsTable
                     ->label('Ver / Pagar')
                     ->icon('heroicon-o-eye')
                     ->outlined(),
+
+                Action::make('anular_factura')
+                    ->label('Anular')
+                    ->icon('heroicon-o-no-symbol')
+                    ->color('danger')
+                    ->button()
+                    ->visible(fn ($record) => $record->estado !== 'anulada')
+                    ->requiresConfirmation()
+                    ->modalHeading('¿Deseas anular esta factura?')
+                    ->modalDescription(fn ($record) => "Factura {$record->numero} — {$record->arrendatario?->nombre_completo} — \$" . number_format($record->total_factura, 0, ',', '.') . '. Esta acción reversa automáticamente todos los asientos contables ligados (factura, mora, pagos y, si aplica, la liquidación al propietario) y queda registrada con tu usuario y la fecha de hoy.')
+                    ->modalSubmitActionLabel('Sí, anular factura')
+                    ->schema([
+                        Textarea::make('motivo')
+                            ->label('Motivo de la anulación')
+                            ->placeholder('Ej: factura duplicada, error en el valor del contrato, contrato terminado anticipadamente...')
+                            ->required()
+                            ->minLength(10)
+                            ->rows(3),
+                    ])
+                    ->action(function ($record, array $data) {
+                        try {
+                            $record->anularConReversion($data['motivo'], Auth::id());
+                            Notification::make()
+                                ->title('Factura anulada')
+                                ->body("Se reversaron los asientos contables de {$record->numero}.")
+                                ->warning()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()->title('Error al anular: ' . $e->getMessage())->danger()->send();
+                        }
+                    }),
             ]);
     }
 
