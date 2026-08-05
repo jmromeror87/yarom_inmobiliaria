@@ -510,7 +510,7 @@ class AdminPanelProvider extends PanelProvider
                         ['url' => route('filament.admin.pages.dashboard'), 'label' => 'Inicio', 'icon' => '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'],
                         ['url' => route('filament.admin.pages.bancos'), 'label' => 'Bancos', 'icon' => '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2Z"/><circle cx="12" cy="14" r="2"/>'],
                         ['url' => route('filament.admin.pages.seguimiento-diario'), 'label' => 'Seguim.', 'icon' => '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'],
-                        ['url' => route('filament.admin.pages.libro-diario'), 'label' => 'Contab.', 'icon' => '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>'],
+                        ['url' => route('filament.admin.pages.balance-prueba'), 'label' => 'Balance', 'icon' => '<path d="M3 12h4l3-9 4 18 3-9h4"/>'],
                     ];
 
                     $actual = request()->path();
