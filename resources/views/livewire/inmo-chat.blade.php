@@ -1,6 +1,11 @@
-<div x-data="{ open: @entangle('abierto') }"
+<div x-data="{ open: @entangle('abierto') }" class="inmo-chat-root"
      style="position:fixed;bottom:24px;right:24px;z-index:9999;font-family:'Plus Jakarta Sans',system-ui,sans-serif;">
 <style>
+/* En mobile hay una barra de navegación fija abajo (Inicio/Bancos/Seguim./Contab.,
+   ~74px + safe-area) — subir el globo para que no quede tapado por ella. */
+@media (max-width: 768px) {
+    .inmo-chat-root { bottom: calc(78px + env(safe-area-inset-bottom)) !important; right: 14px !important; }
+}
 @keyframes inmo-pulse  { 0%,100%{opacity:1} 50%{opacity:.4} }
 @keyframes inmo-spin   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes inmo-slide-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
