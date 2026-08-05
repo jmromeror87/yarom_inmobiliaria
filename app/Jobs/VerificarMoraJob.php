@@ -88,14 +88,16 @@ class VerificarMoraJob implements ShouldQueue
                     $token    = $bill->generatePaymentToken();
                     $urlPago  = route('payment.show', ['token' => $token]);
                     $nombre   = $bill->arrendatario->nombre_completo;
-                    $saldoFmt = '$' . number_format($bill->saldo_pendiente, 0, ',', '.');
+                    // saldo_pendiente ya incluye la mora del día (capital + mora) —
+                    // no sumar $mora de nuevo o se duplica en el "total a pagar".
+                    $saldoFmt = '$' . number_format($capital, 0, ',', '.');
                     $moraFmt  = '$' . number_format($mora, 0, ',', '.');
-                    $totalFmt = '$' . number_format($bill->saldo_pendiente + $mora, 0, ',', '.');
+                    $totalFmt = '$' . number_format($bill->saldo_pendiente, 0, ',', '.');
 
                     $msg = "⚠️ *AVISO DE MORA*\n\n"
                         . "Estimado(a) {$nombre},\n\n"
                         . "Su factura *{$bill->numero}* lleva *{$diasMora} día(s) en mora*.\n\n"
-                        . "💰 Saldo pendiente: {$saldoFmt} COP\n"
+                        . "💰 Saldo de la factura: {$saldoFmt} COP\n"
                         . "📈 Mora acumulada: {$moraFmt} COP\n"
                         . "💵 *Total a pagar: {$totalFmt} COP*\n\n"
                         . "Le solicitamos regularizar su pago a la mayor brevedad.\n\n"
