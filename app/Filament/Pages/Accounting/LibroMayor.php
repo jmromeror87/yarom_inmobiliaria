@@ -55,7 +55,7 @@ class LibroMayor extends Page
     {
         if (!$this->account_id) return collect();
 
-        return AccountingEntryLine::with(['entry', 'third'])
+        return AccountingEntryLine::with(['entry.lines.account', 'entry.lines.third', 'third'])
             ->where('account_id', $this->account_id)
             ->whereHas('entry', function ($q) {
                 $q->where('estado', 'contabilizado');
