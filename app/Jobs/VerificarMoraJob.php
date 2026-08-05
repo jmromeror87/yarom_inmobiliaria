@@ -82,38 +82,6 @@ class VerificarMoraJob implements ShouldQueue
                 ]);
             }
 
-            // Aviso WhatsApp solo la primera vez
-            if ($this->enviarWhatsapp && !$bill->wap_mora_enviado && $bill->arrendatario?->celular) {
-                try {
-                    $token    = $bill->generatePaymentToken();
-                    $urlPago  = route('payment.show', ['token' => $token]);
-                    $nombre   = $bill->arrendatario->nombre_completo;
-                    // saldo_pendiente ya incluye la mora del día (capital + mora) —
-                    // no sumar $mora de nuevo o se duplica en el "total a pagar".
-                    $saldoFmt = '$' . number_format($capital, 0, ',', '.');
-                    $moraFmt  = '$' . number_format($mora, 0, ',', '.');
-                    $totalFmt = '$' . number_format($bill->saldo_pendiente, 0, ',', '.');
-
-                    $msg = "⚠️ *AVISO DE MORA*\n\n"
-                        . "Estimado(a) {$nombre},\n\n"
-                        . "Su factura *{$bill->numero}* lleva *{$diasMora} día(s) en mora*.\n\n"
-                        . "💰 Saldo de la factura: {$saldoFmt} COP\n"
-                        . "📈 Mora acumulada: {$moraFmt} COP\n"
-                        . "💵 *Total a pagar: {$totalFmt} COP*\n\n"
-                        . "Le solicitamos regularizar su pago a la mayor brevedad.\n\n"
-                        . "🔗 *Pagar en línea:*\n{$urlPago}\n\n"
-                        . "— {$empresa}"
-                        . ($celEmpresa ? "\n☎️ {$celEmpresa}" : '');
-
-                    $resultado = $wap->enviar($bill->arrendatario->celular, $msg);
-                    if ($resultado['ok'] ?? false) {
-                        $bill->update(['wap_mora_enviado' => true, 'wap_mora_enviado_at' => now()]);
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning("WhatsApp mora falló para {$bill->numero}: " . $e->getMessage());
-                }
-            }
-
             // Contabilizar mora e intereses del período
             try {
                 \App\Services\ContabilidadService::generarParaMora($bill, $mora);
@@ -124,6 +92,74 @@ class VerificarMoraJob implements ShouldQueue
 
             $actualizadas++;
             Log::info("Mora actualizada: {$bill->numero} — {$diasMora} días — mora: {$mora}");
+        }
+
+        // ── Aviso WhatsApp consolidado por contrato ─────────────────────────
+        // En vez de un mensaje por factura, se manda UNO por inquilino que
+        // resume TODOS los meses que debe (incluido el mes actual aunque
+        // todavía esté en período de gracia, para que vea el panorama
+        // completo), con días, interés y total de cada mes, más el total
+        // acumulado — igual a como lo mostraba el sistema anterior (Siinmob).
+        if ($this->enviarWhatsapp) {
+            $contratosAvisar = $bills->where('wap_mora_enviado', false)
+                ->pluck('rental_contract_id')
+                ->unique();
+
+            foreach ($contratosAvisar as $contratoId) {
+                $pendientes = RentBill::where('rental_contract_id', $contratoId)
+                    ->whereIn('estado', ['pendiente', 'parcial', 'en_mora'])
+                    ->where('saldo_pendiente', '>', 0)
+                    ->where('fecha_limite_pago', '<', $hoy)
+                    ->with('arrendatario')
+                    ->orderBy('periodo_inicio')
+                    ->get();
+
+                if ($pendientes->isEmpty()) continue;
+
+                $arrendatario = $pendientes->first()->arrendatario;
+                if (!$arrendatario?->celular) continue;
+
+                $lineasMeses  = '';
+                $totalGeneral = 0.0;
+                foreach ($pendientes as $p) {
+                    $diasReales = (int) $p->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
+                    $mesNombre  = ucfirst($p->periodo_inicio->translatedFormat('F Y'));
+                    $lineasMeses .= "\n📅 *{$mesNombre}* ({$p->numero})\n"
+                        . "   Días de mora: {$diasReales}\n"
+                        . "   Interés mora: $" . number_format($p->mora_acumulada, 0, ',', '.') . "\n"
+                        . "   Total del mes: $" . number_format($p->saldo_pendiente, 0, ',', '.') . "\n";
+                    $totalGeneral += (float) $p->saldo_pendiente;
+                }
+
+                $bill0 = $pendientes->first();
+                $token = ($bill0->payment_token && !$bill0->payment_token_expires_at?->isPast())
+                    ? $bill0->payment_token
+                    : $bill0->generatePaymentToken();
+                $urlPago = route('payment.show', ['token' => $token]);
+
+                $msg = "⚠️ *AVISO DE MORA*\n\n"
+                    . "Estimado(a) {$arrendatario->nombre_completo},\n\n"
+                    . "Tiene *{$pendientes->count()} mes(es)* pendiente(s) de pago:\n"
+                    . $lineasMeses
+                    . "\n💵 *TOTAL ACUMULADO A PAGAR: $" . number_format($totalGeneral, 0, ',', '.') . " COP*\n\n"
+                    . "Le solicitamos regularizar su pago a la mayor brevedad.\n\n"
+                    . "🔗 *Pagar en línea:*\n{$urlPago}\n\n"
+                    . "— {$empresa}"
+                    . ($celEmpresa ? "\n☎️ {$celEmpresa}" : '');
+
+                try {
+                    $resultado = $wap->enviar($arrendatario->celular, $msg);
+                    if ($resultado['ok'] ?? false) {
+                        $idsANotificar = $bills->where('rental_contract_id', $contratoId)
+                            ->where('wap_mora_enviado', false)
+                            ->pluck('id');
+                        RentBill::whereIn('id', $idsANotificar)
+                            ->update(['wap_mora_enviado' => true, 'wap_mora_enviado_at' => now()]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("WhatsApp mora consolidado falló para contrato {$contratoId}: " . $e->getMessage());
+                }
+            }
         }
 
         Log::info("VerificarMoraJob completado — {$actualizadas} facturas en mora procesadas");
