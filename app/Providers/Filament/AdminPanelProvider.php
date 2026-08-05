@@ -475,6 +475,54 @@ class AdminPanelProvider extends PanelProvider
                 </footer>
                 '
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => (function () {
+                    $user = filament()->auth()->user();
+                    $puedeGerencia = $user && method_exists($user, 'hasAnyRole')
+                        && $user->hasAnyRole(['gerente', 'super_admin', 'admin']);
+
+                    if (!$puedeGerencia) return '';
+
+                    $items = [
+                        ['url' => route('filament.admin.pages.dashboard'), 'label' => 'Inicio', 'icon' => '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'],
+                        ['url' => route('filament.admin.pages.bancos'), 'label' => 'Bancos', 'icon' => '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2Z"/><circle cx="12" cy="14" r="2"/>'],
+                        ['url' => route('filament.admin.pages.seguimiento-diario'), 'label' => 'Seguim.', 'icon' => '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'],
+                        ['url' => route('filament.admin.pages.libro-diario'), 'label' => 'Contab.', 'icon' => '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>'],
+                    ];
+
+                    $actual = request()->path();
+                    $html = '
+                    <style>
+                    .yr-mobile-nav{display:none;}
+                    @media (max-width: 768px) {
+                        #yr-footer{display:none!important;}
+                        .yr-mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;z-index:40;
+                            background:#0F172A;border-top:1px solid rgba(255,255,255,.08);
+                            padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+                            justify-content:space-around;align-items:center;}
+                        .fi-main-ctn{padding-bottom:74px!important;}
+                    }
+                    .yr-mobile-nav a{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;
+                        color:rgba(255,255,255,.55);text-decoration:none;font-size:9.5px;font-weight:800;
+                        padding:6px 4px;border-radius:12px;text-transform:uppercase;letter-spacing:.03em;}
+                    .yr-mobile-nav a svg{width:21px;height:21px;}
+                    .yr-mobile-nav a.yr-active{color:#fff;background:linear-gradient(135deg,#E11D48,#be123c);}
+                    </style>
+                    <nav class="yr-mobile-nav">';
+
+                    foreach ($items as $it) {
+                        $activo = str_ends_with($actual, parse_url($it['url'], PHP_URL_PATH)) ? 'yr-active' : '';
+                        $html .= '<a href="' . $it['url'] . '" class="' . $activo . '">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . $it['icon'] . '</svg>
+                            <span>' . $it['label'] . '</span>
+                        </a>';
+                    }
+
+                    $html .= '</nav>';
+                    return $html;
+                })()
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
