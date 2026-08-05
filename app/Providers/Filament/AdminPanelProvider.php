@@ -79,6 +79,20 @@ class AdminPanelProvider extends PanelProvider
                 'danger'  => Color::hex('#E11D48'),
                 'gray'    => Color::Slate,
             ])
+            // ── PWA: "agregar a inicio" abre sin barra de URL, como app nativa ──
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => '
+                <link rel="manifest" href="/manifest.json">
+                <meta name="theme-color" content="#0F172A">
+                <meta name="mobile-web-app-capable" content="yes">
+                <meta name="apple-mobile-web-app-capable" content="yes">
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+                <meta name="apple-mobile-web-app-title" content="YarOM INMO">
+                <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+                <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+                '
+            )
             // ── Estilos sidebar + topbar ────────────────────────────────
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_START,
