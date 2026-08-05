@@ -23,10 +23,23 @@
         .sd-hoy-btn:hover { opacity:.9; }
 
         /* ── Tabs ── */
-        .sd-tabs { display:flex; gap:6px; margin-bottom:16px; background:#f1f5f9; border-radius:12px; padding:4px; }
-        .sd-tab { flex:1; text-align:center; padding:10px 14px; font-size:0.85rem; font-weight:700; color:#64748b;
-                  cursor:pointer; border-radius:9px; transition:.15s; }
+        .sd-tabs { display:flex; gap:4px; margin-bottom:16px; background:#f1f5f9; border-radius:12px; padding:4px; }
+        .sd-tab { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; text-align:center;
+                  padding:10px 8px; font-size:0.82rem; font-weight:700; color:#64748b;
+                  cursor:pointer; border-radius:9px; transition:.15s; white-space:nowrap; }
         .sd-tab.active { color:#0f172a; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+        .sd-tab-icon { width:16px; height:16px; flex-shrink:0; color:#94a3b8; }
+        .sd-tab.active .sd-tab-icon { color:#E11D48; }
+        .sd-tab-icon-ok { color:#16a34a; }
+        .sd-tab-icon-bad { color:#dc2626; }
+        .sd-tab-label-short { display:none; }
+
+        @media (max-width: 900px) {
+            .sd-tab { padding:9px 4px; font-size:0.72rem; gap:4px; }
+            .sd-tab-icon { width:14px; height:14px; }
+            .sd-tab-label-full { display:none; }
+            .sd-tab-label-short { display:inline; }
+        }
 
         .sd-search { position:relative; margin-bottom:16px; }
         .sd-search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%);
@@ -187,16 +200,20 @@
         {{-- ── Tabs ── --}}
         <div class="sd-tabs">
             <div class="sd-tab {{ $tab === 'inquilinos' ? 'active' : '' }}" wire:click="setTab('inquilinos')">
-                👤 Inquilinos ({{ count($this->inquilinos) }})
+                <svg class="sd-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="sd-tab-label"><span class="sd-tab-label-full">Inquilinos</span><span class="sd-tab-label-short">Inquil.</span> ({{ count($this->inquilinos) }})</span>
             </div>
             <div class="sd-tab {{ $tab === 'propietarios' ? 'active' : '' }}" wire:click="setTab('propietarios')">
-                🏠 Propietarios ({{ count($this->propietarios) }})
+                <svg class="sd-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+                <span class="sd-tab-label"><span class="sd-tab-label-full">Propietarios</span><span class="sd-tab-label-short">Propiet.</span> ({{ count($this->propietarios) }})</span>
             </div>
             <div class="sd-tab {{ $tab === 'ingresos' ? 'active' : '' }}" wire:click="setTab('ingresos')">
-                🟢 Comp. Ingreso ({{ count($this->ingresos) }})
+                <svg class="sd-tab-icon sd-tab-icon-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 19 19 12"/></svg>
+                <span class="sd-tab-label"><span class="sd-tab-label-full">Comp. Ingreso</span><span class="sd-tab-label-short">C. Ingreso</span> ({{ count($this->ingresos) }})</span>
             </div>
             <div class="sd-tab {{ $tab === 'egresos' ? 'active' : '' }}" wire:click="setTab('egresos')">
-                🔴 Comp. Egreso ({{ count($this->egresos) }})
+                <svg class="sd-tab-icon sd-tab-icon-bad" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 5 19 12"/></svg>
+                <span class="sd-tab-label"><span class="sd-tab-label-full">Comp. Egreso</span><span class="sd-tab-label-short">C. Egreso</span> ({{ count($this->egresos) }})</span>
             </div>
         </div>
 
