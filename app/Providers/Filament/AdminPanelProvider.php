@@ -48,6 +48,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('YarOM Inmobiliaria')
             ->favicon(asset('favicon.ico'))
             ->navigationGroups([
+                NavigationGroup::make('Gerencia'),
                 NavigationGroup::make('CRM'),
                 NavigationGroup::make('Operativo'),
                 NavigationGroup::make('Contratación'),

@@ -20,7 +20,7 @@ class SeguimientoDiario extends Page
     protected string $view = 'filament.pages.seguimiento-diario';
 
     public static function getNavigationLabel(): string { return 'Seguimiento Diario'; }
-    public static function getNavigationGroup(): ?string { return 'Cobros'; }
+    public static function getNavigationGroup(): ?string { return 'Gerencia'; }
     public function getTitle(): string { return 'Seguimiento Diario — Gerencia'; }
 
     public static function canAccess(): bool

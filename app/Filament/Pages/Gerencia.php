@@ -15,7 +15,9 @@ class Gerencia extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    protected static ?string $navigationLabel = 'Gerencia';
+    protected static ?string $navigationLabel = 'Indicadores';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Gerencia';
 
     protected static ?string $title = 'Panel Gerencial';
 
