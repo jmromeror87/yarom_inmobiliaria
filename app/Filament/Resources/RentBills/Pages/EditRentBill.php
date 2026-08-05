@@ -89,6 +89,11 @@ class EditRentBill extends EditRecord
                 ->action(function (array $data) use ($record) {
                     $data['aplicar_mora'] ??= false;
 
+                    // El toggle "aplicar_mora" tiene efecto inmediato via
+                    // un hook en el modelo (RentBill::booted): si se apaga
+                    // limpia mora/saldo al instante, si se prende recalcula
+                    // ya mismo según fecha_limite_pago + dias_gracia — no
+                    // hay que tocar mora_acumulada manualmente aquí.
                     $record->update([
                         'aplicar_mora'              => $data['aplicar_mora'],
                         'saldo_anterior_arrastrado' => $data['saldo_anterior_arrastrado'] ?? 0,
@@ -97,10 +102,6 @@ class EditRentBill extends EditRecord
                         'periodo_fin'               => $data['periodo_fin'] ?? $record->periodo_fin,
                         'fecha_limite_pago'         => $data['fecha_limite_pago'] ?? $record->fecha_limite_pago,
                     ]);
-
-                    if (!$data['aplicar_mora']) {
-                        $record->update(['mora_acumulada' => 0]);
-                    }
 
                     Notification::make()->title('Ajustes guardados')->success()->send();
                 });

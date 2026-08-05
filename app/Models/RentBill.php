@@ -41,6 +41,7 @@ class RentBill extends Model
         'fecha_limite_pago','dias_gracia','tasa_mora_diaria','aplicar_mora',
         'mora_acumulada','fecha_inicio_mora','dias_mora',
         'estado','total_pagado','saldo_pendiente','fecha_pago',
+        'motivo_anulacion','anulado_por_id','anulado_en',
         'tipo_documento','cufe','numero_dian',
         'wap_enviado','wap_enviado_at','wap_mora_enviado','wap_mora_enviado_at',
         'owner_liquidation_id','notas',
@@ -59,6 +60,7 @@ class RentBill extends Model
         'wap_mora_enviado'         => 'boolean',
         'wap_mora_enviado_at'      => 'datetime',
         'payment_token_expires_at' => 'datetime',
+        'anulado_en'         => 'datetime',
         'aplicar_mora'       => 'boolean',
         'contabilizado_via_historico' => 'boolean',
         'saldo_anterior_arrastrado' => 'decimal:2',
@@ -80,6 +82,53 @@ class RentBill extends Model
                 $ultimo = static::whereYear('created_at', $year)->max('numero');
                 $count  = $ultimo ? ((int)substr($ultimo, -4)) + 1 : 1;
                 $b->numero = 'FAC-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            }
+        });
+
+        // Toggle "Aplicar mora" con efecto inmediato — antes solo cambiaba
+        // el flag y había que esperar a la corrida diaria de VerificarMoraJob
+        // para ver el efecto. Ahora: al desactivar, se limpia la mora al
+        // instante (las chicas ven el cambio de una); al reactivar, se
+        // recalcula ya mismo según fecha_limite_pago + dias_gracia, igual
+        // que lo haría el job, sin esperar hasta el otro día.
+        static::updating(function (RentBill $b) {
+            if (!$b->isDirty('aplicar_mora')) return;
+
+            $capital = round(
+                (float) $b->total_factura + (float) $b->saldo_anterior_arrastrado - (float) $b->total_pagado,
+                2
+            );
+
+            if (!$b->aplicar_mora) {
+                $b->mora_acumulada    = 0;
+                $b->dias_mora         = 0;
+                $b->fecha_inicio_mora = null;
+                $b->saldo_pendiente   = max(0, $capital);
+                if ($b->estado === 'en_mora') {
+                    $b->estado = ((float) $b->total_pagado > 0) ? 'parcial' : 'pendiente';
+                }
+                return;
+            }
+
+            $finGracia = $b->fecha_limite_pago->copy()->addDays($b->dias_gracia)->endOfDay();
+            if (now()->lte($finGracia)) return; // aún en gracia, nada que calcular todavía
+
+            $diasMora = (int) $b->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
+
+            $baseParaMora = $capital;
+            if ($b->rentalContract?->mora_solo_sobre_canon && $b->canon_base > 0) {
+                $proporcionCanon = $b->canon_base / max($b->total_factura, 1);
+                $baseParaMora    = round($capital * $proporcionCanon, 2);
+            }
+
+            $mora = round($baseParaMora * ($b->tasa_mora_diaria / 100) * $diasMora, 2);
+
+            $b->dias_mora         = $diasMora;
+            $b->mora_acumulada    = $mora;
+            $b->saldo_pendiente   = max(0, round($capital + $mora, 2));
+            $b->fecha_inicio_mora = $b->fecha_inicio_mora ?? $b->fecha_limite_pago->toDateString();
+            if ($b->estado !== 'pagada') {
+                $b->estado = 'en_mora';
             }
         });
 
@@ -128,12 +177,73 @@ class RentBill extends Model
                ($this->estado !== 'pagada' && now()->gt($this->fecha_limite_pago->addDays($this->dias_gracia)));
     }
 
+    /**
+     * Anula la factura y reversa (marca como anulado, sin borrar, para
+     * mantener el rastro de auditoría) todos los asientos contables
+     * ligados a ella: la factura misma, la mora acumulada, la provisión
+     * de cartera, los pagos que se le hayan registrado, y si ya estaba
+     * liquidada al propietario, también esa liquidación y su giro — de lo
+     * contrario quedaría un giro pagado sobre una factura que ya no existe.
+     */
+    public function anularConReversion(string $motivo, ?int $usuarioId = null): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($motivo, $usuarioId) {
+            $entriesFactura = \App\Models\AccountingEntry::where('referencia_id', $this->id)
+                ->where(function ($q) {
+                    $q->where('referencia_tipo', 'factura_rent_bill')
+                      ->orWhere('referencia_tipo', 'like', 'mora_rent_bill%')
+                      ->orWhere('referencia_tipo', 'like', 'provision_cartera_%');
+                })
+                ->where('estado', '!=', 'anulado')
+                ->get();
+
+            foreach ($entriesFactura as $entry) {
+                $entry->anular("Factura {$this->numero} anulada: {$motivo}");
+            }
+
+            $pagoIds = $this->payments()->pluck('id');
+            if ($pagoIds->isNotEmpty()) {
+                $entriesPago = \App\Models\AccountingEntry::whereIn('referencia_id', $pagoIds)
+                    ->where('referencia_tipo', 'pago_individual')
+                    ->where('estado', '!=', 'anulado')
+                    ->get();
+                foreach ($entriesPago as $entry) {
+                    $entry->anular("Factura {$this->numero} anulada: {$motivo}");
+                }
+            }
+
+            if ($this->owner_liquidation_id && $this->liquidation && $this->liquidation->estado !== 'anulada') {
+                $entryGiro = \App\Models\AccountingEntry::where('referencia_id', $this->liquidation->id)
+                    ->where('referencia_tipo', 'giro_owner')
+                    ->where('estado', '!=', 'anulado')
+                    ->first();
+                $entryGiro?->anular("Factura {$this->numero} anulada: {$motivo}");
+
+                $this->liquidation->update([
+                    'estado' => 'anulada',
+                    'notas'  => trim(($this->liquidation->notas ? $this->liquidation->notas . ' — ' : ''))
+                        . "Anulada automáticamente al anular la factura {$this->numero}: {$motivo}",
+                ]);
+            }
+
+            $this->update([
+                'estado'            => 'anulada',
+                'motivo_anulacion'  => $motivo,
+                'anulado_por_id'    => $usuarioId,
+                'anulado_en'        => now(),
+                'saldo_pendiente'   => 0,
+                'aplicar_mora'      => false,
+            ]);
+        });
+    }
+
     // ── Relaciones ───────────────────────────────────────
     public function rentalContract(): BelongsTo  { return $this->belongsTo(RentalContract::class); }
     public function property(): BelongsTo        { return $this->belongsTo(Property::class); }
     public function arrendatario(): BelongsTo    { return $this->belongsTo(Third::class, 'arrendatario_id'); }
     public function payments(): HasMany          { return $this->hasMany(RentPayment::class); }
     public function liquidation(): BelongsTo     { return $this->belongsTo(OwnerLiquidation::class, 'owner_liquidation_id'); }
+    public function anuladoPor(): BelongsTo      { return $this->belongsTo(\App\Models\User::class, 'anulado_por_id'); }
     public function electronicInvoices(): HasMany { return $this->hasMany(ElectronicInvoice::class, 'rent_bill_id'); }
     public function electronicInvoice(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
