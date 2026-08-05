@@ -314,16 +314,24 @@ class AdminPanelProvider extends PanelProvider
                     @media(max-width:680px){
                         .yr-clock,.yr-status,.yr-divider{display:none!important;}
                         .yr-topbar-right{gap:8px!important;}
-                        /* Buscador colapsado a icono — se expande al enfocar */
+                        /* Buscador colapsado a icono — se expande al enfocar. El campo
+                           se vuelve absoluto anclado a la derecha para que crezca hacia
+                           la IZQUIERDA por encima del topbar, en vez de empujar en fila
+                           los demás íconos (campanita, avatar) y distorsionar el panel. */
                         .yr-search-ctn{width:36px!important;flex-shrink:0!important;}
                         .yr-search-field{
+                            position:absolute!important;top:50%!important;right:0!important;
+                            transform:translateY(-50%)!important;
                             width:36px!important;height:36px!important;
                             padding:0!important;border-radius:50%!important;justify-content:center!important;
                             overflow:hidden!important;transition:width .18s ease,border-radius .18s ease!important;
+                            box-shadow:0 0 0 rgba(0,0,0,0)!important;z-index:5!important;
                         }
                         .yr-search-input{width:0!important;padding:0!important;flex:none!important;}
                         .yr-search-field:focus-within{
-                            width:170px!important;border-radius:10px!important;padding:0 12px!important;justify-content:flex-start!important;
+                            width:min(240px,calc(100vw - 28px))!important;border-radius:10px!important;padding:0 12px!important;
+                            justify-content:flex-start!important;background:#fff!important;
+                            box-shadow:0 8px 24px rgba(15,23,42,.18)!important;
                         }
                         .yr-search-field:focus-within .yr-search-input{width:100%!important;flex:1!important;padding:9px 0!important;}
                     }
@@ -499,7 +507,8 @@ class AdminPanelProvider extends PanelProvider
                         #yr-footer{display:none!important;}
                         .yr-mobile-nav{display:flex!important;position:fixed;bottom:0;left:0;right:0;z-index:40;
                             background:#0F172A;border-top:1px solid rgba(255,255,255,.08);
-                            padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+                            border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.18);
+                            padding:8px 4px calc(6px + env(safe-area-inset-bottom));
                             justify-content:space-around;align-items:center;}
                         .fi-main-ctn{padding-bottom:74px!important;}
                     }
