@@ -19,6 +19,31 @@ use Illuminate\Support\Facades\Log;
 class ContabilidadService
 {
     // ────────────────────────────────────────────────────────────────────────
+    // RETENCIÓN EN LA FUENTE — arrendatario persona jurídica agente retenedor
+    // ────────────────────────────────────────────────────────────────────────
+
+    /**
+     * El arrendatario persona jurídica que es agente retenedor practica
+     * retención sobre el canon al pagar — usa la tarifa propia pactada con
+     * él si la tiene, si no la tarifa global de la empresa (3.5% por
+     * defecto). Se calcula al generar la factura y queda fijo en ella (no
+     * se recalcula después aunque cambien las tarifas).
+     */
+    public static function calcularRetencionArrendamiento(RentalContract $contrato, float $canon): float
+    {
+        $arrendatario = $contrato->arrendatario;
+
+        if (!$arrendatario || $arrendatario->tipo_persona !== 'juridica' || !$arrendatario->es_agente_retenedor) {
+            return 0;
+        }
+
+        $company = Company::first();
+        $pct = (float) ($arrendatario->tarifa_retefuente_arrendamiento ?? $company?->tarifa_retefuente_arrendamiento ?? 3.5);
+
+        return round($canon * ($pct / 100), 2);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
     // HELPERS INTERNOS
     // ────────────────────────────────────────────────────────────────────────
 
@@ -129,12 +154,15 @@ class ContabilidadService
         // (OwnerLiquidation::generarDesdeFact usa la misma resolución).
         $aplicaIva    = (bool) $property?->requiereIva();
         $ivaPct       = (float) ($propietario?->tarifa_iva_pactada ?: $company?->tarifa_iva ?? 19);
-        $retePct      = (float) ($company?->tarifa_retefuente_arrendamiento ?? 3.5);
-        $aplicaRete   = $bill->rentalContract?->arrendatario?->tipo_persona === 'juridica';
 
         $comision     = round($canon * ($comisionPct / 100), 2);
         $iva          = $aplicaIva ? round($comision * ($ivaPct / 100), 2) : 0;
-        $rete         = $aplicaRete ? round($canon * ($retePct / 100), 2) : 0;
+        // La retención ya quedó calculada y guardada en la factura al
+        // generarla (GenerarFacturasMensuales), con la tarifa propia del
+        // arrendatario si la tiene pactada — se lee de ahí en vez de
+        // recalcularla, para que la factura y la contabilidad coincidan.
+        $rete         = round((float) $bill->retencion_practicada, 2);
+        $retePctDisplay = $canon > 0 ? round($rete / $canon * 100, 2) : 0;
         // netoProp NO descuenta rete: la retención es anticipo de impuesto de la inmobiliaria,
         // no un descuento al propietario. El propietario recibe (canon + admin + redondeo
         // - comision - iva) — el seguro SURA en sí nunca toca el neto del propietario
@@ -178,7 +206,7 @@ class ContabilidadService
         // Cuadre: Db(total-rete + rete) = Cr(comision + iva + netoProp = total) ✓
         if ($rete > 0 && $cuentaRete) {
             $lineas[0]['debito'] = round($total - $rete, 2);
-            $lineas[] = ['account_id' => $cuentaRete, 'debito' => $rete, 'credito' => 0, 'descripcion' => "Anticipo retefuente {$retePct}% s/canon", 'third_id' => $bill->arrendatario_id];
+            $lineas[] = ['account_id' => $cuentaRete, 'debito' => $rete, 'credito' => 0, 'descripcion' => "Anticipo retefuente {$retePctDisplay}% s/canon", 'third_id' => $bill->arrendatario_id];
         }
 
         // Autorretención que practica la inmobiliaria sobre su comisión (Decreto 2418/2013).

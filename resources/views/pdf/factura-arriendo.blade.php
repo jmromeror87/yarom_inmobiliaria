@@ -104,12 +104,14 @@
     $periodoArriendo = ($bill->periodo_inicio && $bill->periodo_fin)
         ? 'arriendo del mes ' . \Carbon\Carbon::parse($bill->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($bill->periodo_fin)->format('Y-m-d')
         : $mesAnio;
-    // La retefuente solo la practica un arrendatario persona jurídica (agente
-    // retenedor obligado por ley) — igual que en ContabilidadService::generarParaFactura.
-    // Antes esta plantilla la restaba siempre, sin importar el tipo de persona.
-    $aplicaRete = $arr?->tipo_persona === 'juridica';
-    $rtefonte   = $aplicaRete ? round($bill->canon_base * 0.035, 2) : 0;
-    $neto       = $bill->total_factura + $bill->mora_acumulada - $rtefonte;
+    // La retención ya quedó calculada y restada del total_factura al
+    // generarla (GenerarFacturasMensuales, con la tarifa propia del
+    // arrendatario si la tiene pactada) — se muestra aquí solo como línea
+    // informativa, no se vuelve a restar del total.
+    $rtefonte   = (float) $bill->retencion_practicada;
+    $aplicaRete = $rtefonte > 0;
+    $retePctDisplay = $bill->canon_base > 0 ? round($rtefonte / $bill->canon_base * 100, 2) : 0;
+    $neto       = $bill->total_factura + $bill->mora_acumulada;
     $emision    = $bill->created_at ?? now();
     $tituloDoc  = $bill->tipo_documento === 'factura_electronica' ? 'FACTURA ELECTRÓNICA DE VENTA' : 'DOCUMENTO EQUIVALENTE DE ARRENDAMIENTO';
     $departamento = $company?->municipio?->departamento?->nombre ?? 'Norte de Santander';
@@ -307,10 +309,10 @@
         </td>
         <td>
             <table class="totales">
-                <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($bill->total_factura, 2, ',', '.') }}</td></tr>
+                <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($bill->total_factura + $rtefonte, 2, ',', '.') }}</td></tr>
                 <tr><td class="lbl">IVA (0% — Arrendamiento vivienda)</td><td class="val">$0,00</td></tr>
                 @if($aplicaRete)
-                <tr><td class="lbl rte">ReteFuente arrendamiento 3.5% (Cód. 06)</td><td class="val rte">-${{ number_format($rtefonte, 2, ',', '.') }}</td></tr>
+                <tr><td class="lbl rte">ReteFuente arrendamiento {{ $retePctDisplay }}% (Cód. 06)</td><td class="val rte">-${{ number_format($rtefonte, 2, ',', '.') }}</td></tr>
                 @endif
                 @if($bill->mora_acumulada > 0)
                 <tr><td class="lbl mora">Intereses de mora ({{ $bill->dias_mora }} días)</td><td class="val mora">+${{ number_format($bill->mora_acumulada, 2, ',', '.') }}</td></tr>

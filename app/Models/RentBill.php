@@ -34,7 +34,7 @@ class RentBill extends Model
         'numero','rental_contract_id','property_id','arrendatario_id',
         'periodo_inicio','periodo_fin','mes','anio',
         'canon_base','cuota_administracion','descuentos','otros_cobros',
-        'descripcion_otros_cobros',
+        'descripcion_otros_cobros','retencion_practicada',
         'saldo_anterior_arrastrado','nota_saldo_arrastrado',
         'valor_seguro_sura','iva_seguro_sura','redondeo_seguro',
         'total_factura',
@@ -69,6 +69,7 @@ class RentBill extends Model
         'iva_seguro_sura'    => 'decimal:2',
         'redondeo_seguro'    => 'decimal:2',
         'total_factura'      => 'decimal:2',
+        'retencion_practicada' => 'decimal:2',
         'mora_acumulada'     => 'decimal:2',
         'total_pagado'       => 'decimal:2',
         'saldo_pendiente'    => 'decimal:2',
@@ -85,14 +86,16 @@ class RentBill extends Model
             }
         });
 
-        // Toggle "Aplicar mora" con efecto inmediato — antes solo cambiaba
-        // el flag y había que esperar a la corrida diaria de VerificarMoraJob
-        // para ver el efecto. Ahora: al desactivar, se limpia la mora al
-        // instante (las chicas ven el cambio de una); al reactivar, se
-        // recalcula ya mismo según fecha_limite_pago + dias_gracia, igual
-        // que lo haría el job, sin esperar hasta el otro día.
+        // Recálculo de mora con efecto inmediato — antes solo se disparaba
+        // al mover el toggle "aplicar_mora", así que si una factura se
+        // generó sin mora por fechas de periodo mal calculadas, corregir
+        // esas fechas desde "Ajustes" no reliquidaba nada hasta la corrida
+        // diaria de VerificarMoraJob. Ahora también se dispara al corregir
+        // fecha_limite_pago/periodo_inicio/periodo_fin/saldo_anterior_arrastrado,
+        // para que las chicas puedan chequear mora + corregir fechas y quede
+        // recalculado y reliquidado de una vez.
         static::updating(function (RentBill $b) {
-            if (!$b->isDirty('aplicar_mora')) return;
+            if (!$b->isDirty(['aplicar_mora', 'fecha_limite_pago', 'periodo_inicio', 'periodo_fin', 'saldo_anterior_arrastrado'])) return;
 
             $capital = round(
                 (float) $b->total_factura + (float) $b->saldo_anterior_arrastrado - (float) $b->total_pagado,

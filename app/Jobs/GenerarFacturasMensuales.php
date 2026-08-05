@@ -121,6 +121,14 @@ class GenerarFacturasMensuales implements ShouldQueue
                 $redondeoSeguro = 0;
             }
 
+            // Si el arrendatario es persona jurídica y agente retenedor,
+            // retiene un % del canon al pagar — esa parte no se cobra en
+            // efectivo, así que el saldo a cobrar ya sale neto de retención
+            // (igual a como ya lo trataba el asiento contable de la
+            // factura, que debitaba cartera solo por total - retención).
+            $retencion = \App\Services\ContabilidadService::calcularRetencionArrendamiento($contrato, $canonBase);
+            $totalACobrar = round($total - $retencion, 2);
+
             $bill = RentBill::create([
                 'rental_contract_id'   => $contrato->id,
                 'property_id'          => $contrato->property_id,
@@ -134,8 +142,9 @@ class GenerarFacturasMensuales implements ShouldQueue
                 'valor_seguro_sura'    => $valorSeguroSura,
                 'iva_seguro_sura'      => $ivaSeguroSura,
                 'redondeo_seguro'      => $redondeoSeguro,
-                'total_factura'        => $total,
-                'saldo_pendiente'      => $total,
+                'retencion_practicada' => $retencion,
+                'total_factura'        => $totalACobrar,
+                'saldo_pendiente'      => $totalACobrar,
                 'fecha_limite_pago'    => $fechaLimite,
                 'dias_gracia'          => $diasGracia,
                 'tasa_mora_diaria'     => $tasaDiaria,
@@ -149,7 +158,7 @@ class GenerarFacturasMensuales implements ShouldQueue
                     $token    = $bill->generatePaymentToken();
                     $urlPago  = route('payment.show', ['token' => $token]);
                     $inmueble = ($contrato->property?->codigo ?? '') . ' — ' . ($contrato->property?->direccion ?? '');
-                    $totalFmt = '$' . number_format($total, 0, ',', '.');
+                    $totalFmt = '$' . number_format($totalACobrar, 0, ',', '.');
                     $fechaFmt = \Carbon\Carbon::parse($fechaLimite)->format('d/m/Y');
                     $nombre   = $contrato->arrendatario->nombre_completo;
                     $empresa  = $company?->razon_social ?? 'Serviarrendar S.A.S';
@@ -168,7 +177,10 @@ class GenerarFacturasMensuales implements ShouldQueue
                             ? "🏢 Administración: \$" . number_format($admin, 0, ',', '.') . " COP\n"
                             : '')
                         . $seguroLinea
-                        . "💵 *Total: {$totalFmt} COP*\n\n"
+                        . ($retencion > 0
+                            ? "🧾 Retención en la fuente: -\$" . number_format($retencion, 0, ',', '.') . " COP\n"
+                            : '')
+                        . "💵 *Total a pagar: {$totalFmt} COP*\n\n"
                         . "📆 *Vence: {$fechaFmt}*\n\n"
                         . "🔗 *Pagar en línea (PSE · Nequi · Tarjeta):*\n{$urlPago}\n\n"
                         . "— {$empresa}";

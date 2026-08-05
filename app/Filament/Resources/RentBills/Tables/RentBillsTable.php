@@ -283,14 +283,24 @@ class RentBillsTable
 
                         $resultado = app(\App\Services\WhatsAppService::class)->enviar($record->arrendatario->celular, $msg);
 
+                        // El botón solo cambia a "Enviado ..." si esto queda
+                        // en true — antes la notificación decía "enviado" con
+                        // éxito SIEMPRE, aunque el envío real hubiera fallado,
+                        // así que parecía que el botón "no se actualizaba"
+                        // cuando en realidad nunca se marcó como enviado.
                         if ($resultado['ok'] ?? false) {
                             $record->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
-                        }
 
-                        Notification::make()
-                            ->title('Link enviado')
-                            ->body("Link de pago enviado a {$record->arrendatario->celular}")
-                            ->success()->send();
+                            Notification::make()
+                                ->title('✅ Link enviado')
+                                ->body("Link de pago enviado a {$record->arrendatario->celular}")
+                                ->success()->send();
+                        } else {
+                            Notification::make()
+                                ->title('❌ No se pudo enviar el WhatsApp')
+                                ->body($resultado['error'] ?? 'El servicio de WhatsApp no respondió correctamente. Intenta de nuevo en un momento.')
+                                ->danger()->send();
+                        }
                     }),
                 Action::make('recontabilizar')
                     ->label('Recontabilizar')

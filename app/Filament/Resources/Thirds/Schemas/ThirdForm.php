@@ -80,6 +80,19 @@ class ThirdForm
                             ->options(['natural' => 'Persona Natural', 'juridica' => 'Persona Jurídica'])
                             ->default('natural')->required()->live(),
 
+                        Toggle::make('es_agente_retenedor')
+                            ->label('¿Es agente retenedor?')
+                            ->helperText('Persona jurídica que retiene en la fuente sobre el canon al pagar — se descuenta automáticamente de la factura de arriendo.')
+                            ->live()
+                            ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica'),
+
+                        TextInput::make('tarifa_retefuente_arrendamiento')
+                            ->label('% que retiene sobre el canon')
+                            ->numeric()->suffix('%')
+                            ->placeholder('3.5')
+                            ->helperText('Dejar vacío para usar la tarifa global de la empresa (Mi Empresa → Parámetros tributarios).')
+                            ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica' && $get('es_agente_retenedor')),
+
                         Select::make('tipo_documento')
                             ->label('Tipo de documento')
                             ->options([

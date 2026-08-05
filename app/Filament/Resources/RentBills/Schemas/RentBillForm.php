@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\RentBills\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -47,6 +48,10 @@ class RentBillForm
                         ->label('Canon base')->prefix('$')->disabled(),
                     TextInput::make('cuota_administracion')
                         ->label('Administración')->prefix('$')->disabled(),
+                    TextInput::make('retencion_practicada')
+                        ->label('Retención en la fuente')->prefix('$')->disabled()
+                        ->visible(fn ($record) => $record && (float) $record->retencion_practicada > 0)
+                        ->helperText('Practicada por el arrendatario (persona jurídica, agente retenedor) — ya descontada del total.'),
                     TextInput::make('mora_acumulada')
                         ->label('Mora acumulada')->prefix('$')->disabled(),
                     TextInput::make('total_factura')
@@ -109,6 +114,21 @@ class RentBillForm
                         ])->disabled(),
                     DatePicker::make('fecha_limite_pago')->label('Fecha límite')->disabled(),
                     TextInput::make('dias_mora')->label('Días de mora')->disabled()->suffix('días'),
+                ]),
+
+            Section::make('🚫 Factura anulada')
+                ->icon('heroicon-o-no-symbol')
+                ->visible(fn ($record) => $record && $record->estado === 'anulada')
+                ->schema([
+                    Placeholder::make('info_anulacion')
+                        ->label('')
+                        ->content(fn ($record) => new \Illuminate\Support\HtmlString(
+                            '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.7;">'
+                            . '👤 <strong>Anulada por:</strong> ' . e($record->anuladoPor?->name ?? '—') . '<br>'
+                            . '📅 <strong>Fecha de anulación:</strong> ' . ($record->anulado_en?->format('d/m/Y h:i A') ?? '—') . '<br>'
+                            . '📝 <strong>Motivo:</strong> ' . e($record->motivo_anulacion ?? '—')
+                            . '</div>'
+                        )),
                 ]),
 
             Section::make('Notas')
