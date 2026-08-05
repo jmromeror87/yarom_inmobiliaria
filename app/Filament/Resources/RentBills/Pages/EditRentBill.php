@@ -89,11 +89,12 @@ class EditRentBill extends EditRecord
                 ->action(function (array $data) use ($record) {
                     $data['aplicar_mora'] ??= false;
 
-                    // El toggle "aplicar_mora" tiene efecto inmediato via
-                    // un hook en el modelo (RentBill::booted): si se apaga
-                    // limpia mora/saldo al instante, si se prende recalcula
-                    // ya mismo según fecha_limite_pago + dias_gracia — no
-                    // hay que tocar mora_acumulada manualmente aquí.
+                    // El recálculo de mora tiene efecto inmediato via un hook
+                    // en el modelo (RentBill::booted): si se apaga aplicar_mora
+                    // limpia mora/saldo al instante; si se prende, o si se
+                    // corrige fecha_limite_pago/periodo_inicio/periodo_fin/
+                    // saldo_anterior_arrastrado, recalcula y reliquida ya
+                    // mismo — no hay que tocar mora_acumulada manualmente aquí.
                     $record->update([
                         'aplicar_mora'              => $data['aplicar_mora'],
                         'saldo_anterior_arrastrado' => $data['saldo_anterior_arrastrado'] ?? 0,
@@ -102,6 +103,44 @@ class EditRentBill extends EditRecord
                         'periodo_fin'               => $data['periodo_fin'] ?? $record->periodo_fin,
                         'fecha_limite_pago'         => $data['fecha_limite_pago'] ?? $record->fecha_limite_pago,
                     ]);
+
+                    // Blindaje contable: el hook del modelo ya recalculó
+                    // mora_acumulada/saldo_pendiente en memoria, pero eso solo
+                    // corrige la factura — si no se causa aquí también, la
+                    // contabilidad se queda con el valor viejo (o sin nada) y
+                    // el libro se desalinea contra lo que ve el inquilino.
+                    // Se causa con el mismo servicio y misma guarda de
+                    // idempotencia (un comprobante por factura por mes) que
+                    // usa VerificarMoraJob, así que nunca duplica.
+                    try {
+                        $tipoMoraMes = 'mora_rent_bill_' . now()->format('Ym');
+                        $entryMesActual = \App\Models\AccountingEntry::where('referencia_id', $record->id)
+                            ->where('referencia_tipo', $tipoMoraMes)
+                            ->where('estado', '!=', 'anulado')
+                            ->first();
+
+                        if ($entryMesActual) {
+                            $moraYaCausada = (float) $entryMesActual->lines()
+                                ->where('debito', '>', 0)
+                                ->sum('debito');
+
+                            // El comprobante de este mes quedó con un valor
+                            // que ya no coincide con la mora recalculada (o la
+                            // factura dejó de aplicar mora): se anula para
+                            // volver a causar el valor correcto, si no queda
+                            // un asiento viejo desalineado en el libro.
+                            if (round($moraYaCausada, 2) !== round((float) $record->mora_acumulada, 2)) {
+                                $entryMesActual->anular("Ajuste manual de factura {$record->numero}: recálculo de mora/periodo");
+                            }
+                        }
+
+                        if ($record->aplicar_mora && (float) $record->mora_acumulada > 0) {
+                            \App\Services\ContabilidadService::generarParaMora($record, (float) $record->mora_acumulada);
+                            \App\Services\ContabilidadService::generarProvisionCartera($record);
+                        }
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning("Contabilidad mora (ajuste manual) {$record->numero}: " . $e->getMessage());
+                    }
 
                     Notification::make()->title('Ajustes guardados')->success()->send();
                 });
@@ -155,12 +194,70 @@ class EditRentBill extends EditRecord
                                 . '</div>'
                             );
                         }),
+                    Select::make('modo_pago')
+                        ->label('¿Qué quieres registrar?')
+                        ->options(function () use ($record) {
+                            $opciones = ['esta_factura' => "Pagar esta factura ({$record->numero})"];
+
+                            $pendientes = \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
+                                ->whereNotIn('estado', ['pagada', 'anulada'])
+                                ->where('saldo_pendiente', '>', 0)
+                                ->get();
+
+                            if ($pendientes->count() > 1) {
+                                $total = $pendientes->sum(fn ($f) => $f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado);
+                                $opciones['total_deuda'] = 'Pagar toda la deuda acumulada ($' . number_format($total, 0, ',', '.') . ')';
+                                $opciones['abono_mes']   = 'Abonar y elegir a qué mes aplica';
+                            }
+
+                            return $opciones;
+                        })
+                        ->default('esta_factura')
+                        ->native(false)
+                        ->live()
+                        ->columnSpanFull()
+                        ->afterStateUpdated(function ($state, callable $set) use ($record) {
+                            if ($state === 'esta_factura') {
+                                $set('total_pagado', $record->saldo_pendiente + $record->mora_acumulada + $record->saldo_anterior_arrastrado);
+                            } elseif ($state === 'total_deuda') {
+                                $pendientes = \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
+                                    ->whereNotIn('estado', ['pagada', 'anulada'])
+                                    ->where('saldo_pendiente', '>', 0)->get();
+                                $set('total_pagado', $pendientes->sum(fn ($f) => $f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado));
+                            } else {
+                                $set('total_pagado', null);
+                            }
+                        }),
+
+                    Select::make('rent_bill_objetivo')
+                        ->label('¿A qué mes va el abono?')
+                        ->options(function () use ($record) {
+                            return \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
+                                ->whereNotIn('estado', ['pagada', 'anulada'])
+                                ->where('saldo_pendiente', '>', 0)
+                                ->orderBy('periodo_inicio')
+                                ->get()
+                                ->mapWithKeys(function ($f) {
+                                    $periodo = \Carbon\Carbon::create($f->anio, $f->mes, 1)->translatedFormat('F Y');
+                                    $debe = number_format($f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado, 0, ',', '.');
+                                    return [$f->id => ucfirst($periodo) . " ({$f->numero}) — debe \${$debe}"];
+                                });
+                        })
+                        ->default($record->id)
+                        ->native(false)
+                        ->columnSpanFull()
+                        ->visible(fn (Get $get) => $get('modo_pago') === 'abono_mes')
+                        ->required(fn (Get $get) => $get('modo_pago') === 'abono_mes')
+                        ->helperText('Si abonas más de lo que debe ese mes, el resto se aplica automáticamente a los siguientes meses pendientes, del más antiguo al más reciente.'),
+
                     self::grupoLabel('💰 Valor y fecha'),
                     Grid::make(2)->schema([
                         TextInput::make('total_pagado')
                             ->label('Valor recibido')
                             ->numeric()->prefix('$')
                             ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada + $record->saldo_anterior_arrastrado)
+                            ->disabled(fn (Get $get) => $get('modo_pago') === 'total_deuda')
+                            ->dehydrated(true)
                             ->required(),
                         DatePicker::make('fecha_pago')
                             ->label('Fecha de pago')
@@ -260,29 +357,95 @@ class EditRentBill extends EditRecord
                         ->dehydrated(false),
                 ])
                 ->action(function (array $data) {
-                    $mora  = $this->record->mora_acumulada;
-                    $canon = max(0, $data['total_pagado'] - $mora);
+                    $modo = $data['modo_pago'] ?? 'esta_factura';
 
-                    RentPayment::create([
-                        'rent_bill_id'        => $this->record->id,
-                        'rental_contract_id'  => $this->record->rental_contract_id,
-                        'arrendatario_id'     => $this->record->arrendatario_id,
-                        'registrado_por'      => Auth::id(),
-                        'valor_canon'         => $canon,
-                        'valor_mora'          => $mora,
-                        'valor_administracion'=> $this->record->cuota_administracion,
-                        'total_pagado'        => $data['total_pagado'],
-                        'forma_pago'          => $data['forma_pago'],
-                        'fecha_pago'          => $data['fecha_pago'],
-                        'referencia_pago'     => $data['referencia_pago'] ?? null,
-                        'banco_origen'        => $data['banco_origen'] ?? null,
-                        'bank_id'             => $data['bank_id'] ?? null,
-                        'comprobante_path'    => $data['comprobante_path'] ?? null,
-                        'notas'               => $data['notas'] ?? null,
-                    ]);
+                    // Modo simple (default): igual que siempre, un solo pago
+                    // contra esta factura puntual, sin tocar otras.
+                    if ($modo === 'esta_factura') {
+                        $mora  = $this->record->mora_acumulada;
+                        $canon = max(0, $data['total_pagado'] - $mora);
+
+                        RentPayment::create([
+                            'rent_bill_id'        => $this->record->id,
+                            'rental_contract_id'  => $this->record->rental_contract_id,
+                            'arrendatario_id'     => $this->record->arrendatario_id,
+                            'registrado_por'      => Auth::id(),
+                            'valor_canon'         => $canon,
+                            'valor_mora'          => $mora,
+                            'valor_administracion'=> $this->record->cuota_administracion,
+                            'total_pagado'        => $data['total_pagado'],
+                            'forma_pago'          => $data['forma_pago'],
+                            'fecha_pago'          => $data['fecha_pago'],
+                            'referencia_pago'     => $data['referencia_pago'] ?? null,
+                            'banco_origen'        => $data['banco_origen'] ?? null,
+                            'bank_id'             => $data['bank_id'] ?? null,
+                            'comprobante_path'    => $data['comprobante_path'] ?? null,
+                            'notas'               => $data['notas'] ?? null,
+                        ]);
+
+                        Notification::make()
+                            ->title('✅ Pago registrado — Liquidación al propietario generada')
+                            ->success()->send();
+
+                        $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                        return;
+                    }
+
+                    // Modo "total_deuda" / "abono_mes": se reparte el valor
+                    // recibido en cascada entre las facturas pendientes del
+                    // inquilino — empezando por la elegida (o la más antigua
+                    // si es "pagar todo"), y lo que sobra se aplica a las
+                    // siguientes en orden de periodo, igual que hace el link
+                    // de pago Wompi cuando el inquilino paga varios meses.
+                    $pendientes = \App\Models\RentBill::where('arrendatario_id', $this->record->arrendatario_id)
+                        ->whereNotIn('estado', ['pagada', 'anulada'])
+                        ->where('saldo_pendiente', '>', 0)
+                        ->orderBy('periodo_inicio')
+                        ->get();
+
+                    $anclaId = $modo === 'abono_mes' ? (int) ($data['rent_bill_objetivo'] ?? $this->record->id) : null;
+                    $ancla   = $anclaId ? ($pendientes->firstWhere('id', $anclaId) ?? $this->record) : $pendientes->first();
+
+                    $orden = collect([$ancla])->merge($pendientes->where('id', '!=', $ancla->id));
+
+                    $restante = (float) $data['total_pagado'];
+                    $facturasPagadas = 0;
+
+                    foreach ($orden as $f) {
+                        if ($restante <= 0) break;
+
+                        $aplicar = min($restante, (float) $f->saldo_pendiente);
+                        if ($aplicar <= 0) continue;
+
+                        $moraFactura  = min($aplicar, (float) $f->mora_acumulada);
+                        $canonFactura = round($aplicar - $moraFactura, 2);
+
+                        RentPayment::create([
+                            'rent_bill_id'         => $f->id,
+                            'rental_contract_id'   => $f->rental_contract_id,
+                            'arrendatario_id'      => $f->arrendatario_id,
+                            'registrado_por'       => Auth::id(),
+                            'valor_canon'          => $canonFactura,
+                            'valor_mora'           => $moraFactura,
+                            'valor_administracion' => $f->cuota_administracion,
+                            'total_pagado'         => $aplicar,
+                            'forma_pago'           => $data['forma_pago'],
+                            'fecha_pago'           => $data['fecha_pago'],
+                            'referencia_pago'      => $data['referencia_pago'] ?? null,
+                            'banco_origen'         => $data['banco_origen'] ?? null,
+                            'bank_id'              => $data['bank_id'] ?? null,
+                            'comprobante_path'     => $data['comprobante_path'] ?? null,
+                            'notas'                => $data['notas'] ?? null,
+                        ]);
+
+                        $restante = round($restante - $aplicar, 2);
+                        $facturasPagadas++;
+                    }
 
                     Notification::make()
-                        ->title('✅ Pago registrado — Liquidación al propietario generada')
+                        ->title($facturasPagadas > 1
+                            ? "✅ Pago registrado y repartido entre {$facturasPagadas} facturas"
+                            : '✅ Pago registrado — Liquidación al propietario generada')
                         ->success()->send();
 
                     $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
