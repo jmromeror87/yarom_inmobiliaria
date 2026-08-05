@@ -6,14 +6,18 @@ use App\Models\RentBill;
 
 class WompiService
 {
-    public function checkoutUrl(RentBill $bill): string
+    /**
+     * $montoOverride permite cobrar un valor distinto al saldo_pendiente de
+     * esta factura (pagar varios meses de una vez, o un abono libre) — el
+     * webhook solo necesita el número de la factura como ancla (primeros 3
+     * segmentos de la referencia) para reconciliar el pago, por lo que la
+     * referencia se genera nueva cada vez en lugar de reutilizar una fija.
+     */
+    public function checkoutUrl(RentBill $bill, ?float $montoOverride = null): string
     {
-        $amountCents  = (int) round($bill->saldo_pendiente * 100);
-        if (!$bill->wompi_reference) {
-            $bill->update(['wompi_reference' => $bill->numero . '-' . substr($bill->payment_token, 0, 8)]);
-            $bill->refresh();
-        }
-        $reference = $bill->wompi_reference;
+        $monto        = $montoOverride ?? (float) $bill->saldo_pendiente;
+        $amountCents  = (int) round($monto * 100);
+        $reference    = $bill->numero . '-' . uniqid();
         $currency     = 'COP';
         $integrity    = config('wompi.integrity_secret');
         $signature    = hash('sha256', $reference . $amountCents . $currency . $integrity);

@@ -36,10 +36,55 @@ class PaymentController extends Controller
                 ->with('status', 'expirado');
         }
 
-        $wompiUrl = app(WompiService::class)->checkoutUrl($bill);
+        // Meses pendientes del mismo contrato (incluye el mes actual aunque
+        // todavía esté en período de gracia, para que el inquilino vea el
+        // panorama completo), igual que en el aviso de WhatsApp consolidado.
+        $pendientes = RentBill::where('rental_contract_id', $bill->rental_contract_id)
+            ->whereIn('estado', ['pendiente', 'parcial', 'en_mora'])
+            ->where('saldo_pendiente', '>', 0)
+            ->where('fecha_limite_pago', '<', now())
+            ->orderBy('periodo_inicio')
+            ->get();
 
-        return view('payment.show', compact('bill', 'company', 'token', 'wompiUrl'))
+        if ($pendientes->isEmpty()) {
+            $pendientes = collect([$bill]);
+        }
+
+        $wompi        = app(WompiService::class);
+        $totalGeneral = (float) $pendientes->sum('saldo_pendiente');
+        $billAncla    = $pendientes->first();
+
+        $wompiUrlTodos = $wompi->checkoutUrl($billAncla, $totalGeneral);
+        foreach ($pendientes as $p) {
+            $p->wompiUrlMes = $wompi->checkoutUrl($p, (float) $p->saldo_pendiente);
+        }
+
+        return view('payment.show', compact('bill', 'company', 'token', 'pendientes', 'totalGeneral', 'wompiUrlTodos'))
             ->with('status', 'activo');
+    }
+
+    public function abono(Request $request, string $token)
+    {
+        $bill = RentBill::where('payment_token', $token)->firstOrFail();
+
+        $pendientes = RentBill::where('rental_contract_id', $bill->rental_contract_id)
+            ->whereIn('estado', ['pendiente', 'parcial', 'en_mora'])
+            ->where('saldo_pendiente', '>', 0)
+            ->orderBy('periodo_inicio')
+            ->get();
+
+        if ($pendientes->isEmpty()) {
+            return redirect()->route('payment.show', ['token' => $token]);
+        }
+
+        $totalGeneral = (float) $pendientes->sum('saldo_pendiente');
+
+        $monto = (float) $request->input('monto', 0);
+        $monto = max(1000, min($monto, $totalGeneral));
+
+        $wompiUrl = app(WompiService::class)->checkoutUrl($pendientes->first(), $monto);
+
+        return redirect()->away($wompiUrl);
     }
 
     public function resultado(Request $request)
@@ -96,25 +141,48 @@ class PaymentController extends Controller
             // Evitar procesar el mismo transaction_id dos veces (reenvíos del webhook)
             if ($bill->wompi_transaction_id === ($t['id'] ?? null)) return;
 
-            $total = round(($t['amount_in_cents'] ?? 0) / 100, 2);
+            $restante = round(($t['amount_in_cents'] ?? 0) / 100, 2);
 
-            // Guardar referencia Wompi en la factura
             $bill->update(['wompi_transaction_id' => $t['id'] ?? null]);
 
-            // RentPayment::booted() actualiza la factura y genera liquidación al propietario automáticamente
-            RentPayment::create([
-                'rent_bill_id'       => $bill->id,
-                'rental_contract_id' => $bill->rental_contract_id,
-                'arrendatario_id'    => $bill->arrendatario_id,
-                'total_pagado'       => $total,
-                'valor_canon'        => min($total, $bill->canon_base),
-                'valor_mora'         => max(0, $total - $bill->canon_base - $bill->cuota_administracion),
-                'valor_administracion' => $bill->cuota_administracion,
-                'forma_pago'         => $this->mapPaymentMethod($t['payment_method_type'] ?? ''),
-                'fecha_pago'         => now()->toDateString(),
-                'referencia_pago'    => $t['id'] ?? null,
-                'banco_origen'       => $t['payment_method']['financial_institution_code'] ?? null,
-            ]);
+            // El monto puede corresponder a varios meses a la vez ("pagar
+            // todo") o a un abono libre — se aplica primero a esta factura
+            // (la que ancla la referencia) y el sobrante se abona en cascada
+            // a los siguientes meses pendientes del mismo contrato, del más
+            // antiguo al más reciente, hasta agotar el monto pagado.
+            $facturas = collect([$bill])->merge(
+                RentBill::where('rental_contract_id', $bill->rental_contract_id)
+                    ->where('id', '!=', $bill->id)
+                    ->whereIn('estado', ['pendiente', 'parcial', 'vencida', 'en_mora'])
+                    ->where('saldo_pendiente', '>', 0)
+                    ->orderBy('periodo_inicio')
+                    ->lockForUpdate()
+                    ->get()
+            );
+
+            foreach ($facturas as $f) {
+                if ($restante <= 0) break;
+
+                $aplicar = min($restante, (float) $f->saldo_pendiente);
+                if ($aplicar <= 0) continue;
+
+                // RentPayment::booted() actualiza la factura y genera liquidación al propietario automáticamente
+                RentPayment::create([
+                    'rent_bill_id'       => $f->id,
+                    'rental_contract_id' => $f->rental_contract_id,
+                    'arrendatario_id'    => $f->arrendatario_id,
+                    'total_pagado'       => $aplicar,
+                    'valor_canon'        => min($aplicar, $f->canon_base),
+                    'valor_mora'         => max(0, $aplicar - $f->canon_base - $f->cuota_administracion),
+                    'valor_administracion' => $f->cuota_administracion,
+                    'forma_pago'         => $this->mapPaymentMethod($t['payment_method_type'] ?? ''),
+                    'fecha_pago'         => now()->toDateString(),
+                    'referencia_pago'    => $t['id'] ?? null,
+                    'banco_origen'       => $t['payment_method']['financial_institution_code'] ?? null,
+                ]);
+
+                $restante = round($restante - $aplicar, 2);
+            }
         });
 
         return response()->json(['ok' => true]);

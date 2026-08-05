@@ -64,6 +64,7 @@ Route::post('/invitacion/{token}', [\App\Http\Controllers\InvitacionController::
 // ── Pagos en línea (público, sin auth) ──────────────────────────────────
 Route::get('/pagar/resultado',  [\App\Http\Controllers\PaymentController::class, 'resultado'])->name('payment.resultado');
 Route::get('/pagar/{token}',    [\App\Http\Controllers\PaymentController::class, 'show'])->name('payment.show');
+Route::post('/pagar/{token}/abono', [\App\Http\Controllers\PaymentController::class, 'abono'])->name('payment.abono');
 Route::post('/webhooks/wompi',  [\App\Http\Controllers\PaymentController::class, 'webhook'])->name('payment.webhook');
 
 // ── PDFs Liquidaciones Propietario (con auth admin) ─────────────────────

@@ -119,78 +119,79 @@
         @else
         {{-- ── PAGO ACTIVO ── --}}
         <div class="card-header">
-            <div class="bill-number">Factura de arrendamiento</div>
+            <div class="bill-number">{{ $pendientes->count() > 1 ? 'Total pendiente (' . $pendientes->count() . ' meses)' : 'Factura de arrendamiento' }}</div>
             <div class="bill-amount">
-                <span>$</span>{{ number_format($bill->saldo_pendiente, 0, ',', '.') }}
+                <span>$</span>{{ number_format($totalGeneral, 0, ',', '.') }}
                 <span>COP</span>
             </div>
             <div class="bill-period">
-                Período: {{ $bill->periodo_inicio->format('d/m/Y') }} — {{ $bill->periodo_fin->format('d/m/Y') }}
+                {{ $bill->arrendatario?->nombre_completo ?? '—' }} — {{ $bill->property?->direccion ?? '—' }}
             </div>
-            @php
-                $hoy = now()->startOfDay();
-                $vence = $bill->fecha_limite_pago;
-                $dias = $hoy->diffInDays($vence, false);
-            @endphp
-            @if($dias > 3)
-                <span class="due-badge ok">✓ Vence el {{ $vence->format('d/m/Y') }}</span>
-            @elseif($dias >= 0)
-                <span class="due-badge warn">⚠ Vence en {{ $dias }} día{{ $dias !== 1 ? 's' : '' }}</span>
-            @else
-                <span class="due-badge red">⚠ Venció el {{ $vence->format('d/m/Y') }}</span>
-            @endif
         </div>
 
         <div class="details">
-            <div class="detail-row">
-                <span class="detail-label">Arrendatario</span>
-                <span class="detail-value">{{ $bill->arrendatario?->nombre_completo ?? '—' }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Inmueble</span>
-                <span class="detail-value">{{ $bill->property?->direccion ?? '—' }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Canon base</span>
-                <span class="detail-value">${{ number_format($bill->canon_base, 0, ',', '.') }}</span>
-            </div>
-            @if($bill->cuota_administracion > 0)
-            <div class="detail-row">
-                <span class="detail-label">Administración</span>
-                <span class="detail-value">${{ number_format($bill->cuota_administracion, 0, ',', '.') }}</span>
-            </div>
-            @endif
-            @if($bill->mora_acumulada > 0)
-            <div class="detail-row">
-                <span class="detail-label" style="color:#dc2626;">Mora acumulada</span>
-                <span class="detail-value" style="color:#dc2626;">${{ number_format($bill->mora_acumulada, 0, ',', '.') }}</span>
-            </div>
-            @endif
-            @if($bill->descuentos > 0)
-            <div class="detail-row">
-                <span class="detail-label" style="color:#16a34a;">Descuento</span>
-                <span class="detail-value" style="color:#16a34a;">-${{ number_format($bill->descuentos, 0, ',', '.') }}</span>
-            </div>
-            @endif
+            @foreach($pendientes as $p)
+                @php
+                    $diasReales = (int) $p->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
+                    $mesNombre  = ucfirst($p->periodo_inicio->translatedFormat('F Y'));
+                @endphp
+                <div class="detail-row" style="align-items:flex-start;">
+                    <span class="detail-label">
+                        <strong style="color:#0f172a;">{{ $mesNombre }}</strong> ({{ $p->numero }})<br>
+                        <span style="font-size:12px;">
+                            @if($diasReales > 0)
+                                <span style="color:#dc2626;">{{ $diasReales }} día(s) de mora</span>
+                            @else
+                                <span style="color:#15803d;">al día</span>
+                            @endif
+                            @if($p->mora_acumulada > 0)
+                                · interés ${{ number_format($p->mora_acumulada, 0, ',', '.') }}
+                            @endif
+                        </span>
+                    </span>
+                    <span style="text-align:right;">
+                        <span class="detail-value">${{ number_format($p->saldo_pendiente, 0, ',', '.') }}</span><br>
+                        <a href="{{ $p->wompiUrlMes }}" style="font-size:12px;color:#2563EB;font-weight:700;text-decoration:none;">Pagar solo este mes →</a>
+                    </span>
+                </div>
+            @endforeach
             <div class="detail-row" style="border-top: 2px solid #e2e8f0; margin-top: 4px; padding-top: 12px;">
-                <span class="detail-label detail-total">Total a pagar</span>
-                <span class="detail-value detail-total">${{ number_format($bill->saldo_pendiente, 0, ',', '.') }} COP</span>
+                <span class="detail-label detail-total">Total acumulado a pagar</span>
+                <span class="detail-value detail-total">${{ number_format($totalGeneral, 0, ',', '.') }} COP</span>
             </div>
         </div>
 
         <div class="actions">
 
-            {{-- Botón Wompi --}}
-            <a href="{{ $wompiUrl }}" class="btn-wompi">
+            {{-- Botón Wompi: pagar todo --}}
+            <a href="{{ $wompiUrlTodos }}" class="btn-wompi">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
-                Pagar en línea
+                Pagar todo (${{ number_format($totalGeneral, 0, ',', '.') }})
             </a>
             <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:-4px;">
                 PSE · Nequi · Tarjeta débito/crédito · Bancolombia
             </div>
+
+            <div class="divider">o abona un monto libre</div>
+
+            {{-- Abono personalizado --}}
+            <form action="{{ route('payment.abono', ['token' => $token]) }}" method="POST"
+                  style="display:flex; gap:8px;">
+                @csrf
+                <div style="flex:1; position:relative;">
+                    <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-weight:700;">$</span>
+                    <input type="number" name="monto" min="1000" max="{{ (int) $totalGeneral }}" step="1000"
+                           placeholder="{{ number_format($totalGeneral, 0, ',', '.') }}"
+                           style="width:100%; padding:14px 14px 14px 28px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:15px; font-weight:700; color:#0f172a;">
+                </div>
+                <button type="submit"
+                        style="background:#0f172a; color:#fff; border:none; border-radius:12px; padding:0 20px; font-weight:800; font-size:14px; cursor:pointer;">
+                    Abonar
+                </button>
+            </form>
 
             <div class="divider">o paga en oficina</div>
 
