@@ -74,6 +74,8 @@ class Third extends Model
         'requiere_iva','requiere_retefuente','quiere_factura_electronica',
         'tarifa_iva_pactada','tarifa_retefuente_pactada','dia_pago',
         'es_agente_retenedor','tarifa_retefuente_arrendamiento',
+        'arrendamiento_aplica_iva','arrendamiento_tarifa_iva',
+        'es_agente_retenedor_iva','arrendamiento_tarifa_reteiva',
         'portal_token','portal_token_generado_at','portal_activo',
     ];
 
@@ -92,6 +94,10 @@ class Third extends Model
         'tarifa_retefuente_pactada'   => 'decimal:2',
         'es_agente_retenedor'         => 'boolean',
         'tarifa_retefuente_arrendamiento' => 'decimal:2',
+        'arrendamiento_aplica_iva'    => 'boolean',
+        'arrendamiento_tarifa_iva'    => 'decimal:2',
+        'es_agente_retenedor_iva'     => 'boolean',
+        'arrendamiento_tarifa_reteiva' => 'decimal:2',
         'portal_activo'               => 'boolean',
         'portal_token_generado_at'    => 'datetime',
         'fecha_nacimiento'           => 'date',

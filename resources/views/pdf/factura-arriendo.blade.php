@@ -104,13 +104,21 @@
     $periodoArriendo = ($bill->periodo_inicio && $bill->periodo_fin)
         ? 'arriendo del mes ' . \Carbon\Carbon::parse($bill->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($bill->periodo_fin)->format('Y-m-d')
         : $mesAnio;
-    // La retención ya quedó calculada y restada del total_factura al
-    // generarla (GenerarFacturasMensuales, con la tarifa propia del
-    // arrendatario si la tiene pactada) — se muestra aquí solo como línea
-    // informativa, no se vuelve a restar del total.
+    // La retención, el IVA de arrendamiento y el reteIVA ya quedaron
+    // calculados y aplicados al total_factura al generarla
+    // (GenerarFacturasMensuales, con las tarifas propias del arrendatario
+    // si las tiene pactadas) — se muestran aquí solo como líneas
+    // informativas, no se vuelven a aplicar sobre el total.
     $rtefonte   = (float) $bill->retencion_practicada;
     $aplicaRete = $rtefonte > 0;
     $retePctDisplay = $bill->canon_base > 0 ? round($rtefonte / $bill->canon_base * 100, 2) : 0;
+    $ivaArriendo     = (float) $bill->iva_practicado;
+    $aplicaIvaArriendo = $ivaArriendo > 0;
+    $ivaArriendoPctDisplay = $bill->canon_base > 0 ? round($ivaArriendo / $bill->canon_base * 100, 2) : 0;
+    $reteIvaArriendo = (float) $bill->reteiva_practicada;
+    $aplicaReteIva   = $reteIvaArriendo > 0;
+    $reteIvaPctDisplay = $ivaArriendo > 0 ? round($reteIvaArriendo / $ivaArriendo * 100, 2) : 0;
+    $subtotalBruto = round($bill->total_factura - $ivaArriendo + $rtefonte + $reteIvaArriendo, 2);
     $neto       = $bill->total_factura + $bill->mora_acumulada;
     $emision    = $bill->created_at ?? now();
     $tituloDoc  = $bill->tipo_documento === 'factura_electronica' ? 'FACTURA ELECTRÓNICA DE VENTA' : 'DOCUMENTO EQUIVALENTE DE ARRENDAMIENTO';
@@ -309,10 +317,17 @@
         </td>
         <td>
             <table class="totales">
-                <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($bill->total_factura + $rtefonte, 2, ',', '.') }}</td></tr>
+                <tr><td class="lbl">Subtotal</td><td class="val">${{ number_format($subtotalBruto, 2, ',', '.') }}</td></tr>
+                @if($aplicaIvaArriendo)
+                <tr><td class="lbl">IVA arrendamiento {{ $ivaArriendoPctDisplay }}% (comercial)</td><td class="val">+${{ number_format($ivaArriendo, 2, ',', '.') }}</td></tr>
+                @else
                 <tr><td class="lbl">IVA (0% — Arrendamiento vivienda)</td><td class="val">$0,00</td></tr>
+                @endif
                 @if($aplicaRete)
                 <tr><td class="lbl rte">ReteFuente arrendamiento {{ $retePctDisplay }}% (Cód. 06)</td><td class="val rte">-${{ number_format($rtefonte, 2, ',', '.') }}</td></tr>
+                @endif
+                @if($aplicaReteIva)
+                <tr><td class="lbl rte">ReteIVA {{ $reteIvaPctDisplay }}% s/iva (Cód. 05)</td><td class="val rte">-${{ number_format($reteIvaArriendo, 2, ',', '.') }}</td></tr>
                 @endif
                 @if($bill->mora_acumulada > 0)
                 <tr><td class="lbl mora">Intereses de mora ({{ $bill->dias_mora }} días)</td><td class="val mora">+${{ number_format($bill->mora_acumulada, 2, ',', '.') }}</td></tr>

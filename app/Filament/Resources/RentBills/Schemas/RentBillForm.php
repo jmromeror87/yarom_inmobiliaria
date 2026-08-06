@@ -48,10 +48,18 @@ class RentBillForm
                         ->label('Canon base')->prefix('$')->disabled(),
                     TextInput::make('cuota_administracion')
                         ->label('Administración')->prefix('$')->disabled(),
+                    TextInput::make('iva_practicado')
+                        ->label('IVA arrendamiento')->prefix('$')->disabled()
+                        ->visible(fn ($record) => $record && (float) $record->iva_practicado > 0)
+                        ->helperText('Solo arriendo comercial — ya sumado al total.'),
                     TextInput::make('retencion_practicada')
                         ->label('Retención en la fuente')->prefix('$')->disabled()
                         ->visible(fn ($record) => $record && (float) $record->retencion_practicada > 0)
                         ->helperText('Practicada por el arrendatario (persona jurídica, agente retenedor) — ya descontada del total.'),
+                    TextInput::make('reteiva_practicada')
+                        ->label('ReteIVA')->prefix('$')->disabled()
+                        ->visible(fn ($record) => $record && (float) $record->reteiva_practicada > 0)
+                        ->helperText('% del IVA generado retenido por el arrendatario — ya descontado del total.'),
                     TextInput::make('mora_acumulada')
                         ->label('Mora acumulada')->prefix('$')->disabled(),
                     TextInput::make('total_factura')

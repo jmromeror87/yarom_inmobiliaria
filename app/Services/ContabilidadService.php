@@ -43,6 +43,44 @@ class ContabilidadService
         return round($canon * ($pct / 100), 2);
     }
 
+    /**
+     * IVA sobre el canon — solo aplica en arriendo COMERCIAL (el de
+     * vivienda está exento por ley en Colombia), así que depende de que el
+     * arrendatario/inmueble lo tenga marcado explícitamente, no del tipo de
+     * persona por sí solo.
+     */
+    public static function calcularIvaArrendamiento(RentalContract $contrato, float $canon): float
+    {
+        $arrendatario = $contrato->arrendatario;
+
+        if (!$arrendatario || $arrendatario->tipo_persona !== 'juridica' || !$arrendatario->arrendamiento_aplica_iva) {
+            return 0;
+        }
+
+        $company = Company::first();
+        $pct = (float) ($arrendatario->arrendamiento_tarifa_iva ?? $company?->tarifa_iva ?? 19);
+
+        return round($canon * ($pct / 100), 2);
+    }
+
+    /**
+     * ReteIVA: NO es un % del canon, es un % (estándar DIAN 15%) del IVA ya
+     * generado sobre el canon. Solo aplica si el arrendatario es agente
+     * retenedor de IVA y el arriendo efectivamente generó IVA.
+     */
+    public static function calcularReteIvaArrendamiento(RentalContract $contrato, float $iva): float
+    {
+        $arrendatario = $contrato->arrendatario;
+
+        if ($iva <= 0 || !$arrendatario || !$arrendatario->es_agente_retenedor_iva) {
+            return 0;
+        }
+
+        $pct = (float) ($arrendatario->arrendamiento_tarifa_reteiva ?? 15);
+
+        return round($iva * ($pct / 100), 2);
+    }
+
     // ────────────────────────────────────────────────────────────────────────
     // HELPERS INTERNOS
     // ────────────────────────────────────────────────────────────────────────
@@ -163,6 +201,12 @@ class ContabilidadService
         // recalcularla, para que la factura y la contabilidad coincidan.
         $rete         = round((float) $bill->retencion_practicada, 2);
         $retePctDisplay = $canon > 0 ? round($rete / $canon * 100, 2) : 0;
+        // IVA sobre el canon (solo arriendo comercial) y reteIVA (% del IVA
+        // generado, no del canon) — igual que la retefuente, ya quedaron
+        // calculados y guardados en la factura al generarla.
+        $ivaArriendo     = round((float) $bill->iva_practicado, 2);
+        $reteIvaArriendo = round((float) $bill->reteiva_practicada, 2);
+        $totalConIva     = round($total + $ivaArriendo, 2);
         // netoProp NO descuenta rete: la retención es anticipo de impuesto de la inmobiliaria,
         // no un descuento al propietario. El propietario recibe (canon + admin + redondeo
         // - comision - iva) — el seguro SURA en sí nunca toca el neto del propietario
@@ -182,11 +226,13 @@ class ContabilidadService
         $cuentaAutoRete      = static::cuentaId('13551502');  // Anticipo autorretención (activo)
         $cuentaAutoRetePorPagar = static::cuentaId('236525'); // Autorretención a título de renta por pagar (pasivo)
         $cuentaSura          = static::cuentaId('23355501');  // Pasivo — seguro SURA de paso hacia ASURA
+        $cuentaIvaArriendo   = static::cuentaId('24080102');  // IVA generado sobre el canon (arriendo comercial)
+        $cuentaReteIva       = static::cuentaId('13551503');  // Anticipo reteIVA practicada por el arrendatario
 
         if (!$cuentaArrendatarios || !$cuentaComision || !$cuentaIva || !$cuentaXPagarProp) return null;
 
         $lineas = [
-            ['account_id' => $cuentaArrendatarios, 'debito' => $total,    'credito' => 0,         'descripcion' => "Canon factura {$bill->numero}",           'third_id' => $bill->arrendatario_id],
+            ['account_id' => $cuentaArrendatarios, 'debito' => $totalConIva, 'credito' => 0,         'descripcion' => "Canon factura {$bill->numero}",           'third_id' => $bill->arrendatario_id],
             ['account_id' => $cuentaComision,       'debito' => 0,         'credito' => $comision, 'descripcion' => "Comisión adm. {$comisionPct}%",           'third_id' => null],
         ];
 
@@ -200,13 +246,29 @@ class ContabilidadService
 
         $lineas[] = ['account_id' => $cuentaXPagarProp, 'debito' => 0, 'credito' => $netoProp, 'descripcion' => "Neto a girar propietario {$bill->numero}", 'third_id' => $property?->propietario_id];
 
-        // Retención practicada POR el arrendatario (persona jurídica) SOBRE la inmobiliaria.
-        // El arrendatario paga menos (total - rete) y la diferencia queda como anticipo
-        // de impuesto a favor de la inmobiliaria (Dr. 136515, naturaleza débito).
-        // Cuadre: Db(total-rete + rete) = Cr(comision + iva + netoProp = total) ✓
-        if ($rete > 0 && $cuentaRete) {
-            $lineas[0]['debito'] = round($total - $rete, 2);
-            $lineas[] = ['account_id' => $cuentaRete, 'debito' => $rete, 'credito' => 0, 'descripcion' => "Anticipo retefuente {$retePctDisplay}% s/canon", 'third_id' => $bill->arrendatario_id];
+        // IVA sobre el canon — solo arriendo comercial (vivienda está exenta
+        // por ley). Es un pasivo por pagar a la DIAN, aumenta lo que debe
+        // pagar el arrendatario, no toca el neto del propietario.
+        if ($ivaArriendo > 0 && $cuentaIvaArriendo) {
+            $lineas[] = ['account_id' => $cuentaIvaArriendo, 'debito' => 0, 'credito' => $ivaArriendo, 'descripcion' => "IVA arrendamiento s/canon {$bill->numero}", 'third_id' => null];
+        }
+
+        // Retención practicada POR el arrendatario (persona jurídica) SOBRE la inmobiliaria:
+        // retefuente sobre el canon + reteIVA sobre el IVA generado (no sobre el canon).
+        // El arrendatario paga menos en efectivo y la diferencia queda como anticipo
+        // de impuesto a favor de la inmobiliaria (naturaleza débito).
+        // Cuadre: Db(totalConIva - rete - reteIva + rete + reteIva) = Cr(...= totalConIva) ✓
+        $reduccionCxc = round($rete + $reteIvaArriendo, 2);
+        if ($reduccionCxc > 0) {
+            $lineas[0]['debito'] = round($totalConIva - $reduccionCxc, 2);
+
+            if ($rete > 0 && $cuentaRete) {
+                $lineas[] = ['account_id' => $cuentaRete, 'debito' => $rete, 'credito' => 0, 'descripcion' => "Anticipo retefuente {$retePctDisplay}% s/canon", 'third_id' => $bill->arrendatario_id];
+            }
+
+            if ($reteIvaArriendo > 0 && $cuentaReteIva) {
+                $lineas[] = ['account_id' => $cuentaReteIva, 'debito' => $reteIvaArriendo, 'credito' => 0, 'descripcion' => "Anticipo reteIVA s/iva arrendamiento {$bill->numero}", 'third_id' => $bill->arrendatario_id];
+            }
         }
 
         // Autorretención que practica la inmobiliaria sobre su comisión (Decreto 2418/2013).

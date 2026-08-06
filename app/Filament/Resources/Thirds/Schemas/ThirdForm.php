@@ -93,6 +93,32 @@ class ThirdForm
                             ->helperText('Dejar vacío para usar la tarifa global de la empresa (Mi Empresa → Parámetros tributarios).')
                             ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica' && $get('es_agente_retenedor')),
 
+                        Toggle::make('arrendamiento_aplica_iva')
+                            ->label('¿El canon genera IVA?')
+                            ->helperText('Solo arriendo comercial — el de vivienda está exento por ley. Se suma IVA sobre el canon en la factura.')
+                            ->live()
+                            ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica'),
+
+                        TextInput::make('arrendamiento_tarifa_iva')
+                            ->label('% de IVA sobre el canon')
+                            ->numeric()->suffix('%')
+                            ->placeholder('19')
+                            ->helperText('Dejar vacío para usar la tarifa IVA global de la empresa.')
+                            ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica' && $get('arrendamiento_aplica_iva')),
+
+                        Toggle::make('es_agente_retenedor_iva')
+                            ->label('¿Es agente retenedor de IVA (reteIVA)?')
+                            ->helperText('Además del IVA, retiene un % del IVA generado (no del canon).')
+                            ->live()
+                            ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica' && $get('arrendamiento_aplica_iva')),
+
+                        TextInput::make('arrendamiento_tarifa_reteiva')
+                            ->label('% de reteIVA sobre el IVA generado')
+                            ->numeric()->suffix('%')
+                            ->placeholder('15')
+                            ->helperText('Estándar DIAN 15% del IVA (no del canon). Dejar vacío para usar ese estándar.')
+                            ->visible(fn (Get $get) => $get('es_arrendatario') && $get('tipo_persona') === 'juridica' && $get('arrendamiento_aplica_iva') && $get('es_agente_retenedor_iva')),
+
                         Select::make('tipo_documento')
                             ->label('Tipo de documento')
                             ->options([

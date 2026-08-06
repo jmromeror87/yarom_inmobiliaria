@@ -127,7 +127,14 @@ class GenerarFacturasMensuales implements ShouldQueue
             // (igual a como ya lo trataba el asiento contable de la
             // factura, que debitaba cartera solo por total - retención).
             $retencion = \App\Services\ContabilidadService::calcularRetencionArrendamiento($contrato, $canonBase);
-            $totalACobrar = round($total - $retencion, 2);
+
+            // IVA sobre el canon (solo arriendo comercial) y reteIVA (% del
+            // IVA generado, no del canon) — igual que la retefuente, ambos
+            // ajustan lo que efectivamente hay que cobrar en efectivo.
+            $ivaArriendo     = \App\Services\ContabilidadService::calcularIvaArrendamiento($contrato, $canonBase);
+            $reteIvaArriendo = \App\Services\ContabilidadService::calcularReteIvaArrendamiento($contrato, $ivaArriendo);
+
+            $totalACobrar = round($total + $ivaArriendo - $retencion - $reteIvaArriendo, 2);
 
             $bill = RentBill::create([
                 'rental_contract_id'   => $contrato->id,
@@ -143,6 +150,8 @@ class GenerarFacturasMensuales implements ShouldQueue
                 'iva_seguro_sura'      => $ivaSeguroSura,
                 'redondeo_seguro'      => $redondeoSeguro,
                 'retencion_practicada' => $retencion,
+                'iva_practicado'       => $ivaArriendo,
+                'reteiva_practicada'   => $reteIvaArriendo,
                 'total_factura'        => $totalACobrar,
                 'saldo_pendiente'      => $totalACobrar,
                 'fecha_limite_pago'    => $fechaLimite,
@@ -177,8 +186,14 @@ class GenerarFacturasMensuales implements ShouldQueue
                             ? "🏢 Administración: \$" . number_format($admin, 0, ',', '.') . " COP\n"
                             : '')
                         . $seguroLinea
+                        . ($ivaArriendo > 0
+                            ? "➕ IVA arrendamiento: \$" . number_format($ivaArriendo, 0, ',', '.') . " COP\n"
+                            : '')
                         . ($retencion > 0
                             ? "🧾 Retención en la fuente: -\$" . number_format($retencion, 0, ',', '.') . " COP\n"
+                            : '')
+                        . ($reteIvaArriendo > 0
+                            ? "🧾 ReteIVA: -\$" . number_format($reteIvaArriendo, 0, ',', '.') . " COP\n"
                             : '')
                         . "💵 *Total a pagar: {$totalFmt} COP*\n\n"
                         . "📆 *Vence: {$fechaFmt}*\n\n"
