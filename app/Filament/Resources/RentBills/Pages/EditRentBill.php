@@ -483,6 +483,39 @@ class EditRentBill extends EditRecord
             ->url(fn () => route('factura.pdf', $record))
             ->openUrlInNewTab();
 
+        // ── Anular ─────────────────────────────────────────
+        if ($record->estado !== 'anulada') {
+            $acciones[] = Action::make('anular_factura')
+                ->label('Anular')
+                ->icon('heroicon-o-no-symbol')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('¿Deseas anular esta factura?')
+                ->modalDescription("Factura {$record->numero} — {$record->arrendatario?->nombre_completo} — \$" . number_format($record->total_factura, 0, ',', '.') . '. Esta acción reversa automáticamente todos los asientos contables ligados (factura, mora, pagos y, si aplica, la liquidación al propietario) y queda registrada con tu usuario y la fecha de hoy.')
+                ->modalSubmitActionLabel('Sí, anular factura')
+                ->schema([
+                    Textarea::make('motivo')
+                        ->label('Motivo de la anulación')
+                        ->placeholder('Ej: factura duplicada, error en el valor del contrato, contrato terminado anticipadamente...')
+                        ->required()
+                        ->minLength(10)
+                        ->rows(3),
+                ])
+                ->action(function (array $data) {
+                    try {
+                        $this->record->anularConReversion($data['motivo'], Auth::id());
+                        Notification::make()
+                            ->title('Factura anulada')
+                            ->body("Se reversaron los asientos contables de {$this->record->numero}.")
+                            ->warning()
+                            ->send();
+                        $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                    } catch (\Throwable $e) {
+                        Notification::make()->title('Error al anular: ' . $e->getMessage())->danger()->send();
+                    }
+                });
+        }
+
         return $acciones;
     }
 
