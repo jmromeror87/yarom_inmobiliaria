@@ -155,7 +155,6 @@ class RentBillsTable
                         }
                         return $opciones;
                     })
-                    ->default(now()->year . '-' . now()->month)
                     ->query(function ($query, array $data) {
                         if (empty($data['value'])) return $query;
                         [$anio, $mes] = explode('-', $data['value']);
