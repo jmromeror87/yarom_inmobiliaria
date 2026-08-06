@@ -11,8 +11,10 @@ use Filament\Notifications\Notification;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,6 +34,12 @@ class RentBillsTable
                     ->searchable()
                     ->description(fn ($record) => $record->rentalContract?->en_revision ? '⚠️ Contrato en revisión' : null),
 
+                TextColumn::make('property.direccion')
+                    ->label('Inmueble')
+                    ->searchable()
+                    ->description(fn ($record) => $record->property?->codigo)
+                    ->toggleable(),
+
                 TextColumn::make('origen')
                     ->label('Origen')
                     ->badge()
@@ -50,7 +58,8 @@ class RentBillsTable
                     ->sortable(['periodo_inicio']),
 
                 TextColumn::make('total_factura')
-                    ->label('Total')->money('COP')->sortable(),
+                    ->label('Total')->money('COP')->sortable()
+                    ->summarize(Sum::make()->label('Subtotal')->money('COP')),
 
                 TextColumn::make('dias_mora')
                     ->label('Días mora')->sortable()->alignCenter()
@@ -62,14 +71,16 @@ class RentBillsTable
 
                 TextColumn::make('mora_acumulada')
                     ->label('Mora')->money('COP')
-                    ->color(fn ($state, $record) => $state > 0 && $record->estado !== 'pagada' ? 'danger' : null),
+                    ->color(fn ($state, $record) => $state > 0 && $record->estado !== 'pagada' ? 'danger' : null)
+                    ->summarize(Sum::make()->label('Mora total')->money('COP')),
 
                 TextColumn::make('saldo_pendiente')
                     ->label('Saldo')->money('COP')
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'success')
                     ->description(fn ($record) => $record->saldo_anterior_arrastrado > 0
                         ? 'Incluye $' . number_format($record->saldo_anterior_arrastrado, 0, ',', '.') . ' arrastrado'
-                        : null),
+                        : null)
+                    ->summarize(Sum::make()->label('Saldo total')->money('COP')),
 
                 TextColumn::make('fecha_limite_pago')
                     ->label('Vence')->date('d/m/Y')->sortable()
@@ -143,6 +154,35 @@ class RentBillsTable
             ])
             ->defaultSort('periodo_inicio', 'asc')
             ->striped()
+            ->groups([
+                Group::make('arrendatario.nombre_completo')
+                    ->label('Inquilino')
+                    ->collapsible(),
+                Group::make('property.direccion')
+                    ->label('Inmueble')
+                    ->collapsible(),
+                Group::make('arrendatario_inmueble')
+                    ->label('Inquilino / Inmueble')
+                    ->getKeyFromRecordUsing(fn ($record) =>
+                        $record->arrendatario_id . '-' . $record->property_id)
+                    ->getTitleFromRecordUsing(fn ($record) =>
+                        ($record->arrendatario?->nombre_completo ?? 'Sin arrendatario')
+                        . ' — ' . ($record->property?->direccion ?? 'Sin inmueble'))
+                    ->getDescriptionFromRecordUsing(fn ($record) => $record->property?->codigo)
+                    ->orderQueryUsing(fn ($query, string $direction) =>
+                        $query->orderBy('arrendatario_id', $direction)->orderBy('property_id', $direction))
+                    ->groupQueryUsing(fn ($query) =>
+                        $query->groupBy('arrendatario_id', 'property_id'))
+                    ->scopeQueryByKeyUsing(function ($query, ?string $key) {
+                        [$arrendatarioId, $propertyId] = array_pad(explode('-', (string) $key, 2), 2, null);
+
+                        return $query
+                            ->where('arrendatario_id', $arrendatarioId)
+                            ->where('property_id', $propertyId);
+                    })
+                    ->collapsible(),
+            ])
+            ->defaultGroup('arrendatario_inmueble')
             ->filters([
                 SelectFilter::make('periodo')
                     ->label('Período')
