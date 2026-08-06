@@ -251,4 +251,10 @@
     @endif
 
 </div>
+
+{{-- La página sigue implementando HasTable (hereda de ListRecords), así que
+     Filament asume que el componente {{ $this->table }} traerá su propio
+     contenedor de modales — como no lo renderizamos, hay que ponerlo aquí a
+     mano o los header actions (Generar facturas, etc.) no abren nada. --}}
+<x-filament-actions::modals />
 </x-filament-panels::page>
