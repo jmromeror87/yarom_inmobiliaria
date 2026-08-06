@@ -228,7 +228,7 @@ class ListRentBills extends ListRecords
         return Third::query()
             ->whereIn('id', $thirdIds)
             ->with(['rentalContracts' => function ($q) {
-                $q->with(['property', 'rentBills' => function ($q2) {
+                $q->with(['property.businessOrigin', 'rentBills' => function ($q2) {
                     $q2->orderByDesc('periodo_inicio');
                 }])
                     ->orderByRaw("estado = 'activo' desc")
@@ -239,36 +239,71 @@ class ListRentBills extends ListRecords
             ->get();
     }
 
-    public function enviarLink(int $billId): void
+    public function enviarLinkAction(): Action
     {
-        $record = RentBill::with('arrendatario')->findOrFail($billId);
+        return Action::make('enviarLink')
+            ->label(fn (array $arguments) => self::billDeArgumentos($arguments)?->wap_enviado
+                ? 'Reenviar link'
+                : 'Enviar link')
+            ->icon('heroicon-o-paper-airplane')
+            ->color('success')
+            ->outlined()
+            ->requiresConfirmation()
+            ->modalHeading(fn (array $arguments) => self::billDeArgumentos($arguments)?->wap_enviado
+                ? 'Reenviar link de pago por WhatsApp'
+                : 'Enviar link de pago por WhatsApp')
+            ->modalDescription(function (array $arguments) {
+                $record = self::billDeArgumentos($arguments);
+                if (! $record) return 'Factura no encontrada.';
 
-        if (! $record->arrendatario?->celular) {
-            Notification::make()->title('Sin número de celular')->body('El arrendatario no tiene celular registrado.')->danger()->send();
-            return;
-        }
+                $base = "Se enviará el link de pago de {$record->numero} a {$record->arrendatario?->nombre_completo} al número {$record->arrendatario?->celular}.";
+                if ($record->wap_enviado && $record->wap_enviado_at) {
+                    $base = "⚠️ Ya se envió el " . $record->wap_enviado_at->format('d/m/Y \\a \\l\\a\\s h:i A') . ". " . $base;
+                }
+                return $base;
+            })
+            ->action(function (array $arguments) {
+                $record = self::billDeArgumentos($arguments);
 
-        $token = $record->generatePaymentToken();
-        $url   = route('payment.show', ['token' => $token]);
+                if (! $record) {
+                    Notification::make()->title('Factura no encontrada')->danger()->send();
+                    return;
+                }
 
-        $msg = "💳 *Link de pago — {$record->numero}*\n\n"
-            . "Hola {$record->arrendatario->nombre_completo},\n\n"
-            . "Su factura de arrendamiento está lista para pago en línea.\n\n"
-            . "📋 *Factura:* {$record->numero}\n"
-            . "💰 *Valor:* \$" . number_format($record->saldo_pendiente, 0, ',', '.') . " COP\n"
-            . "📅 *Vence:* {$record->fecha_limite_pago->format('d/m/Y')}\n\n"
-            . "🔗 *Pagar aquí:*\n{$url}\n\n"
-            . "Puede pagar con PSE, Nequi, tarjeta débito/crédito o en nuestra oficina.\n"
-            . "— Serviarrendar S.A.S";
+                if (! $record->arrendatario?->celular) {
+                    Notification::make()->title('Sin número de celular')->body('El arrendatario no tiene celular registrado.')->danger()->send();
+                    return;
+                }
 
-        $resultado = app(WhatsAppService::class)->enviar($record->arrendatario->celular, $msg);
+                $token = $record->generatePaymentToken();
+                $url   = route('payment.show', ['token' => $token]);
 
-        if ($resultado['ok'] ?? false) {
-            $record->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
-            Notification::make()->title('✅ Link enviado')->body("Enviado a {$record->arrendatario->celular}")->success()->send();
-        } else {
-            Notification::make()->title('❌ No se pudo enviar')->body($resultado['error'] ?? 'El servicio de WhatsApp no respondió correctamente.')->danger()->send();
-        }
+                $msg = "💳 *Link de pago — {$record->numero}*\n\n"
+                    . "Hola {$record->arrendatario->nombre_completo},\n\n"
+                    . "Su factura de arrendamiento está lista para pago en línea.\n\n"
+                    . "📋 *Factura:* {$record->numero}\n"
+                    . "💰 *Valor:* \$" . number_format($record->saldo_pendiente, 0, ',', '.') . " COP\n"
+                    . "📅 *Vence:* {$record->fecha_limite_pago->format('d/m/Y')}\n\n"
+                    . "🔗 *Pagar aquí:*\n{$url}\n\n"
+                    . "Puede pagar con PSE, Nequi, tarjeta débito/crédito o en nuestra oficina.\n"
+                    . "— Serviarrendar S.A.S";
+
+                $resultado = app(WhatsAppService::class)->enviar($record->arrendatario->celular, $msg);
+
+                if ($resultado['ok'] ?? false) {
+                    $record->update(['wap_enviado' => true, 'wap_enviado_at' => now()]);
+                    Notification::make()->title('✅ Link enviado')->body("Enviado a {$record->arrendatario->celular}")->success()->send();
+                } else {
+                    Notification::make()->title('❌ No se pudo enviar')->body($resultado['error'] ?? 'El servicio de WhatsApp no respondió correctamente.')->danger()->send();
+                }
+            });
+    }
+
+    private static function billDeArgumentos(array $arguments): ?RentBill
+    {
+        return isset($arguments['record'])
+            ? RentBill::with('arrendatario')->find($arguments['record'])
+            : null;
     }
 
     private static function elegiblesParaEnvioMasivo()

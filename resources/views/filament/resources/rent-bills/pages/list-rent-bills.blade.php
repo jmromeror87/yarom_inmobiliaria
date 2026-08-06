@@ -76,6 +76,8 @@
 .dark .fb-btn-primary { background:#f1f5f9; color:#0F172A; }
 .fb-btn-outline { background:transparent; border-color:#cbd5e1; color:#475569; }
 .dark .fb-btn-outline { border-color:#475569; color:#cbd5e1; }
+.fb-btn-wap { background:#25D366; color:#fff; border-color:#25D366; }
+.fb-btn-wap:hover { background:#1ebe5a; border-color:#1ebe5a; }
 
 .fb-ok {
     border-radius:14px; padding:12px 16px; margin-bottom:10px;
@@ -185,8 +187,15 @@
 
                             @foreach ($tenant->rentalContracts as $i => $contract)
                                 <div x-show="tab === {{ $i }}" x-cloak class="fb-tab-panel">
-                                    <div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:10px;">
-                                        {{ $contract->property?->direccion ?? 'Sin dirección' }}
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                        <div style="font-size:0.72rem;font-weight:700;color:#94a3b8;">
+                                            {{ $contract->property?->direccion ?? 'Sin dirección' }}
+                                        </div>
+                                        @php $origen = $contract->property?->businessOrigin?->nombre; @endphp
+                                        @if ($origen)
+                                            @php $esVictoria = str_contains(strtolower($origen), 'victoria'); @endphp
+                                            <span class="fb-badge" style="background:{{ $esVictoria ? '#fef3c7' : '#e0f2fe' }};color:{{ $esVictoria ? '#d97706' : '#0284c7' }};">{{ $origen }}</span>
+                                        @endif
                                     </div>
 
                                     @php
@@ -210,10 +219,12 @@
                                                 </a>
                                                 <button
                                                     type="button"
-                                                    wire:click="enviarLink({{ $proxima->id }})"
-                                                    wire:confirm="¿Enviar el link de pago de {{ $proxima->numero }} por WhatsApp?"
-                                                    class="fb-btn fb-btn-outline"
+                                                    wire:click="mountAction('enviarLink', { record: {{ $proxima->id }} })"
+                                                    class="fb-btn fb-btn-wap"
                                                 >
+                                                    <svg viewBox="0 0 32 32" width="14" height="14" fill="currentColor" style="flex-shrink:0;">
+                                                        <path d="M16.001 2.667c-7.363 0-13.334 5.97-13.334 13.333 0 2.353.615 4.66 1.784 6.686L2.7 29.333l6.826-1.79a13.27 13.27 0 0 0 6.475 1.65h.006c7.362 0 13.333-5.97 13.333-13.333s-5.971-13.333-13.339-13.333Zm0 24.4a11.03 11.03 0 0 1-5.616-1.537l-.403-.24-4.05 1.062 1.082-3.949-.263-.406a11.03 11.03 0 0 1-1.688-5.897c0-6.099 4.964-11.062 11.062-11.062 6.1 0 11.063 4.963 11.063 11.062 0 6.1-4.963 11.063-11.063 11.063l-.124-.096Zm6.062-8.284c-.332-.166-1.965-.97-2.27-1.081-.305-.111-.527-.166-.749.166-.222.333-.86 1.081-1.054 1.303-.194.222-.388.25-.72.083-.332-.166-1.402-.517-2.67-1.649-.987-.88-1.654-1.967-1.848-2.3-.194-.332-.02-.512.146-.677.15-.15.332-.389.499-.583.166-.194.221-.333.332-.555.111-.222.055-.417-.028-.583-.083-.166-.749-1.804-1.026-2.472-.27-.65-.545-.562-.749-.572-.194-.01-.416-.012-.638-.012a1.225 1.225 0 0 0-.887.416c-.305.333-1.165 1.14-1.165 2.777 0 1.638 1.192 3.221 1.359 3.443.166.222 2.347 3.583 5.685 5.026.794.343 1.414.548 1.897.7.797.253 1.522.217 2.096.132.639-.095 1.965-.803 2.242-1.58.277-.777.277-1.443.194-1.58-.083-.138-.305-.222-.638-.388Z"/>
+                                                    </svg>
                                                     Enviar link
                                                 </button>
                                             </div>
