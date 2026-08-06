@@ -116,7 +116,19 @@ class RentBill extends Model
             }
 
             $finGracia = $b->fecha_limite_pago->copy()->addDays($b->dias_gracia)->endOfDay();
-            if (now()->lte($finGracia)) return; // aún en gracia, nada que calcular todavía
+            if (now()->lte($finGracia)) {
+                // Aún en gracia con la fecha corregida — la mora vieja (calculada
+                // con la fecha anterior) ya no aplica, hay que limpiarla en vez
+                // de dejarla pegada.
+                $b->mora_acumulada    = 0;
+                $b->dias_mora         = 0;
+                $b->fecha_inicio_mora = null;
+                $b->saldo_pendiente   = max(0, $capital);
+                if ($b->estado === 'en_mora') {
+                    $b->estado = ((float) $b->total_pagado > 0) ? 'parcial' : 'pendiente';
+                }
+                return;
+            }
 
             $diasMora = (int) $b->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
 
