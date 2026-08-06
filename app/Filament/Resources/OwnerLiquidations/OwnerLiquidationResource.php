@@ -110,7 +110,6 @@ class OwnerLiquidationResource extends Resource
                         Forms\Components\TextInput::make('anio_hasta')->label('Año hasta')->numeric()->default(now()->year),
                     ])
                     ->columns(2)
-                    ->default(['mes_desde' => now()->month, 'anio_desde' => now()->year, 'mes_hasta' => now()->month, 'anio_hasta' => now()->year])
                     ->query(function(Builder $query, array $data) {
                         if (!empty($data['mes_desde']) && !empty($data['anio_desde'])) {
                             $desde = ((int) $data['anio_desde']) * 100 + (int) $data['mes_desde'];
