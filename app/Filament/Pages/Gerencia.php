@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\RentBill;
 use App\Models\RentPayment;
 use App\Models\RentalContract;
+use App\Filament\Widgets\IngresosGastosWidget;
 use Filament\Pages\Page;
 
 class Gerencia extends Page
@@ -28,6 +29,13 @@ class Gerencia extends Page
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['gerente', 'super_admin']) ?? false;
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            IngresosGastosWidget::class,
+        ];
     }
 
     public function getViewData(): array

@@ -59,7 +59,10 @@ class RentBillsTable
 
                 TextColumn::make('total_factura')
                     ->label('Total')->money('COP')->sortable()
-                    ->summarize(Sum::make()->label('Subtotal')->money('COP')),
+                    ->summarize(
+                        Sum::make()->label('Subtotal')->money('COP')
+                            ->extraAttributes(['style' => 'color:#2563eb;font-weight:800;'])
+                    ),
 
                 TextColumn::make('dias_mora')
                     ->label('Días mora')->sortable()->alignCenter()
@@ -72,7 +75,10 @@ class RentBillsTable
                 TextColumn::make('mora_acumulada')
                     ->label('Mora')->money('COP')
                     ->color(fn ($state, $record) => $state > 0 && $record->estado !== 'pagada' ? 'danger' : null)
-                    ->summarize(Sum::make()->label('Mora total')->money('COP')),
+                    ->summarize(
+                        Sum::make()->label('Mora total')->money('COP')
+                            ->extraAttributes(['style' => 'color:#dc2626;font-weight:800;'])
+                    ),
 
                 TextColumn::make('saldo_pendiente')
                     ->label('Saldo')->money('COP')
@@ -80,7 +86,10 @@ class RentBillsTable
                     ->description(fn ($record) => $record->saldo_anterior_arrastrado > 0
                         ? 'Incluye $' . number_format($record->saldo_anterior_arrastrado, 0, ',', '.') . ' arrastrado'
                         : null)
-                    ->summarize(Sum::make()->label('Saldo total')->money('COP')),
+                    ->summarize(
+                        Sum::make()->label('Saldo total')->money('COP')
+                            ->extraAttributes(['style' => 'color:#d97706;font-weight:800;'])
+                    ),
 
                 TextColumn::make('fecha_limite_pago')
                     ->label('Vence')->date('d/m/Y')->sortable()
