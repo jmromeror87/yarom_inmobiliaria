@@ -101,13 +101,11 @@ class OwnerLiquidationResource extends Resource
                     ->label('Período')
                     ->schema([
                         Forms\Components\Select::make('mes_desde')->label('Mes desde')
-                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
-                            ->default(now()->month),
-                        Forms\Components\TextInput::make('anio_desde')->label('Año desde')->numeric()->default(now()->year),
+                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'])),
+                        Forms\Components\TextInput::make('anio_desde')->label('Año desde')->numeric(),
                         Forms\Components\Select::make('mes_hasta')->label('Mes hasta')
-                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']))
-                            ->default(now()->month),
-                        Forms\Components\TextInput::make('anio_hasta')->label('Año hasta')->numeric()->default(now()->year),
+                            ->options(array_combine(range(1,12), ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'])),
+                        Forms\Components\TextInput::make('anio_hasta')->label('Año hasta')->numeric(),
                     ])
                     ->columns(2)
                     ->query(function(Builder $query, array $data) {
