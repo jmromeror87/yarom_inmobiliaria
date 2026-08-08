@@ -233,7 +233,11 @@ class ListRentBills extends ListRecords
             ->whereIn('id', $thirdIds)
             ->with(['rentalContracts' => function ($q) {
                 $q->with(['property.businessOrigin', 'rentBills' => function ($q2) {
-                    $q2->orderByDesc('periodo_inicio');
+                    // Se ordena por año/mes (no por periodo_inicio) porque ese
+                    // campo puede quedar desalineado del mes real cuando el
+                    // contrato tiene día de pago tardío (28-31) — año/mes es
+                    // el que se corrige a mano y refleja el mes real.
+                    $q2->orderByDesc('anio')->orderByDesc('mes');
                 }])
                     ->orderByRaw("estado = 'activo' desc")
                     ->orderByDesc('fecha_inicio');

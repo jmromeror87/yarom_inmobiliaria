@@ -259,10 +259,15 @@
                                     </div>
 
                                     @php
+                                        // Orden por año/mes (no periodo_inicio, que puede quedar
+                                        // desalineado del mes real) — más confiable para decidir
+                                        // cuál es la "próxima a pagar" y el orden del historial.
+                                        $claveMes = fn ($b) => $b->anio * 100 + $b->mes;
                                         $bills = $contract->rentBills;
                                         $pendientes = $bills->whereNotIn('estado', ['pagada', 'anulada']);
-                                        $proxima = $pendientes->sortByDesc('periodo_inicio')->first();
-                                        $resto = $proxima ? $bills->reject(fn ($b) => $b->id === $proxima->id) : $bills;
+                                        $proxima = $pendientes->sortByDesc($claveMes)->first();
+                                        $resto = ($proxima ? $bills->reject(fn ($b) => $b->id === $proxima->id) : $bills)
+                                            ->sortBy($claveMes)->values();
                                     @endphp
 
                                     @if ($proxima)
