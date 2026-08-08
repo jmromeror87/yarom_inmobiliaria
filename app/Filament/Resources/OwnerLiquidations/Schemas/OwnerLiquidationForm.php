@@ -9,19 +9,67 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class OwnerLiquidationForm
 {
+    private const ESTADO_INFO = [
+        'pendiente' => ['label' => 'Pendiente', 'bg' => '#fef3c7', 'fg' => '#b45309'],
+        'aprobada'  => ['label' => 'Aprobada',  'bg' => '#dbeafe', 'fg' => '#2563eb'],
+        'pagada'    => ['label' => 'Pagada',    'bg' => '#d1fae5', 'fg' => '#059669'],
+        'anulada'   => ['label' => 'Anulada',   'bg' => '#f1f5f9', 'fg' => '#64748b'],
+    ];
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
 
+            // ── Resumen ejecutivo ─────────────────────────────────────
+            Placeholder::make('resumen_ejecutivo')
+                ->hiddenLabel()
+                ->columnSpanFull()
+                ->content(function ($record) {
+                    if (! $record) return '';
+
+                    $info = self::ESTADO_INFO[$record->estado] ?? self::ESTADO_INFO['pendiente'];
+                    $periodo = ($record->periodo_inicio?->format('d M') ?? '—') . ' — ' . ($record->periodo_fin?->format('d M Y') ?? '—');
+
+                    $tiles = [
+                        ['label' => 'Liquidación', 'value' => e($record->numero), 'sub' => $info['label'], 'subColor' => $info['fg'], 'subBg' => $info['bg']],
+                        ['label' => 'Propietario', 'value' => e($record->propietario?->nombre_completo ?? '—'), 'sub' => null],
+                        ['label' => 'Inmueble', 'value' => e($record->property?->codigo ?? '—'), 'sub' => e($record->property?->direccion ?? '')],
+                        ['label' => 'Período', 'value' => $periodo, 'sub' => null],
+                    ];
+
+                    $tilesHtml = '';
+                    foreach ($tiles as $t) {
+                        $tilesHtml .= '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;flex:1;min-width:150px;">'
+                            . '<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">' . $t['label'] . '</div>'
+                            . '<div style="font-size:14px;font-weight:800;color:#0F172A;line-height:1.3;">' . $t['value'] . '</div>'
+                            . (isset($t['sub']) && $t['sub'] ? '<div style="margin-top:4px;">'
+                                . (isset($t['subBg'])
+                                    ? '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:' . $t['subBg'] . ';color:' . $t['subColor'] . ';">' . $t['sub'] . '</span>'
+                                    : '<span style="font-size:11px;color:#64748b;font-weight:600;">' . $t['sub'] . '</span>')
+                                . '</div>' : '')
+                            . '</div>';
+                    }
+
+                    return new \Illuminate\Support\HtmlString(
+                        '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;font-family:\'Plus Jakarta Sans\',sans-serif;">'
+                        . $tilesHtml
+                        . '<div style="background:linear-gradient(135deg,#0F172A,#1e3a5f);border-radius:12px;padding:12px 20px;flex:1.3;min-width:200px;display:flex;flex-direction:column;justify-content:center;">'
+                        . '<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Total a girar</div>'
+                        . '<div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.02em;">$' . number_format((float) $record->total_giro, 0, ',', '.') . '</div>'
+                        . '</div>'
+                        . '</div>'
+                    );
+                }),
+
             Section::make('Información del período')
                 ->icon('heroicon-o-calendar')
+                ->columnSpanFull()
                 ->columns(3)
                 ->schema([
                     TextInput::make('numero')
@@ -66,9 +114,50 @@ class OwnerLiquidationForm
 
             Section::make('Liquidación económica')
                 ->icon('heroicon-o-banknotes')
-                ->columns(2)
+                ->columnSpanFull()
                 ->description('Corrige estos valores solo si la liquidación quedó mal calculada — el total a girar se recalcula automáticamente al guardar.')
+                ->columns(2)
                 ->schema([
+                    // ── Cascada visual: canon → deducciones → total ──────
+                    Placeholder::make('cascada_financiera')
+                        ->hiddenLabel()
+                        ->columnSpanFull()
+                        ->content(function (Get $get, $record) {
+                            $canon = (float) ($get('canon_cobrado') ?? $record?->canon_cobrado ?? 0);
+                            $comision = (float) ($get('comision_valor') ?? $record?->comision_valor ?? 0);
+                            $iva = (float) ($get('iva_comision') ?? $record?->iva_comision ?? 0);
+                            $rete = (float) ($get('retefuente_valor') ?? $record?->retefuente_valor ?? 0);
+                            $desc = (float) ($get('otros_descuentos') ?? 0);
+                            $total = max(0, $canon - $comision - $iva - $rete - $desc);
+
+                            $filas = [
+                                ['label' => 'Canon cobrado', 'valor' => $canon, 'signo' => ''],
+                                ['label' => 'Comisión administración', 'valor' => $comision, 'signo' => '−'],
+                                ['label' => 'IVA sobre comisión', 'valor' => $iva, 'signo' => '−'],
+                                ['label' => 'Retención en la fuente', 'valor' => $rete, 'signo' => '−'],
+                                ['label' => 'Otros descuentos', 'valor' => $desc, 'signo' => '−'],
+                            ];
+
+                            $filasHtml = '';
+                            foreach ($filas as $f) {
+                                $color = $f['signo'] === '−' && $f['valor'] > 0 ? '#dc2626' : '#0F172A';
+                                $filasHtml .= '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e2e8f0;font-size:12.5px;">'
+                                    . '<span style="color:#64748b;font-weight:600;">' . $f['label'] . '</span>'
+                                    . '<span style="font-weight:700;color:' . $color . ';">' . $f['signo'] . '$' . number_format($f['valor'], 0, ',', '.') . '</span>'
+                                    . '</div>';
+                            }
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:6px;font-family:\'Plus Jakarta Sans\',sans-serif;">'
+                                . $filasHtml
+                                . '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;">'
+                                . '<span style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:.04em;">Total a girar</span>'
+                                . '<span style="font-size:20px;font-weight:900;color:#059669;letter-spacing:-.01em;">$' . number_format($total, 0, ',', '.') . '</span>'
+                                . '</div>'
+                                . '</div>'
+                            );
+                        }),
+
                     TextInput::make('canon_cobrado')
                         ->label('Canon cobrado al inquilino')
                         ->prefix('$')->numeric()->live(onBlur: true),
@@ -106,31 +195,33 @@ class OwnerLiquidationForm
                         ->label('Descripción de descuentos')
                         ->rows(2)->columnSpanFull()
                         ->visible(fn (Get $get) => (float)$get('otros_descuentos') > 0),
-
-                    Placeholder::make('total_giro_preview')
-                        ->label('')
-                        ->content(fn (Get $get, $record) => new \Illuminate\Support\HtmlString(
-                            '<div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">'
-                                . '<span style="font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">Total a girar al propietario</span>'
-                                . '<span style="font-size:22px;font-weight:800;color:#fff;">$' . number_format(
-                                    max(0,
-                                        (float) ($get('canon_cobrado') ?? $record?->canon_cobrado ?? 0)
-                                        - (float) ($get('comision_valor') ?? $record?->comision_valor ?? 0)
-                                        - (float) ($get('iva_comision') ?? $record?->iva_comision ?? 0)
-                                        - (float) ($get('retefuente_valor') ?? $record?->retefuente_valor ?? 0)
-                                        - (float) ($get('otros_descuentos') ?? 0)
-                                    ),
-                                    0, ',', '.'
-                                ) . ' COP</span>'
-                            . '</div>'
-                        ))
-                        ->columnSpanFull(),
                 ]),
 
             Section::make('Giro al propietario')
                 ->icon('heroicon-o-building-library')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
+                    Placeholder::make('estado_giro')
+                        ->hiddenLabel()
+                        ->columnSpanFull()
+                        ->content(function ($record) {
+                            if (! $record) return '';
+                            $pagada = $record->estado === 'pagada';
+                            $bg = $pagada ? '#f0fdf4' : '#f8fafc';
+                            $border = $pagada ? '#bbf7d0' : '#e2e8f0';
+                            $fg = $pagada ? '#166534' : '#64748b';
+                            $texto = $pagada
+                                ? '✓ Giro realizado' . ($record->fecha_giro ? ' el ' . $record->fecha_giro->format('d/m/Y') : '')
+                                : '● Giro pendiente';
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div style="background:' . $bg . ';border:1px solid ' . $border . ';border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;color:' . $fg . ';display:inline-flex;align-items:center;gap:6px;font-family:\'Plus Jakarta Sans\',sans-serif;">'
+                                . $texto
+                                . '</div>'
+                            );
+                        }),
+
                     DatePicker::make('fecha_giro')
                         ->label('Fecha del giro'),
 
@@ -205,6 +296,41 @@ class OwnerLiquidationForm
                         ->required(fn (Get $get) => $get('estado') === 'pagada')
                         ->accepted(fn (Get $get) => $get('estado') === 'pagada')
                         ->dehydrated(false),
+                ]),
+
+            Section::make('Actividad de la liquidación')
+                ->icon('heroicon-o-clock')
+                ->columnSpanFull()
+                ->collapsed()
+                ->schema([
+                    Placeholder::make('timeline_actividad')
+                        ->hiddenLabel()
+                        ->columnSpanFull()
+                        ->content(function ($record) {
+                            if (! $record) return '';
+
+                            $historial = $record->statusHistories()->with('usuario')->get();
+
+                            if ($historial->isEmpty()) {
+                                return new \Illuminate\Support\HtmlString(
+                                    '<div style="font-size:12.5px;color:#94a3b8;">Sin cambios de estado registrados todavía.</div>'
+                                );
+                            }
+
+                            $filas = '';
+                            foreach ($historial as $h) {
+                                $info = self::ESTADO_INFO[$h->estado_nuevo] ?? ['label' => $h->estado_nuevo, 'bg' => '#f1f5f9', 'fg' => '#64748b'];
+                                $filas .= '<div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #f1f5f9;">'
+                                    . '<div style="width:8px;height:8px;border-radius:50%;background:' . $info['fg'] . ';margin-top:5px;flex-shrink:0;"></div>'
+                                    . '<div>'
+                                    . '<div style="font-size:12.5px;font-weight:700;color:#0F172A;">' . e($h->estado_anterior_label) . ' → <span style="color:' . $info['fg'] . ';">' . e($h->estado_nuevo_label) . '</span></div>'
+                                    . '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' . $h->cambiado_en?->format('d M Y, h:i A') . ' · ' . e($h->usuario?->name ?? 'Sistema') . '</div>'
+                                    . '</div>'
+                                    . '</div>';
+                            }
+
+                            return new \Illuminate\Support\HtmlString('<div style="font-family:\'Plus Jakarta Sans\',sans-serif;">' . $filas . '</div>');
+                        }),
                 ]),
 
         ]);

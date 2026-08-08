@@ -20,6 +20,7 @@ use App\Models\Company;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 
@@ -156,6 +157,7 @@ class Property extends Model
 
     public function tipo(): BelongsTo       { return $this->belongsTo(PropertyType::class, 'property_type_id'); }
     public function propietario(): BelongsTo { return $this->belongsTo(Third::class, 'propietario_id'); }
+    public function ownerLiquidations(): HasMany { return $this->hasMany(OwnerLiquidation::class); }
 
     /**
      * ¿Se debe cargar/retener IVA sobre la comisión en la liquidación de este inmueble?
