@@ -40,13 +40,48 @@ class RentPayment extends Model
             if (!$bill) return;
 
             $totalPagado = $bill->payments()->sum('total_pagado');
-            $saldo       = $bill->total_factura + $bill->mora_acumulada + $bill->saldo_anterior_arrastrado - $totalPagado;
 
+            // La mora hay que recalcularla sobre el capital YA neto de este
+            // abono — si no, se queda "congelada" con el valor de antes del
+            // pago (calculado sobre la factura completa) hasta que corra
+            // VerificarMoraJob al día siguiente, mostrando de más mientras
+            // tanto. Misma fórmula que VerificarMoraJob/RentBill::booted().
+            $capital = round(
+                (float) $bill->total_factura + (float) $bill->saldo_anterior_arrastrado - $totalPagado,
+                2
+            );
+
+            $mora = 0.0;
+            $diasMora = $bill->dias_mora;
+
+            if ($bill->aplicar_mora && $capital > 0 && $bill->fecha_limite_pago) {
+                $finGracia = $bill->fecha_limite_pago->copy()->addDays($bill->dias_gracia)->endOfDay();
+
+                if (now()->gt($finGracia)) {
+                    $diasMora = (int) $bill->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
+
+                    $baseParaMora = $capital;
+                    if ($bill->rentalContract?->mora_solo_sobre_canon && $bill->canon_base > 0) {
+                        $proporcionCanon = $bill->canon_base / max($bill->total_factura, 1);
+                        $baseParaMora    = round($capital * $proporcionCanon, 2);
+                    }
+
+                    $mora = round($baseParaMora * ($bill->tasa_mora_diaria / 100) * $diasMora, 2);
+                } else {
+                    $diasMora = 0;
+                }
+            } else {
+                $diasMora = 0;
+            }
+
+            $saldo  = max(0, round($capital + $mora, 2));
             $estado = $saldo <= 0 ? 'pagada' : ($totalPagado > 0 ? 'parcial' : $bill->estado);
 
             $bill->update([
                 'total_pagado'    => $totalPagado,
-                'saldo_pendiente' => max(0, $saldo),
+                'mora_acumulada'  => $mora,
+                'dias_mora'       => $diasMora,
+                'saldo_pendiente' => $saldo,
                 'estado'          => $estado,
                 'fecha_pago'      => $estado === 'pagada' ? $payment->fecha_pago : null,
             ]);
@@ -54,6 +89,33 @@ class RentPayment extends Model
             // Si pagada → generar liquidación al propietario
             if ($estado === 'pagada') {
                 OwnerLiquidation::generarDesdeFact($bill);
+            }
+
+            // Blindaje contable: si la mora de este mes ya se había
+            // contabilizado (por VerificarMoraJob) con el valor de ANTES de
+            // este abono, el comprobante queda desalineado con la mora
+            // recién recalculada — se anula y se vuelve a causar con el
+            // valor correcto, misma guarda de idempotencia que usa el job.
+            try {
+                $tipoMoraMes = 'mora_rent_bill_' . now()->format('Ym');
+                $entryMesActual = \App\Models\AccountingEntry::where('referencia_id', $bill->id)
+                    ->where('referencia_tipo', $tipoMoraMes)
+                    ->where('estado', '!=', 'anulado')
+                    ->first();
+
+                if ($entryMesActual) {
+                    $moraYaCausada = (float) $entryMesActual->lines()->where('debito', '>', 0)->sum('debito');
+                    if (round($moraYaCausada, 2) !== round($mora, 2)) {
+                        $entryMesActual->anular("Recálculo automático de mora tras registrar pago {$payment->numero}");
+                    }
+                }
+
+                if ($mora > 0) {
+                    ContabilidadService::generarParaMora($bill, $mora);
+                    ContabilidadService::generarProvisionCartera($bill);
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Contabilidad mora (recálculo tras pago) {$bill->numero}: " . $e->getMessage());
             }
 
             // Contabilización del pago individual (soporta pagos parciales)
