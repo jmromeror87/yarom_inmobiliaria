@@ -19,6 +19,12 @@ class EditThird extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('ver_expediente')
+                ->label('Expediente')
+                ->icon('heroicon-o-folder-open')
+                ->color('gray')
+                ->outlined()
+                ->url(fn () => ThirdResource::getUrl('expediente', ['record' => $this->record])),
             Action::make('descargar_habeas_data')
                 ->label('Habeas Data PDF')
                 ->icon('heroicon-o-document-arrow-down')
