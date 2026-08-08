@@ -37,8 +37,9 @@ class EnviarNotificacionesInternasJob implements ShouldQueue
         $enviadas = 0;
 
         // ── 1. Facturas en mora ─────────────────────────────────────
+        // saldo_pendiente ya incluye mora_acumulada (RentBill::booted / VerificarMoraJob).
         $facturasMora = RentBill::whereIn('estado', ['en_mora', 'vencida'])
-            ->selectRaw('COUNT(*) as total, SUM(saldo_pendiente + mora_acumulada) as cartera, MAX(dias_mora) as max_mora')
+            ->selectRaw('COUNT(*) as total, SUM(saldo_pendiente) as cartera, MAX(dias_mora) as max_mora')
             ->first();
 
         if ($facturasMora && $facturasMora->total > 0) {

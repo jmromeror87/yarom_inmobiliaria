@@ -19,6 +19,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -58,11 +59,13 @@ class EditRentBill extends EditRecord
                     Toggle::make('aplicar_mora')
                         ->label('Aplicar mora a esta factura')
                         ->default(fn () => $record->aplicar_mora)
-                        ->helperText('Si lo apagas, esta factura deja de acumular mora aunque esté vencida. Solo afecta este mes.'),
+                        ->helperText('Si lo apagas, esta factura deja de acumular mora aunque esté vencida. Solo afecta este mes.')
+                        ->live(),
                     TextInput::make('saldo_anterior_arrastrado')
                         ->label('Saldo arrastrado de periodo anterior')
                         ->numeric()->prefix('$')
-                        ->default(fn () => $record->saldo_anterior_arrastrado),
+                        ->default(fn () => $record->saldo_anterior_arrastrado)
+                        ->live(onBlur: true),
                     TextInput::make('nota_saldo_arrastrado')
                         ->label('Nota del saldo arrastrado')
                         ->placeholder('Ej: saldo pendiente de junio 2026')
@@ -84,7 +87,60 @@ class EditRentBill extends EditRecord
                         ->native(false)
                         ->default(fn () => $record->fecha_limite_pago)
                         ->helperText('Corrige esto si el período de arriendo de esta factura no coincide con el contrato real.')
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->live(),
+
+                    Placeholder::make('preview_mora')
+                        ->hiddenLabel()
+                        ->columnSpanFull()
+                        ->content(function (Get $get) use ($record) {
+                            $aplicaMora = (bool) $get('aplicar_mora');
+                            $saldoArrastrado = (float) ($get('saldo_anterior_arrastrado') ?? 0);
+                            $fechaLimite = $get('fecha_limite_pago') ? \Carbon\Carbon::parse($get('fecha_limite_pago')) : $record->fecha_limite_pago;
+
+                            $capital = round((float) $record->total_factura + $saldoArrastrado - (float) $record->total_pagado, 2);
+
+                            if (! $aplicaMora) {
+                                $mora = 0;
+                                $dias = 0;
+                                $saldo = max(0, $capital);
+                                $motivo = 'Mora desactivada para esta factura.';
+                            } else {
+                                $finGracia = $fechaLimite->copy()->addDays($record->dias_gracia)->endOfDay();
+
+                                if (now()->lte($finGracia)) {
+                                    $mora = 0;
+                                    $dias = 0;
+                                    $saldo = max(0, $capital);
+                                    $motivo = 'Todavía dentro de los ' . $record->dias_gracia . ' días de gracia (vence el ' . $finGracia->format('d/m/Y') . ').';
+                                } else {
+                                    $dias = (int) $fechaLimite->copy()->startOfDay()->diffInDays(now()->startOfDay());
+                                    $baseParaMora = $capital;
+                                    if ($record->rentalContract?->mora_solo_sobre_canon && $record->canon_base > 0) {
+                                        $proporcionCanon = $record->canon_base / max($record->total_factura, 1);
+                                        $baseParaMora = round($capital * $proporcionCanon, 2);
+                                    }
+                                    $mora = round($baseParaMora * ($record->tasa_mora_diaria / 100) * $dias, 2);
+                                    $saldo = max(0, round($capital + $mora, 2));
+                                    $motivo = $dias . ' día' . ($dias == 1 ? '' : 's') . ' de mora · tasa ' . $record->tasa_mora_diaria . '%/día.';
+                                }
+                            }
+
+                            $color = $mora > 0 ? '#dc2626' : '#059669';
+                            $bg = $mora > 0 ? '#fef2f2' : '#f0fdf4';
+                            $border = $mora > 0 ? '#fecaca' : '#bbf7d0';
+
+                            return new \Illuminate\Support\HtmlString(
+                                '<div style="background:' . $bg . ';border:1px solid ' . $border . ';border-radius:10px;padding:12px 16px;font-size:12.5px;">'
+                                . '<div style="font-weight:700;color:#0F172A;margin-bottom:4px;">Con estos valores, la factura quedaría así:</div>'
+                                . '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:4px;">'
+                                . '<div>Mora: <strong style="color:' . $color . ';">$' . number_format($mora, 0, ',', '.') . '</strong></div>'
+                                . '<div>Saldo pendiente: <strong style="color:#0F172A;">$' . number_format($saldo, 0, ',', '.') . '</strong></div>'
+                                . '</div>'
+                                . '<div style="color:#64748b;">' . e($motivo) . '</div>'
+                                . '</div>'
+                            );
+                        }),
                 ])
                 ->action(function (array $data) use ($record) {
                     $data['aplicar_mora'] ??= false;
@@ -153,12 +209,19 @@ class EditRentBill extends EditRecord
                 ->color('success')
                 ->icon('heroicon-o-banknotes')
                 ->modalHeading('Registrar pago')
-                ->modalDescription(fn () => "Factura {$record->numero} — {$record->arrendatario?->nombre_completo}")
                 ->modalSubmitActionLabel('✓ Registrar pago')
                 ->slideOver()
-                ->modalWidth('md')
+                ->modalWidth('xl')
                 ->modalFooterActionsAlignment('start')
                 ->schema([
+                    Placeholder::make('factura_objetivo')
+                        ->label('')
+                        ->columnSpanFull()
+                        ->content(fn () => new \Illuminate\Support\HtmlString(
+                            '<div style="font-size:13px;font-weight:700;color:#0F172A;margin-bottom:2px;">'
+                            . 'Factura ' . e($record->numero) . ' — ' . e($record->arrendatario?->nombre_completo)
+                            . '</div>'
+                        )),
                     Placeholder::make('deuda_total_inquilino')
                         ->label('')
                         ->columnSpanFull()
@@ -168,161 +231,119 @@ class EditRentBill extends EditRecord
                                 ->orderBy('anio')->orderBy('mes')
                                 ->get();
 
-                            $totalDeuda = $facturas->sum(fn ($f) => $f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado);
+                            // saldo_pendiente ya incluye mora_acumulada y saldo_anterior_arrastrado
+                            // (ver RentBill::booted / VerificarMoraJob: saldo_pendiente = capital + mora),
+                            // sumarlos aparte otra vez duplica el cobro.
+                            $totalDeuda = $facturas->sum(fn ($f) => $f->saldo_pendiente);
                             $cantidad = $facturas->count();
 
                             if ($cantidad <= 1) {
                                 return new \Illuminate\Support\HtmlString(
-                                    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:13px;">'
-                                    . '💡 Esta es la única factura pendiente de <strong>' . e($record->arrendatario?->nombre_completo) . '</strong>.'
+                                    '<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#475569;">'
+                                    . '<span style="font-size:15px;">💡</span> Esta es la única factura pendiente de <strong style="color:#0F172A;">' . e($record->arrendatario?->nombre_completo) . '</strong>.'
                                     . '</div>'
                                 );
                             }
 
                             $detalle = $facturas->map(function ($f) {
                                 $periodo = \Carbon\Carbon::create($f->anio, $f->mes, 1)->translatedFormat('M Y');
-                                $valor = number_format($f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado, 0, ',', '.');
+                                $valor = number_format($f->saldo_pendiente, 0, ',', '.');
                                 $diasMora = $f->dias_mora > 0 ? " ({$f->dias_mora}d mora)" : '';
                                 return "{$periodo}: \${$valor}{$diasMora}";
                             })->implode(' · ');
 
                             return new \Illuminate\Support\HtmlString(
-                                '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;">'
-                                . '⚠️ <strong>' . e($record->arrendatario?->nombre_completo) . '</strong> tiene <strong>' . $cantidad . ' facturas pendientes</strong> por un total de <strong>$' . number_format($totalDeuda, 0, ',', '.') . '</strong>.'
-                                . '<div style="margin-top:4px;color:#7f1d1d;">' . e($detalle) . '</div>'
-                                . '<div style="margin-top:4px;font-style:italic;">Si hicieron un acuerdo de pago, puedes registrar aquí solo el valor real recibido para esta factura.</div>'
+                                '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:12.5px;">'
+                                . '<div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#92400e;">⚠️ ' . e($record->arrendatario?->nombre_completo) . ' tiene ' . $cantidad . ' facturas pendientes — total $' . number_format($totalDeuda, 0, ',', '.') . '</div>'
+                                . '<div style="margin-top:6px;color:#78350f;">' . e($detalle) . '</div>'
+                                . '<div style="margin-top:6px;color:#92400e;">El valor que recibas se aplica automáticamente empezando por el mes más antiguo pendiente — no hace falta elegir a cuál mes va.</div>'
                                 . '</div>'
                             );
                         }),
-                    Select::make('modo_pago')
-                        ->label('¿Qué quieres registrar?')
-                        ->options(function () use ($record) {
-                            $opciones = ['esta_factura' => "Pagar esta factura ({$record->numero})"];
 
-                            $pendientes = \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
-                                ->whereNotIn('estado', ['pagada', 'anulada'])
-                                ->where('saldo_pendiente', '>', 0)
-                                ->get();
+                    Section::make('Valor y fecha')
+                        ->icon('heroicon-o-banknotes')
+                        ->columns(2)
+                        ->schema([
+                            TextInput::make('total_pagado')
+                                ->label('Valor recibido')
+                                ->numeric()->prefix('$')
+                                ->default(fn () => $record->saldo_pendiente)
+                                ->helperText('Si es menos de lo que debe en total, se aplica al mes más vencido primero y lo que sobre pasa al siguiente.')
+                                ->required(),
+                            DatePicker::make('fecha_pago')
+                                ->label('Fecha de pago')
+                                ->default(now())
+                                ->native(false)
+                                ->required(),
+                        ]),
 
-                            if ($pendientes->count() > 1) {
-                                $total = $pendientes->sum(fn ($f) => $f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado);
-                                $opciones['total_deuda'] = 'Pagar toda la deuda acumulada ($' . number_format($total, 0, ',', '.') . ')';
-                                $opciones['abono_mes']   = 'Abonar y elegir a qué mes aplica';
-                            }
+                    Section::make('Método de pago')
+                        ->icon('heroicon-o-credit-card')
+                        ->description('El destino contable del dinero se asigna automáticamente según lo que elijas aquí.')
+                        ->schema([
+                            Select::make('forma_pago')
+                                ->label('Forma de pago')
+                                ->options([
+                                    'efectivo'      => '💵 Efectivo',
+                                    'transferencia' => '🏦 Transferencia',
+                                    'consignacion'  => '🏧 Consignación',
+                                    'nequi'         => '📱 Nequi',
+                                    'daviplata'     => '📱 Daviplata',
+                                    'pse'           => '💻 PSE',
+                                    'cheque'        => '📝 Cheque',
+                                ])
+                                ->default('transferencia')
+                                ->native(false)
+                                ->live()
+                                ->required()
+                                ->columnSpanFull()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state === 'efectivo') {
+                                        $set('bank_id', Bank::where('tipo_cuenta', 'caja')->value('id'));
+                                    } else {
+                                        $set('bank_id', null);
+                                    }
+                                }),
 
-                            return $opciones;
-                        })
-                        ->default('esta_factura')
-                        ->native(false)
-                        ->live()
-                        ->columnSpanFull()
-                        ->afterStateUpdated(function ($state, callable $set) use ($record) {
-                            if ($state === 'esta_factura') {
-                                $set('total_pagado', $record->saldo_pendiente + $record->mora_acumulada + $record->saldo_anterior_arrastrado);
-                            } elseif ($state === 'total_deuda') {
-                                $pendientes = \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
-                                    ->whereNotIn('estado', ['pagada', 'anulada'])
-                                    ->where('saldo_pendiente', '>', 0)->get();
-                                $set('total_pagado', $pendientes->sum(fn ($f) => $f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado));
-                            } else {
-                                $set('total_pagado', null);
-                            }
-                        }),
+                            Select::make('bank_id')
+                                ->label('Cuenta destino')
+                                ->options(fn () => Bank::where('is_active', true)
+                                    ->where('tipo_cuenta', '!=', 'caja')
+                                    ->get()
+                                    ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
+                                ->native(false)
+                                ->searchable()
+                                ->columnSpanFull()
+                                ->visible(fn (Get $get) => $get('forma_pago') !== 'efectivo')
+                                ->required(fn (Get $get) => $get('forma_pago') !== 'efectivo')
+                                ->helperText('Cuenta bancaria donde efectivamente entró el dinero.'),
 
-                    Select::make('rent_bill_objetivo')
-                        ->label('¿A qué mes va el abono?')
-                        ->options(function () use ($record) {
-                            return \App\Models\RentBill::where('arrendatario_id', $record->arrendatario_id)
-                                ->whereNotIn('estado', ['pagada', 'anulada'])
-                                ->where('saldo_pendiente', '>', 0)
-                                ->orderBy('periodo_inicio')
-                                ->get()
-                                ->mapWithKeys(function ($f) {
-                                    $periodo = \Carbon\Carbon::create($f->anio, $f->mes, 1)->translatedFormat('F Y');
-                                    $debe = number_format($f->saldo_pendiente + $f->mora_acumulada + $f->saldo_anterior_arrastrado, 0, ',', '.');
-                                    return [$f->id => ucfirst($periodo) . " ({$f->numero}) — debe \${$debe}"];
-                                });
-                        })
-                        ->default($record->id)
-                        ->native(false)
-                        ->columnSpanFull()
-                        ->visible(fn (Get $get) => $get('modo_pago') === 'abono_mes')
-                        ->required(fn (Get $get) => $get('modo_pago') === 'abono_mes')
-                        ->helperText('Si abonas más de lo que debe ese mes, el resto se aplica automáticamente a los siguientes meses pendientes, del más antiguo al más reciente.'),
+                            Placeholder::make('info_caja')
+                                ->label('')
+                                ->columnSpanFull()
+                                ->content('💵 Este pago se contabilizará en Caja general.')
+                                ->visible(fn (Get $get) => $get('forma_pago') === 'efectivo'),
+                        ]),
 
-                    self::grupoLabel('💰 Valor y fecha'),
-                    Grid::make(2)->schema([
-                        TextInput::make('total_pagado')
-                            ->label('Valor recibido')
-                            ->numeric()->prefix('$')
-                            ->default(fn () => $record->saldo_pendiente + $record->mora_acumulada + $record->saldo_anterior_arrastrado)
-                            ->disabled(fn (Get $get) => $get('modo_pago') === 'total_deuda')
-                            ->dehydrated(true)
-                            ->required(),
-                        DatePicker::make('fecha_pago')
-                            ->label('Fecha de pago')
-                            ->default(now())
-                            ->native(false)
-                            ->required(),
-                    ]),
-
-                    self::grupoLabel('💳 Método de pago', 'El destino contable del dinero se asigna automáticamente según lo que elijas aquí.'),
-                    Select::make('forma_pago')
-                        ->label('Forma de pago')
-                        ->options([
-                            'efectivo'      => '💵 Efectivo',
-                            'transferencia' => '🏦 Transferencia',
-                            'consignacion'  => '🏧 Consignación',
-                            'nequi'         => '📱 Nequi',
-                            'daviplata'     => '📱 Daviplata',
-                            'pse'           => '💻 PSE',
-                            'cheque'        => '📝 Cheque',
-                        ])
-                        ->default('transferencia')
-                        ->native(false)
-                        ->live()
-                        ->required()
-                        ->columnSpanFull()
-                        ->afterStateUpdated(function ($state, callable $set) {
-                            if ($state === 'efectivo') {
-                                $set('bank_id', Bank::where('tipo_cuenta', 'caja')->value('id'));
-                            } else {
-                                $set('bank_id', null);
-                            }
-                        }),
-
-                    Select::make('bank_id')
-                        ->label('Cuenta destino')
-                        ->options(fn () => Bank::where('is_active', true)
-                            ->where('tipo_cuenta', '!=', 'caja')
-                            ->get()
-                            ->mapWithKeys(fn ($b) => [$b->id => $b->nombre . ($b->numero_cuenta ? " — {$b->numero_cuenta}" : '')]))
-                        ->native(false)
-                        ->searchable()
-                        ->columnSpanFull()
-                        ->visible(fn (Get $get) => $get('forma_pago') !== 'efectivo')
-                        ->required(fn (Get $get) => $get('forma_pago') !== 'efectivo')
-                        ->helperText('Cuenta bancaria donde efectivamente entró el dinero — determina a qué cuenta contable se contabiliza.'),
-
-                    Placeholder::make('info_caja')
-                        ->label('')
-                        ->columnSpanFull()
-                        ->content('💵 Este pago se contabilizará en Caja general.')
-                        ->visible(fn (Get $get) => $get('forma_pago') === 'efectivo'),
-
-                    self::grupoLabel('📎 Soporte'),
-                    Grid::make(2)->schema([
-                        TextInput::make('referencia_pago')->label('Referencia / N° comprobante'),
-                        TextInput::make('banco_origen')->label('Banco de origen del pagador')
-                            ->helperText('Ej: si pagó por Nequi, aquí puedes anotar de qué banco venía la plata.'),
-                    ]),
-                    FileUpload::make('comprobante_path')
-                        ->label('Comprobante de pago')
-                        ->disk('public')->directory('pagos/comprobantes')
-                        ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
-                        ->maxSize(5120)
-                        ->columnSpanFull(),
-                    Textarea::make('notas')->label('Notas')->rows(2)->columnSpanFull(),
+                    Section::make('Soporte')
+                        ->icon('heroicon-o-paper-clip')
+                        ->description('Opcional')
+                        ->collapsed()
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('referencia_pago')->label('Referencia / N° comprobante'),
+                                TextInput::make('banco_origen')->label('Banco de origen del pagador')
+                                    ->helperText('Ej: si pagó por Nequi, de qué banco venía la plata.'),
+                            ]),
+                            FileUpload::make('comprobante_path')
+                                ->label('Comprobante de pago')
+                                ->disk('public')->directory('pagos/comprobantes')
+                                ->acceptedFileTypes(['application/pdf','image/jpeg','image/png'])
+                                ->maxSize(5120)
+                                ->columnSpanFull(),
+                            Textarea::make('notas')->label('Notas')->rows(2)->columnSpanFull(),
+                        ]),
 
                     Placeholder::make('resumen_confirmacion')
                         ->label('')
@@ -337,15 +358,15 @@ class EditRentBill extends EditRecord
                             $forma = $formas[$get('forma_pago')] ?? '—';
 
                             return new \Illuminate\Support\HtmlString(
-                                '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;">'
-                                . '⚠️ <strong>Estás a punto de registrar este pago:</strong>'
-                                . '<div style="margin-top:6px;line-height:1.6;">'
-                                . '💰 Valor: <strong>$' . $valor . '</strong><br>'
-                                . '📅 Fecha: <strong>' . $fecha . '</strong><br>'
-                                . '💳 Forma de pago: <strong>' . e($forma) . '</strong><br>'
-                                . '📋 Factura: <strong>' . e($record->numero) . '</strong> — ' . e($record->arrendatario?->nombre_completo)
+                                '<div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:12px 16px;font-size:12.5px;">'
+                                . '<div style="font-weight:700;color:#0F172A;">Vas a registrar este pago:</div>'
+                                . '<div style="margin-top:6px;line-height:1.7;color:#334155;">'
+                                . '💰 Valor: <strong style="color:#0F172A;">$' . $valor . '</strong> · '
+                                . '📅 Fecha: <strong style="color:#0F172A;">' . $fecha . '</strong> · '
+                                . '💳 Forma de pago: <strong style="color:#0F172A;">' . e($forma) . '</strong>'
+                                . '<br>📋 Factura: <strong style="color:#0F172A;">' . e($record->numero) . '</strong> — ' . e($record->arrendatario?->nombre_completo)
                                 . '</div>'
-                                . '<div style="margin-top:8px;font-style:italic;color:#92400e;">Verifica los datos antes de confirmar — una vez registrado, este pago no podrá revertirse desde aquí.</div>'
+                                . '<div style="margin-top:8px;color:#dc2626;font-weight:600;">Verifica antes de confirmar — este pago no podrá revertirse desde aquí.</div>'
                                 . '</div>'
                             );
                         }),
@@ -357,56 +378,19 @@ class EditRentBill extends EditRecord
                         ->dehydrated(false),
                 ])
                 ->action(function (array $data) {
-                    $modo = $data['modo_pago'] ?? 'esta_factura';
-
-                    // Modo simple (default): igual que siempre, un solo pago
-                    // contra esta factura puntual, sin tocar otras.
-                    if ($modo === 'esta_factura') {
-                        $mora  = $this->record->mora_acumulada;
-                        $canon = max(0, $data['total_pagado'] - $mora);
-
-                        RentPayment::create([
-                            'rent_bill_id'        => $this->record->id,
-                            'rental_contract_id'  => $this->record->rental_contract_id,
-                            'arrendatario_id'     => $this->record->arrendatario_id,
-                            'registrado_por'      => Auth::id(),
-                            'valor_canon'         => $canon,
-                            'valor_mora'          => $mora,
-                            'valor_administracion'=> $this->record->cuota_administracion,
-                            'total_pagado'        => $data['total_pagado'],
-                            'forma_pago'          => $data['forma_pago'],
-                            'fecha_pago'          => $data['fecha_pago'],
-                            'referencia_pago'     => $data['referencia_pago'] ?? null,
-                            'banco_origen'        => $data['banco_origen'] ?? null,
-                            'bank_id'             => $data['bank_id'] ?? null,
-                            'comprobante_path'    => $data['comprobante_path'] ?? null,
-                            'notas'               => $data['notas'] ?? null,
-                        ]);
-
-                        Notification::make()
-                            ->title('✅ Pago registrado — Liquidación al propietario generada')
-                            ->success()->send();
-
-                        $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
-                        return;
-                    }
-
-                    // Modo "total_deuda" / "abono_mes": se reparte el valor
-                    // recibido en cascada entre las facturas pendientes del
-                    // inquilino — empezando por la elegida (o la más antigua
-                    // si es "pagar todo"), y lo que sobra se aplica a las
-                    // siguientes en orden de periodo, igual que hace el link
-                    // de pago Wompi cuando el inquilino paga varios meses.
+                    // Siempre se reparte el valor recibido en cascada entre
+                    // las facturas pendientes del inquilino, empezando por
+                    // la más antigua — nunca se le pregunta a la chica a qué
+                    // mes aplicarlo, para evitar la confusión de elegir.
+                    // Si no alcanza a cubrir todo, lo que sobre pasa al mes
+                    // siguiente, igual que hace el link de pago Wompi.
                     $pendientes = \App\Models\RentBill::where('arrendatario_id', $this->record->arrendatario_id)
                         ->whereNotIn('estado', ['pagada', 'anulada'])
                         ->where('saldo_pendiente', '>', 0)
                         ->orderBy('periodo_inicio')
                         ->get();
 
-                    $anclaId = $modo === 'abono_mes' ? (int) ($data['rent_bill_objetivo'] ?? $this->record->id) : null;
-                    $ancla   = $anclaId ? ($pendientes->firstWhere('id', $anclaId) ?? $this->record) : $pendientes->first();
-
-                    $orden = collect([$ancla])->merge($pendientes->where('id', '!=', $ancla->id));
+                    $orden = $pendientes->isNotEmpty() ? $pendientes : collect([$this->record]);
 
                     $restante = (float) $data['total_pagado'];
                     $facturasPagadas = 0;
@@ -460,7 +444,7 @@ class EditRentBill extends EditRecord
                 ->icon('heroicon-o-chat-bubble-left-right')
                 ->action(function () {
                     $r     = $this->record;
-                    $saldo = '$' . number_format($r->saldo_pendiente + $r->mora_acumulada + $r->saldo_anterior_arrastrado, 0, ',', '.');
+                    $saldo = '$' . number_format($r->saldo_pendiente, 0, ',', '.');
                     $mora  = $r->mora_acumulada > 0 ? "\n📈 Mora: $" . number_format($r->mora_acumulada, 0, ',', '.') : '';
                     $msg   = "Recordatorio de pago — Serviarrendar S.A.S\n\n" .
                              "Estimado(a) {$r->arrendatario->nombre_completo},\n\n" .
@@ -593,22 +577,5 @@ class EditRentBill extends EditRecord
                 ])
                 ->warning()->send();
         }
-    }
-
-    /**
-     * Título de grupo estilo "kicker" (mayúsculas, pequeño, gris) para
-     * separar secciones del formulario sin usar cajas/bordes pesados.
-     */
-    private static function grupoLabel(string $texto, ?string $descripcion = null): Placeholder
-    {
-        $html = '<div style="margin-top:4px;">'
-            . '<span style="font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#64748b;">' . e($texto) . '</span>'
-            . ($descripcion ? '<p style="font-size:12px;color:#94a3b8;margin-top:2px;">' . e($descripcion) . '</p>' : '')
-            . '</div>';
-
-        return Placeholder::make('grupo_' . md5($texto))
-            ->hiddenLabel()
-            ->columnSpanFull()
-            ->content(new \Illuminate\Support\HtmlString($html));
     }
 }

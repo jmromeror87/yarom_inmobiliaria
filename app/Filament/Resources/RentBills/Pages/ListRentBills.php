@@ -15,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
 
 class ListRentBills extends ListRecords
 {
@@ -23,6 +24,9 @@ class ListRentBills extends ListRecords
     protected string $view = 'filament.resources.rent-bills.pages.list-rent-bills';
 
     public string $search = '';
+
+    #[Url]
+    public ?string $filtro = null;
 
     protected function getHeaderActions(): array
     {
@@ -237,6 +241,46 @@ class ListRentBills extends ListRecords
             ->orderBy('nombre_completo')
             ->limit(25)
             ->get();
+    }
+
+    /**
+     * Facturas detrás de cada KPI del banner (mismo criterio exacto que
+     * FacturacionStatsWidget), para que al hacer clic en un KPI se vea
+     * en vivo qué factura compone ese número — sin tener que buscar nada.
+     */
+    public function getResultadosPorFiltro(): Collection
+    {
+        $mes  = now()->month;
+        $anio = now()->year;
+
+        $query = match ($this->filtro) {
+            'facturado'  => RentBill::where('mes', $mes)->where('anio', $anio),
+            'recaudado'  => RentBill::where('mes', $mes)->where('anio', $anio)->where('estado', 'pagada'),
+            'mora'       => RentBill::where('estado', 'en_mora'),
+            'pendientes' => RentBill::whereIn('estado', ['pendiente', 'parcial', 'en_mora']),
+            default      => null,
+        };
+
+        if (! $query) {
+            return collect();
+        }
+
+        return $query
+            ->with(['arrendatario', 'property.businessOrigin'])
+            ->orderByDesc('saldo_pendiente')
+            ->limit(100)
+            ->get();
+    }
+
+    public function getFiltroLabel(): ?string
+    {
+        return match ($this->filtro) {
+            'facturado'  => 'Facturado — ' . ucfirst(now()->translatedFormat('F Y')),
+            'recaudado'  => 'Recaudado — ' . ucfirst(now()->translatedFormat('F Y')),
+            'mora'       => 'En mora',
+            'pendientes' => 'Pendientes',
+            default      => null,
+        };
     }
 
     public function enviarLinkAction(): Action

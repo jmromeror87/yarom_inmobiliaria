@@ -33,37 +33,37 @@
 
         <div style="position:relative;z-index:1;display:grid;grid-template-columns:repeat(4, minmax(120px, 1fr));gap:10px;">
 
-            <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:13px 16px;">
+            <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('index') }}?filtro=facturado" style="text-decoration:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:13px 16px;display:block;transition:background .15s ease,transform .15s ease;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,.11)';this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.transform='none';">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.55)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3.75m8.5-3.75 1 3.75m0 0 .5 2.25M9.5 20.25l-.5 2.25" /></svg>
                     <div style="font-size:9.5px;font-weight:800;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.07em;">Facturado</div>
                 </div>
                 <div style="font-size:15px;font-weight:900;color:#fff;letter-spacing:-.01em;">{{ $fmt($totalFacturado) }}</div>
-            </div>
+            </a>
 
-            <div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);border-radius:14px;padding:13px 16px;">
+            <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('index') }}?filtro=recaudado" style="text-decoration:none;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);border-radius:14px;padding:13px 16px;display:block;transition:background .15s ease,transform .15s ease;cursor:pointer;" onmouseover="this.style.background='rgba(34,197,94,.2)';this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(34,197,94,.12)';this.style.transform='none';">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#4ade80" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.28m5.94 2.28-2.28 5.941" /></svg>
                     <div style="font-size:9.5px;font-weight:800;color:rgba(74,222,128,.75);text-transform:uppercase;letter-spacing:.07em;">Recaudado</div>
                 </div>
                 <div style="font-size:15px;font-weight:900;color:#4ade80;letter-spacing:-.01em;">{{ $fmt($totalRecaudado) }}</div>
-            </div>
+            </a>
 
-            <div style="background:rgba(225,29,72,.12);border:1px solid rgba(225,29,72,.28);border-radius:14px;padding:13px 16px;">
+            <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('index') }}?filtro=mora" style="text-decoration:none;background:rgba(225,29,72,.12);border:1px solid rgba(225,29,72,.28);border-radius:14px;padding:13px 16px;display:block;transition:background .15s ease,transform .15s ease;cursor:pointer;" onmouseover="this.style.background='rgba(225,29,72,.2)';this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(225,29,72,.12)';this.style.transform='none';">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#fb7185" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
                     <div style="font-size:9.5px;font-weight:800;color:rgba(251,113,133,.8);text-transform:uppercase;letter-spacing:.07em;">Mora</div>
                 </div>
                 <div style="font-size:15px;font-weight:900;color:#fb7185;letter-spacing:-.01em;">{{ $fmt($totalMora) }}</div>
-            </div>
+            </a>
 
-            <div style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.28);border-radius:14px;padding:13px 16px;">
+            <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('index') }}?filtro=pendientes" style="text-decoration:none;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.28);border-radius:14px;padding:13px 16px;display:block;transition:background .15s ease,transform .15s ease;cursor:pointer;" onmouseover="this.style.background='rgba(251,191,36,.2)';this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(251,191,36,.12)';this.style.transform='none';">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#fbbf24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                     <div style="font-size:9.5px;font-weight:800;color:rgba(251,191,36,.8);text-transform:uppercase;letter-spacing:.07em;">Pendientes</div>
                 </div>
                 <div style="font-size:19px;font-weight:900;color:#fbbf24;letter-spacing:-.01em;">{{ $pendientes }}</div>
-            </div>
+            </a>
 
         </div>
     </div>

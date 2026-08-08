@@ -67,7 +67,8 @@ class FacturasEnMoraWidget extends BaseWidget
 
                 Tables\Columns\TextColumn::make('total_a_pagar')
                     ->label('Total a pagar')
-                    ->state(fn ($record) => $record->saldo_pendiente + $record->mora_acumulada)
+                    // saldo_pendiente ya incluye mora_acumulada (RentBill::booted / VerificarMoraJob).
+                    ->state(fn ($record) => $record->saldo_pendiente)
                     ->money('COP')
                     ->alignRight()
                     ->weight('bold')
@@ -85,7 +86,7 @@ class FacturasEnMoraWidget extends BaseWidget
                         $url     = route('payment.show', ['token' => $token]);
                         $saldo   = '$' . number_format($record->saldo_pendiente, 0, ',', '.');
                         $mora    = '$' . number_format($record->mora_acumulada, 0, ',', '.');
-                        $total   = '$' . number_format($record->saldo_pendiente + $record->mora_acumulada, 0, ',', '.');
+                        $total   = '$' . number_format($record->saldo_pendiente, 0, ',', '.');
                         $msg = "⚠️ *Recordatorio de pago en mora*\n\n"
                             . "Estimado(a) {$record->arrendatario->nombre_completo},\n\n"
                             . "Su factura *{$record->numero}* lleva *{$record->dias_mora} día(s)* de mora.\n\n"

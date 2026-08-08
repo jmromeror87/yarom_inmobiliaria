@@ -103,6 +103,28 @@
 .dark .fb-history-periodo { color:#e2e8f0; }
 .fb-badge { font-size:0.62rem; font-weight:800; padding:2px 8px; border-radius:20px; white-space:nowrap; }
 
+.fb-filter-bar {
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:#eef2ff; border:1px solid #c7d2fe; border-radius:14px; padding:12px 18px; margin-bottom:16px;
+}
+.dark .fb-filter-bar { background:rgba(99,102,241,.1); border-color:rgba(99,102,241,.3); }
+.fb-filter-bar-title { font-size:0.85rem; font-weight:800; color:#3730a3; }
+.dark .fb-filter-bar-title { color:#a5b4fc; }
+.fb-filter-bar-count { font-size:0.72rem; color:#4f46e5; font-weight:600; }
+.dark .fb-filter-bar-count { color:#818cf8; }
+
+.fb-flat-list { background:#fff; border-radius:18px; border:1px solid rgba(226,232,240,.9); box-shadow:0 2px 12px rgba(15,23,42,.05); overflow:hidden; }
+.dark .fb-flat-list { background:#1e293b; border-color:rgba(51,65,85,.8); }
+.fb-flat-row {
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:14px 18px; border-bottom:1px solid #f1f5f9;
+}
+.dark .fb-flat-row { border-color:#334155; }
+.fb-flat-row:last-child { border-bottom:none; }
+.fb-flat-row-name { font-size:0.85rem; font-weight:800; color:#0F172A; }
+.dark .fb-flat-row-name { color:#f1f5f9; }
+.fb-flat-row-sub { font-size:0.72rem; color:#94a3b8; font-weight:600; margin-top:2px; }
+
 @media (min-width: 900px) {
     .fb-results { display:grid; grid-template-columns:repeat(2, 1fr); align-items:start; }
 }
@@ -137,6 +159,44 @@
             placeholder="Buscar inquilino por cédula, nombre o inmueble..."
         />
     </div>
+
+    @if ($filtro && trim($search) === '')
+        @php $facturas = $this->getResultadosPorFiltro(); @endphp
+
+        <div class="fb-filter-bar">
+            <div>
+                <div class="fb-filter-bar-title">🔎 {{ $this->getFiltroLabel() }}</div>
+                <div class="fb-filter-bar-count">{{ $facturas->count() }} factura{{ $facturas->count() === 1 ? '' : 's' }}{{ $facturas->count() >= 100 ? ' (mostrando las primeras 100)' : '' }}</div>
+            </div>
+            <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('index') }}" class="fb-btn fb-btn-outline">✕ Quitar filtro</a>
+        </div>
+
+        @if ($facturas->isEmpty())
+            <div class="fb-empty">
+                <div class="fb-empty-icon">✅</div>
+                <div class="fb-empty-title">No hay facturas en este filtro ahora mismo.</div>
+            </div>
+        @else
+            <div class="fb-flat-list">
+                @foreach ($facturas as $f)
+                    @php $info = $estadoInfo($f->estado); @endphp
+                    <div class="fb-flat-row">
+                        <div>
+                            <div class="fb-flat-row-name">{{ $f->arrendatario?->nombre_completo ?? '—' }}</div>
+                            <div class="fb-flat-row-sub">{{ $f->numero }} · {{ $f->property?->codigo ?? '—' }} · {{ \Carbon\Carbon::create($f->anio, $f->mes, 1)->translatedFormat('F Y') }}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="text-align:right;">
+                                <span class="fb-badge" style="background:{{ $info['bg'] }};color:{{ $info['fg'] }};">{{ $info['label'] }}</span>
+                                <div style="font-weight:800;margin-top:3px;">${{ number_format($f->saldo_pendiente > 0 ? $f->saldo_pendiente : $f->total_factura, 0, ',', '.') }}</div>
+                            </div>
+                            <a href="{{ \App\Filament\Resources\RentBills\RentBillResource::getUrl('edit', ['record' => $f]) }}" class="fb-btn fb-btn-primary">Ver</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    @else
 
     @php $resultados = $this->getResultados(); @endphp
 
@@ -259,6 +319,8 @@
                 </div>
             @endforeach
         </div>
+    @endif
+
     @endif
 
 </div>

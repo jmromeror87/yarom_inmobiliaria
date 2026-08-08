@@ -177,7 +177,8 @@ class ReportesController extends Controller
         $fila = 5;
         $totalSaldo = $totalMora = 0;
         foreach ($bills as $b) {
-            $totalConMora = (float) $b->saldo_pendiente + (float) $b->mora_acumulada;
+            // saldo_pendiente ya incluye mora_acumulada (RentBill::booted / VerificarMoraJob).
+            $totalConMora = (float) $b->saldo_pendiente;
             $sheet->setCellValue("A{$fila}", $b->numero);
             $sheet->setCellValue("B{$fila}", $b->property?->codigo);
             $sheet->setCellValue("C{$fila}", $b->property?->direccion);
