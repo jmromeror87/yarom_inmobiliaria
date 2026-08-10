@@ -40,12 +40,13 @@ class ReportesController extends Controller
         $propietarioId = $request->get('propietario_id');
 
         return match ($tipo) {
-            'cartera'       => $this->carteraGeneral($formato),
-            'recaudo'       => $this->recaudoMes($mes, $anio, $formato),
-            'mora'          => $this->moraDetallada($formato),
-            'portafolio'    => $this->estadoPortafolio($formato),
-            'liquidaciones' => $this->liquidacionesPropietario($mes, $anio, $formato, $propietarioId),
-            default         => abort(404),
+            'cartera'        => $this->carteraGeneral($formato),
+            'recaudo'        => $this->recaudoMes($mes, $anio, $formato),
+            'mora'           => $this->moraDetallada($formato),
+            'portafolio'     => $this->estadoPortafolio($formato),
+            'liquidaciones'  => $this->liquidacionesPropietario($mes, $anio, $formato, $propietarioId),
+            'estado_cuenta'  => $this->estadoCuentaArrendatarios($formato),
+            default          => abort(404),
         };
     }
 
@@ -210,6 +211,85 @@ class ReportesController extends Controller
         $this->ajustarColumnas($sheet, ['A' => 18, 'B' => 14, 'C' => 28, 'D' => 28, 'E' => 10, 'F' => 16, 'G' => 12, 'H' => 16, 'I' => 18, 'J' => 14]);
 
         return $this->descargarExcel($ss, 'mora-detallada-' . now()->format('Ymd'));
+    }
+
+    // ── 3b. Estado de Cuenta por Arrendatario ───────────────────────────────
+    // Un renglón por factura (período), agrupado por inquilino → contrato →
+    // período (mes/año). El "mes" de cada factura es el que ya se corrige a
+    // mano cuando el período de arriendo no coincide con el calendario (ej:
+    // arriendo del 5 de marzo al 5 de abril se etiqueta "Marzo").
+    private function estadoCuentaArrendatarios(string $formato)
+    {
+        $bills = RentBill::where('estado', '!=', 'anulada')
+            ->with(['property', 'arrendatario', 'rentalContract'])
+            ->join('thirds', 'rent_bills.arrendatario_id', '=', 'thirds.id')
+            ->orderBy('thirds.nombre_completo')
+            ->orderBy('rent_bills.rental_contract_id')
+            ->orderBy('rent_bills.anio')
+            ->orderBy('rent_bills.mes')
+            ->select('rent_bills.*')
+            ->get();
+
+        $ss    = $this->crearSpreadsheet('Estado de Cuenta Arrendatarios');
+        $sheet = $ss->getActiveSheet();
+
+        $this->escribirTitulo($sheet, 'ESTADO DE CUENTA POR ARRENDATARIO', 'A1:L1');
+        $this->escribirSubtitulo($sheet, 'Generado: ' . now()->format('d/m/Y H:i') . ' | Un renglón por período — qué ha pagado y qué debe cada inquilino', 'A2:L2');
+
+        $cols = [
+            'A' => 'Arrendatario', 'B' => 'Documento', 'C' => 'Contrato', 'D' => 'Inmueble',
+            'E' => 'Dirección', 'F' => 'Período', 'G' => 'Desde', 'H' => 'Hasta',
+            'I' => 'Estado', 'J' => 'Total Factura', 'K' => 'Pagado', 'L' => 'Saldo',
+        ];
+        $this->escribirEncabezados($sheet, $cols, 4);
+
+        $estadoLabel = [
+            'pendiente' => 'PENDIENTE', 'parcial' => 'PARCIAL', 'en_mora' => 'EN MORA',
+            'vencida' => 'VENCIDA', 'pagada' => 'PAGADA',
+        ];
+
+        $fila = 5;
+        $totalFacturado = $totalPagado = $totalSaldo = 0;
+        foreach ($bills as $b) {
+            $periodo = \Carbon\Carbon::create($b->anio, $b->mes, 1)->translatedFormat('F Y');
+
+            $sheet->setCellValue("A{$fila}", $b->arrendatario?->nombre_completo ?? $b->arrendatario?->razon_social);
+            $sheet->setCellValue("B{$fila}", $b->arrendatario?->numero_documento);
+            $sheet->setCellValue("C{$fila}", $b->rentalContract?->numero_contrato);
+            $sheet->setCellValue("D{$fila}", $b->property?->codigo);
+            $sheet->setCellValue("E{$fila}", $b->property?->direccion);
+            $sheet->setCellValue("F{$fila}", ucfirst($periodo));
+            $sheet->setCellValue("G{$fila}", $b->periodo_inicio?->format('d/m/Y'));
+            $sheet->setCellValue("H{$fila}", $b->periodo_fin?->format('d/m/Y'));
+            $sheet->setCellValue("I{$fila}", $estadoLabel[$b->estado] ?? strtoupper($b->estado));
+            $sheet->setCellValue("J{$fila}", (float) $b->total_factura);
+            $sheet->setCellValue("K{$fila}", (float) $b->total_pagado);
+            $sheet->setCellValue("L{$fila}", (float) $b->saldo_pendiente);
+
+            $color = match ($b->estado) {
+                'pagada'  => 'F0FDF4',
+                'parcial' => 'FFF7ED',
+                'en_mora', 'vencida' => 'FEE2E2',
+                default   => 'F8FAFC',
+            };
+            $sheet->getStyle("A{$fila}:L{$fila}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($color);
+
+            $this->formatearMoneda($sheet, ["J{$fila}", "K{$fila}", "L{$fila}"]);
+
+            $totalFacturado += $b->total_factura;
+            $totalPagado    += $b->total_pagado;
+            $totalSaldo     += $b->saldo_pendiente;
+            $fila++;
+        }
+
+        $this->escribirTotales($sheet, $fila, ['J' => $totalFacturado, 'K' => $totalPagado, 'L' => $totalSaldo], 'A', 'L');
+        $this->ajustarColumnas($sheet, [
+            'A' => 28, 'B' => 14, 'C' => 16, 'D' => 12, 'E' => 28, 'F' => 16,
+            'G' => 12, 'H' => 12, 'I' => 12, 'J' => 16, 'K' => 16, 'L' => 16,
+        ]);
+
+        return $this->descargarExcel($ss, 'estado-cuenta-arrendatarios-' . now()->format('Ymd'));
     }
 
     // ── 4. Estado del Portafolio ───────────────────────────────────────────
