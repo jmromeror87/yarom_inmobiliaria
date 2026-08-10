@@ -156,7 +156,7 @@
             type="text"
             wire:model.live.debounce.400ms="search"
             class="fb-search-input"
-            placeholder="Buscar inquilino por cédula, nombre o inmueble..."
+            placeholder="Buscar inquilino por cédula, nombre, inmueble o N° de factura..."
         />
     </div>
 

@@ -223,7 +223,11 @@ class ListRentBills extends ListRecords
             })
             ->pluck('arrendatario_id');
 
-        $thirdIds = $thirdIdsDirectos->merge($thirdIdsPorInmueble)->unique();
+        $thirdIdsPorFactura = RentBill::query()
+            ->where('numero', 'like', "%{$term}%")
+            ->pluck('arrendatario_id');
+
+        $thirdIds = $thirdIdsDirectos->merge($thirdIdsPorInmueble)->merge($thirdIdsPorFactura)->unique();
 
         if ($thirdIds->isEmpty()) {
             return collect();
