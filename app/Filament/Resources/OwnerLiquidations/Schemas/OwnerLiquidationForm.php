@@ -67,6 +67,21 @@ class OwnerLiquidationForm
                     );
                 }),
 
+            Placeholder::make('banner_anulada')
+                ->hiddenLabel()
+                ->columnSpanFull()
+                ->visible(fn ($record) => $record && $record->estado === 'anulada')
+                ->content(function ($record) {
+                    if (! $record) return '';
+
+                    return new \Illuminate\Support\HtmlString(
+                        '<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:14px 18px;font-size:12.5px;font-family:\'Plus Jakarta Sans\',sans-serif;">'
+                        . '<div style="font-weight:800;color:#334155;margin-bottom:4px;">🚫 Liquidación anulada por ' . e($record->anuladoPor?->name ?? 'sistema') . ' el ' . ($record->anulado_en?->format('d/m/Y h:i A') ?? '—') . '</div>'
+                        . '<div style="color:#64748b;">Motivo: ' . e($record->motivo_anulacion ?? '—') . '</div>'
+                        . '</div>'
+                    );
+                }),
+
             Section::make('Información del período')
                 ->icon('heroicon-o-calendar')
                 ->columnSpanFull()

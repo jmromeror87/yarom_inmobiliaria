@@ -38,6 +38,7 @@ class OwnerLiquidation extends Model
         'otros_descuentos', 'descripcion_descuentos', 'total_giro',
         'estado', 'fecha_giro', 'forma_giro', 'banco_giro_id', 'referencia_giro',
         'comprobante_giro_path', 'wap_enviado', 'wap_enviado_at', 'notas',
+        'motivo_anulacion', 'anulado_por_id', 'anulado_en',
     ];
 
     protected $casts = [
@@ -54,6 +55,7 @@ class OwnerLiquidation extends Model
         'seguro_sura_deducido'  => 'decimal:2',
         'otros_descuentos'      => 'decimal:2',
         'total_giro'        => 'decimal:2',
+        'anulado_en'        => 'datetime',
     ];
 
     protected static function booted(): void
@@ -172,6 +174,41 @@ class OwnerLiquidation extends Model
         return $liq;
     }
 
+    /**
+     * Anula la liquidación reversando cualquier asiento contable ya causado
+     * (la causación de "otros descuentos" y, si ya se giró, el comprobante
+     * de egreso del giro) y liberando las facturas asociadas para que
+     * puedan volver a liquidarse — igual de blindado que
+     * RentBill::anularConReversion().
+     */
+    public function anularConReversion(string $motivo, ?int $usuarioId = null): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($motivo, $usuarioId) {
+            $entries = \App\Models\AccountingEntry::where('referencia_id', $this->id)
+                ->whereIn('referencia_tipo', ['giro_owner', 'liquidacion_owner'])
+                ->where('estado', '!=', 'anulado')
+                ->get();
+
+            foreach ($entries as $entry) {
+                $entry->anular("Liquidación {$this->numero} anulada: {$motivo}");
+            }
+
+            // Libera las facturas del inquilino ligadas a esta liquidación
+            // para que puedan volver a liquidarse (el generador exige
+            // owner_liquidation_id nulo, y la guarda de generarDesdeFact ya
+            // ignora liquidaciones anuladas al buscar una activa del mismo
+            // contrato/período).
+            $this->bills()->update(['owner_liquidation_id' => null]);
+
+            $this->update([
+                'estado'           => 'anulada',
+                'motivo_anulacion' => $motivo,
+                'anulado_por_id'   => $usuarioId,
+                'anulado_en'       => now(),
+            ]);
+        });
+    }
+
     public function getPeriodoLabelAttribute(): string
     {
         $meses = [
@@ -188,4 +225,5 @@ class OwnerLiquidation extends Model
     public function bancoGiro(): BelongsTo      { return $this->belongsTo(Bank::class, 'banco_giro_id'); }
     public function bills(): HasMany            { return $this->hasMany(RentBill::class); }
     public function statusHistories(): HasMany  { return $this->hasMany(OwnerLiquidationStatusHistory::class)->orderByDesc('cambiado_en'); }
+    public function anuladoPor(): BelongsTo     { return $this->belongsTo(\App\Models\User::class, 'anulado_por_id'); }
 }

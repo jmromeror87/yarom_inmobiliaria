@@ -13,6 +13,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Auth;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
@@ -193,23 +194,32 @@ class EditOwnerLiquidation extends EditRecord
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->outlined()
-                ->visible(fn () => in_array($this->record->estado, ['pendiente', 'aprobada']))
+                ->visible(fn () => $this->record->estado !== 'anulada')
                 ->requiresConfirmation()
                 ->modalHeading('Anular liquidación')
-                ->modalDescription('La liquidación queda anulada y no se pierde el registro — puede consultarse siempre, solo deja de estar pendiente de girar.')
+                ->modalDescription(fn () => $this->record->estado === 'pagada'
+                    ? "⚠️ Esta liquidación YA FUE GIRADA (\${$this->record->total_giro} el " . ($this->record->fecha_giro?->format('d/m/Y') ?? '—') . " a {$this->record->propietario?->nombre_completo}). Anularla reversa el asiento contable del giro, pero el dinero físico ya salió — coordina aparte cómo se recupera o compensa. La factura del inquilino queda libre para volver a liquidarse."
+                    : 'La liquidación queda anulada y no se pierde el registro — puede consultarse siempre, y la factura del inquilino queda libre para volver a liquidarse. Se reversa cualquier asiento contable ya causado.')
+                ->modalSubmitActionLabel('Sí, anular')
                 ->schema([
                     Textarea::make('motivo_anulacion')
                         ->label('Motivo de anulación')
                         ->required()
-                        ->rows(3),
+                        ->minLength(10)
+                        ->rows(3)
+                        ->placeholder('Ej: canon mal calculado, propietario equivocado, inmueble equivocado...'),
                 ])
                 ->action(function (array $data) {
-                    $this->record->update([
-                        'estado' => 'anulada',
-                        'notas' => trim(($this->record->notas ?? '') . ' Anulada: ' . $data['motivo_anulacion']),
-                    ]);
-                    Notification::make()->title('Liquidación anulada')->warning()->send();
-                    $this->redirect(static::getResource()::getUrl('index'));
+                    try {
+                        $this->record->anularConReversion($data['motivo_anulacion'], Auth::id());
+                        Notification::make()
+                            ->title('Liquidación anulada')
+                            ->body('Se reversaron los asientos contables y la factura del inquilino quedó libre para volver a liquidarse.')
+                            ->warning()->send();
+                        $this->redirect(static::getResource()::getUrl('index'));
+                    } catch (\Throwable $e) {
+                        Notification::make()->title('Error al anular: ' . $e->getMessage())->danger()->send();
+                    }
                 }),
             Actions\RestoreAction::make(),
         ];
