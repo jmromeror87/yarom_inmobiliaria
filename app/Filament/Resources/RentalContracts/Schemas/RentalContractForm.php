@@ -285,6 +285,11 @@ class RentalContractForm
                             ->default(false)
                             ->helperText('Activar cuando el edificio cobra la administración por separado'),
 
+                        TextInput::make('admin_pagada_inmobiliaria_valor')
+                            ->label('Administración que paga la inmobiliaria por el propietario')
+                            ->numeric()->prefix('$')->default(0)->minValue(0)
+                            ->helperText('Si la inmobiliaria le paga la administración al edificio por cuenta del propietario, pon aquí el valor — se descuenta automáticamente de "Otros descuentos" en cada liquidación nueva. Distinto de "¿Quién cobra la administración?", que es sobre el recaudo al inquilino.'),
+
                         Select::make('tipo_incremento')
                             ->label('Tipo de incremento')
                             ->options([

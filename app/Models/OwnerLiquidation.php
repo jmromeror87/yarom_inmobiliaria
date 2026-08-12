@@ -150,6 +150,15 @@ class OwnerLiquidation extends Model
         $redondeo = (float)($bill->redondeo_seguro ?? 0);
         $canonMostrado = $canon + $redondeo;
 
+        // Administración que la inmobiliaria le paga al edificio por cuenta
+        // del propietario (distinto de quién la COBRA al inquilino) — se
+        // descuenta automáticamente como "otros descuentos" en cada
+        // liquidación nueva, sin que nadie tenga que escribirlo a mano.
+        $adminPagadaInmobiliaria = (float) ($contrato->admin_pagada_inmobiliaria_valor ?? 0);
+        $descripcionDescuentos  = $adminPagadaInmobiliaria > 0
+            ? 'Administración pagada por la inmobiliaria al edificio'
+            : null;
+
         $liq = static::create([
             'rental_contract_id'  => $bill->rental_contract_id,
             'property_id'         => $bill->property_id,
@@ -165,8 +174,9 @@ class OwnerLiquidation extends Model
             'aplica_retefuente'   => $aplicaRete,
             'retefuente_valor'    => $retefuente,
             'seguro_sura_deducido'=> $seguroSura,
-            'otros_descuentos'    => 0,
-            'total_giro'          => max(0, $canonMostrado - $comisionValor - $ivaComision - $retefuente),
+            'otros_descuentos'    => $adminPagadaInmobiliaria,
+            'descripcion_descuentos' => $descripcionDescuentos,
+            'total_giro'          => max(0, $canonMostrado - $comisionValor - $ivaComision - $retefuente - $adminPagadaInmobiliaria),
             'estado'              => 'pendiente',
         ]);
 
