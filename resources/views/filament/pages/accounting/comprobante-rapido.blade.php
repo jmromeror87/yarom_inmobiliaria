@@ -94,7 +94,8 @@
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
             <tr style="background:#f8fafc;border-top:1px solid #e2e8f0;border-bottom:1.5px solid #e2e8f0;">
-                <th style="text-align:left;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;width:34%;">Cuenta</th>
+                <th style="text-align:left;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;width:26%;">Cuenta</th>
+                <th style="text-align:left;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;width:22%;">Tercero</th>
                 <th style="text-align:left;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Descripción</th>
                 <th style="text-align:right;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;width:16%;">Valor</th>
                 <th style="width:34px;"></th>
@@ -128,6 +129,29 @@
                     @endif
                 </td>
                 <td style="padding:8px 10px;vertical-align:top;">
+                    @if(!empty($partida['third_id']))
+                        <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:#0f172a;font-size:12px;">
+                            <span>{{ $partida['tercero_label'] }}</span>
+                            <span style="cursor:pointer;color:#cbd5e1;margin-left:auto;" wire:click="$set('partidas.{{ $i }}.third_id', null); $set('partidas.{{ $i }}.tercero_label', '')">✕</span>
+                        </div>
+                    @else
+                        <div style="position:relative;">
+                            <input type="text" class="cr-input" style="padding:7px 10px;font-size:12.5px;" placeholder="Buscar tercero..."
+                                wire:model.live.debounce.400ms="partidas.{{ $i }}.tercero_search">
+                            @if(!empty($partida['tercero_search']) && mb_strlen($partida['tercero_search']) >= 2)
+                                @php $opcionesTercero = $this->tercerosFiltradosPara($partida['tercero_search']); @endphp
+                                @if($opcionesTercero->count() > 0)
+                                <div style="position:absolute;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:.6rem;width:max-content;min-width:100%;margin-top:4px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);">
+                                    @foreach($opcionesTercero as $t)
+                                        <div class="cr-tercero-item" wire:click="seleccionarTerceroPartida({{ $i }}, {{ $t->id }})">{{ $t->nombre_completo }} — {{ $t->numero_documento }}</div>
+                                    @endforeach
+                                </div>
+                                @endif
+                            @endif
+                        </div>
+                    @endif
+                </td>
+                <td style="padding:8px 10px;vertical-align:top;">
                     <input type="text" class="cr-input" style="padding:7px 10px;font-size:12.5px;" wire:model="partidas.{{ $i }}.descripcion" placeholder="Detalle (opcional)...">
                 </td>
                 <td style="padding:8px 10px;vertical-align:top;">
@@ -143,7 +167,7 @@
         </tbody>
         <tfoot>
             <tr style="background:{{ $colorBg }};border-top:1.5px solid {{ $colorBorder }};">
-                <td colspan="2" style="padding:12px 10px;text-align:right;font-size:12px;font-weight:800;color:#64748b;letter-spacing:.03em;">TOTAL PARTIDAS</td>
+                <td colspan="3" style="padding:12px 10px;text-align:right;font-size:12px;font-weight:800;color:#64748b;letter-spacing:.03em;">TOTAL PARTIDAS</td>
                 <td style="padding:12px 10px;text-align:right;font-size:16px;font-weight:900;color:{{ $colorPrincipal }};">${{ number_format($this->montoTotalPartidas, 0, ',', '.') }}</td>
                 <td></td>
             </tr>

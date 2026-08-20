@@ -42,7 +42,10 @@ abstract class ComprobanteRapidoBase extends Page
 
     private function partidaVacia(): array
     {
-        return ['account_id' => null, 'label' => '', 'monto' => null, 'descripcion' => '', 'search' => ''];
+        return [
+            'account_id' => null, 'label' => '', 'monto' => null, 'descripcion' => '', 'search' => '',
+            'third_id' => null, 'tercero_label' => '', 'tercero_search' => '',
+        ];
     }
 
     public function agregarPartida(): void
@@ -77,6 +80,25 @@ abstract class ComprobanteRapidoBase extends Page
         $this->partidas[$index]['account_id'] = $cuenta->id;
         $this->partidas[$index]['label']      = "{$cuenta->codigo} — {$cuenta->nombre}";
         $this->partidas[$index]['search']     = '';
+    }
+
+    public function tercerosFiltradosPara(string $term)
+    {
+        if (mb_strlen($term) < 2) {
+            return collect();
+        }
+        return Third::where('nombre_completo', 'like', "%{$term}%")
+            ->orWhere('numero_documento', 'like', "%{$term}%")
+            ->orderBy('nombre_completo')->limit(20)->get();
+    }
+
+    public function seleccionarTerceroPartida(int $index, int $thirdId): void
+    {
+        $tercero = Third::find($thirdId);
+        if (!$tercero || !isset($this->partidas[$index])) return;
+        $this->partidas[$index]['third_id']       = $tercero->id;
+        $this->partidas[$index]['tercero_label']  = $tercero->nombre_completo;
+        $this->partidas[$index]['tercero_search'] = '';
     }
 
     public function getMontoTotalPartidasProperty(): float
@@ -282,7 +304,7 @@ abstract class ComprobanteRapidoBase extends Page
                 'account_id'  => $p['account_id'],
                 'monto'       => (float) $p['monto'],
                 'descripcion' => $p['descripcion'] ?: $this->concepto,
-                'third_id'    => $this->third_id,
+                'third_id'    => $p['third_id'] ?? $this->third_id,
             ])->values()->all();
 
         $this->monto = round(array_sum(array_column($partidas, 'monto')), 2);
