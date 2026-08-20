@@ -143,24 +143,42 @@ class OwnerLiquidationForm
                             $iva = (float) ($get('iva_comision') ?? $record?->iva_comision ?? 0);
                             $rete = (float) ($get('retefuente_valor') ?? $record?->retefuente_valor ?? 0);
                             $desc = (float) ($get('otros_descuentos') ?? 0);
+                            $seguro = (float) ($get('seguro_sura_deducido') ?? $record?->seguro_sura_deducido ?? 0);
                             $total = max(0, $canon - $comision - $iva - $rete - $desc);
 
-                            $filas = [
-                                ['label' => 'Canon cobrado', 'valor' => $canon, 'signo' => ''],
-                                ['label' => 'Comisión administración', 'valor' => $comision, 'signo' => '−'],
-                                ['label' => 'IVA sobre comisión', 'valor' => $iva, 'signo' => '−'],
-                                ['label' => 'Retención en la fuente', 'valor' => $rete, 'signo' => '−'],
-                                ['label' => 'Otros descuentos', 'valor' => $desc, 'signo' => '−'],
-                            ];
+                            // El canon_cobrado ya trae el redondeo del seguro (a favor
+                            // del propietario) sumado por dentro — se desglosa aparte
+                            // para que se vea de dónde sale cada peso, no solo el total.
+                            $bill = $record?->bills->first();
+                            $canonPuro = $bill ? (float) $bill->canon_base : $canon;
+                            $redondeo = $bill ? round($canon - $canonPuro, 2) : 0;
+
+                            $filas = [];
+                            if ($redondeo != 0) {
+                                $filas[] = ['label' => 'Canon puro', 'valor' => $canonPuro, 'signo' => ''];
+                                $filas[] = ['label' => 'Redondeo del seguro (a favor del propietario)', 'valor' => $redondeo, 'signo' => '+'];
+                            } else {
+                                $filas[] = ['label' => 'Canon cobrado', 'valor' => $canon, 'signo' => ''];
+                            }
+                            $filas[] = ['label' => 'Comisión administración', 'valor' => $comision, 'signo' => '−'];
+                            $filas[] = ['label' => 'IVA sobre comisión', 'valor' => $iva, 'signo' => '−'];
+                            $filas[] = ['label' => 'Retención en la fuente', 'valor' => $rete, 'signo' => '−'];
+                            $filas[] = ['label' => 'Otros descuentos', 'valor' => $desc, 'signo' => '−'];
 
                             $filasHtml = '';
                             foreach ($filas as $f) {
-                                $color = $f['signo'] === '−' && $f['valor'] > 0 ? '#dc2626' : '#0F172A';
+                                $color = $f['signo'] === '−' && $f['valor'] > 0 ? '#dc2626' : ($f['signo'] === '+' ? '#059669' : '#0F172A');
                                 $filasHtml .= '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e2e8f0;font-size:12.5px;">'
                                     . '<span style="color:#64748b;font-weight:600;">' . $f['label'] . '</span>'
                                     . '<span style="font-weight:700;color:' . $color . ';">' . $f['signo'] . '$' . number_format($f['valor'], 0, ',', '.') . '</span>'
                                     . '</div>';
                             }
+
+                            $seguroHtml = $seguro > 0
+                                ? '<div style="margin-top:10px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;color:#1e40af;">'
+                                    . '🛡️ El inquilino también pagó <strong>$' . number_format($seguro, 0, ',', '.') . '</strong> de seguro SURA — se transfiere directo a la aseguradora, no forma parte de esta cuenta ni afecta el total a girar.'
+                                    . '</div>'
+                                : '';
 
                             return new \Illuminate\Support\HtmlString(
                                 '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:6px;font-family:\'Plus Jakarta Sans\',sans-serif;">'
@@ -169,6 +187,7 @@ class OwnerLiquidationForm
                                 . '<span style="font-size:12px;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:.04em;">Total a girar</span>'
                                 . '<span style="font-size:20px;font-weight:900;color:#059669;letter-spacing:-.01em;">$' . number_format($total, 0, ',', '.') . '</span>'
                                 . '</div>'
+                                . $seguroHtml
                                 . '</div>'
                             );
                         }),
