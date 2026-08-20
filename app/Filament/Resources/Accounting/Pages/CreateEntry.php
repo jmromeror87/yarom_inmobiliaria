@@ -4,11 +4,32 @@ namespace App\Filament\Resources\Accounting\Pages;
 
 use App\Filament\Resources\Accounting\AccountingEntryResource;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Support\Exceptions\Halt;
 
 class CreateEntry extends CreateRecord
 {
     protected static string $resource = AccountingEntryResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $lineas = $data['lines'] ?? [];
+        $debitos = round(array_sum(array_column($lineas, 'debito')), 2);
+        $creditos = round(array_sum(array_column($lineas, 'credito')), 2);
+
+        if (abs($debitos - $creditos) >= 0.01) {
+            Notification::make()
+                ->title('El comprobante no cuadra')
+                ->body('Débitos $' . number_format($debitos, 0, ',', '.') . ' vs. créditos $' . number_format($creditos, 0, ',', '.') . '. No se guardó — ajusta las partidas para que sumen igual.')
+                ->danger()
+                ->send();
+
+            throw new Halt();
+        }
+
+        return $data;
+    }
 
     protected function afterCreate(): void
     {
