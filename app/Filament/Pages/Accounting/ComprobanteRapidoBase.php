@@ -260,7 +260,10 @@ abstract class ComprobanteRapidoBase extends Page
     {
         $cpc = CuentaPorCobrar::findOrFail($this->idObligacion());
         $cpc->registrarAbono($this->monto, $formaPago, $this->referencia ?? '', Auth::id(), $this->concepto ?? '');
-        ContabilidadService::generarParaAbonoCarteraHeredada($cpc, $this->monto, $bank, $this->fecha);
+        $entry = ContabilidadService::generarParaAbonoCarteraHeredada($cpc, $this->monto, $bank, $this->fecha);
+        if (!$entry) {
+            throw new \RuntimeException('No se pudo generar el asiento contable del abono (revisa que exista un período contable abierto y las cuentas configuradas).');
+        }
     }
 
     private function aplicarLiquidacion(Bank $bank, string $formaPago): void
@@ -284,7 +287,10 @@ abstract class ComprobanteRapidoBase extends Page
     {
         $cpp = CuentaPorPagarPropietario::findOrFail($this->idObligacion());
         $cpp->registrarPago($this->monto, $this->referencia ?? '', $this->concepto ?? '');
-        ContabilidadService::generarParaPagoCxpHeredada($cpp, $this->monto, $bank, $this->fecha);
+        $entry = ContabilidadService::generarParaPagoCxpHeredada($cpp, $this->monto, $bank, $this->fecha);
+        if (!$entry) {
+            throw new \RuntimeException('No se pudo generar el asiento contable del pago (revisa que exista un período contable abierto y las cuentas configuradas).');
+        }
     }
 
     private function aplicarOtro(Bank $bank): void
@@ -309,7 +315,7 @@ abstract class ComprobanteRapidoBase extends Page
 
         $this->monto = round(array_sum(array_column($partidas, 'monto')), 2);
 
-        ContabilidadService::generarComprobanteRapido(
+        $entry = ContabilidadService::generarComprobanteRapido(
             tipo: $this->tipo(),
             bank: $bank,
             partidas: $partidas,
@@ -318,6 +324,10 @@ abstract class ComprobanteRapidoBase extends Page
             fecha: $this->fecha,
             referencia: $this->referencia,
         );
+
+        if (!$entry) {
+            throw new \RuntimeException('No se pudo generar el asiento contable (revisa que exista un período contable abierto, que la cuenta de banco/caja esté configurada y que las partidas cuadren).');
+        }
     }
 
     public string $tercero_search = '';

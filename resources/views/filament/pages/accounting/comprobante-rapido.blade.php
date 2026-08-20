@@ -153,10 +153,10 @@
                     @endif
                 </td>
                 <td style="padding:8px 10px;vertical-align:top;">
-                    <input type="text" class="cr-input" style="padding:7px 10px;font-size:12.5px;" wire:model="partidas.{{ $i }}.descripcion" placeholder="Detalle (opcional)...">
+                    <input type="text" class="cr-input" style="padding:7px 10px;font-size:12.5px;" wire:model.live.debounce.400ms="partidas.{{ $i }}.descripcion" placeholder="Detalle (opcional)...">
                 </td>
                 <td style="padding:8px 10px;vertical-align:top;">
-                    <input type="number" class="cr-input" style="padding:7px 10px;font-size:12.5px;text-align:right;font-weight:700;" wire:model="partidas.{{ $i }}.monto" placeholder="0">
+                    <input type="number" class="cr-input" style="padding:7px 10px;font-size:12.5px;text-align:right;font-weight:700;" wire:model.live.debounce.400ms="partidas.{{ $i }}.monto" placeholder="0">
                 </td>
                 <td style="padding:8px 6px;vertical-align:top;text-align:center;">
                     @if(count($partidas) > 1)
@@ -191,7 +191,7 @@
     <div class="cr-grid" style="margin-bottom:14px;">
         <div>
             <span class="cr-label">Cuenta de caja/banco</span>
-            <select class="cr-select" wire:model="bank_id">
+            <select class="cr-select" wire:model.live="bank_id">
                 <option value="">Selecciona...</option>
                 @foreach($this->bancos as $b)
                     <option value="{{ $b->id }}">{{ $b->nombre }} @if($b->numero_cuenta) — {{ $b->numero_cuenta }} @endif</option>
@@ -203,12 +203,12 @@
             @if($aplicacion === 'otro')
                 <input type="text" class="cr-input" value="${{ number_format($this->montoTotalPartidas, 0, ',', '.') }}" disabled style="background:#f1f5f9;font-weight:800;color:{{ $colorPrincipal }};">
             @else
-                <input type="number" class="cr-input" wire:model="monto" placeholder="0" @if($obligacion) title="Precargado del pendiente seleccionado — puedes ajustarlo" @endif>
+                <input type="number" class="cr-input" wire:model.live.debounce.400ms="monto" placeholder="0" @if($obligacion) title="Precargado del pendiente seleccionado — puedes ajustarlo" @endif>
             @endif
         </div>
         <div>
             <span class="cr-label">Fecha</span>
-            <input type="date" class="cr-input" wire:model="fecha">
+            <input type="date" class="cr-input" wire:model.live="fecha">
         </div>
         <div>
             <span class="cr-label">Referencia (opcional)</span>
@@ -219,9 +219,16 @@
     <textarea class="cr-input" wire:model="concepto" rows="2" placeholder="Describe brevemente el {{ $esIngreso ? 'ingreso' : 'egreso' }}..."></textarea>
 </div>
 
-<div style="display:flex;justify-content:flex-end;">
-    <button wire:click="guardar" wire:loading.attr="disabled"
-        style="background:linear-gradient(135deg,{{ $colorPrincipal }},{{ $esIngreso ? '#15803d' : '#b91c1c' }});color:#fff;border:none;padding:13px 32px;border-radius:.75rem;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px {{ $colorBorder }};">
+@php
+    $puedeGuardar = $bank_id && $fecha
+        && ($aplicacion === 'otro' ? $this->montoTotalPartidas > 0 : (float) $monto > 0);
+@endphp
+<div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;">
+    @if(!$puedeGuardar)
+        <span style="font-size:12px;color:#94a3b8;">Completa banco, fecha y {{ $aplicacion === 'otro' ? 'al menos una partida con valor' : 'el monto' }} para registrar.</span>
+    @endif
+    <button wire:click="guardar" wire:loading.attr="disabled" @disabled(!$puedeGuardar)
+        style="background:{{ $puedeGuardar ? 'linear-gradient(135deg,'.$colorPrincipal.','.($esIngreso ? '#15803d' : '#b91c1c').')' : '#94a3b8' }};color:#fff;border:none;padding:13px 32px;border-radius:.75rem;font-size:14px;font-weight:800;cursor:{{ $puedeGuardar ? 'pointer' : 'not-allowed' }};box-shadow:{{ $puedeGuardar ? '0 4px 14px '.$colorBorder : 'none' }};">
         <span wire:loading.remove>✓ Registrar y contabilizar</span>
         <span wire:loading>Procesando...</span>
     </button>
