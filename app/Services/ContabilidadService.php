@@ -623,21 +623,40 @@ class ContabilidadService
     }
 
     /** Comprobante libre de ingreso/egreso contra una cuenta cualquiera (gasto vario, ingreso vario, etc.) */
-    public static function generarComprobanteRapido(string $tipo, Bank $bank, int $cuentaContrariaId, float $monto, string $concepto, ?int $thirdId, string $fecha, ?string $referencia = null): ?AccountingEntry
+    /**
+     * @param  array<int, array{account_id:int, monto:float, descripcion?:?string, third_id?:?int}>  $partidas
+     *         Varias partidas por comprobante — cada una es una cuenta contraria
+     *         distinta con su propio valor. La cuenta de banco/caja se calcula
+     *         una sola vez por el TOTAL (suma de partidas), así el comprobante
+     *         siempre cuadra sin que el usuario tenga que pensar en débito/
+     *         crédito por partida.
+     */
+    public static function generarComprobanteRapido(string $tipo, Bank $bank, array $partidas, string $concepto, ?int $thirdId, string $fecha, ?string $referencia = null): ?AccountingEntry
     {
         $cuentaBanco = $bank->accounting_account_id ?: static::cuentaId('11100502');
         if (!$cuentaBanco) return null;
 
-        // CI = entra dinero (débito banco, crédito cuenta elegida) — CE = sale dinero (débito cuenta elegida, crédito banco)
+        $partidas = array_values(array_filter($partidas, fn ($p) => !empty($p['account_id']) && (float) ($p['monto'] ?? 0) > 0));
+        if (empty($partidas)) return null;
+
+        $total = round(array_sum(array_map(fn ($p) => (float) $p['monto'], $partidas)), 2);
+        if ($total <= 0) return null;
+
+        // CI = entra dinero (débito banco, crédito cada cuenta de la partida)
+        // CE = sale dinero (débito cada cuenta de la partida, crédito banco)
+        $lineasPartidas = array_map(fn ($p) => $tipo === 'CI'
+            ? ['account_id' => $p['account_id'], 'debito' => 0, 'credito' => (float) $p['monto'], 'descripcion' => $p['descripcion'] ?: $concepto, 'third_id' => $p['third_id'] ?? $thirdId]
+            : ['account_id' => $p['account_id'], 'debito' => (float) $p['monto'], 'credito' => 0, 'descripcion' => $p['descripcion'] ?: $concepto, 'third_id' => $p['third_id'] ?? $thirdId],
+            $partidas
+        );
+
+        $lineaBanco = $tipo === 'CI'
+            ? ['account_id' => $cuentaBanco, 'debito' => $total, 'credito' => 0, 'descripcion' => $concepto, 'third_id' => $thirdId]
+            : ['account_id' => $cuentaBanco, 'debito' => 0, 'credito' => $total, 'descripcion' => $concepto, 'third_id' => $thirdId];
+
         $lineas = $tipo === 'CI'
-            ? [
-                ['account_id' => $cuentaBanco,       'debito' => $monto, 'credito' => 0,      'descripcion' => $concepto, 'third_id' => $thirdId],
-                ['account_id' => $cuentaContrariaId, 'debito' => 0,      'credito' => $monto, 'descripcion' => $concepto, 'third_id' => $thirdId],
-            ]
-            : [
-                ['account_id' => $cuentaContrariaId, 'debito' => $monto, 'credito' => 0,      'descripcion' => $concepto, 'third_id' => $thirdId],
-                ['account_id' => $cuentaBanco,        'debito' => 0,      'credito' => $monto, 'descripcion' => $concepto, 'third_id' => $thirdId],
-            ];
+            ? array_merge([$lineaBanco], $lineasPartidas)
+            : array_merge($lineasPartidas, [$lineaBanco]);
 
         return static::crearComprobante([
             'tipo'            => $tipo,

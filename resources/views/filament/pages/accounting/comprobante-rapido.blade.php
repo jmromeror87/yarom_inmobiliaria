@@ -83,26 +83,64 @@
 </div>
 @endif
 
-{{-- Paso 4 (otro concepto): cuenta contraria manual --}}
+{{-- Paso 4 (otro concepto): varias partidas --}}
 @if($aplicacion === 'otro')
 <div class="cr-card">
-    <span class="cr-label">3. Cuenta contable ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto/cuenta se aplica' }})</span>
-    <div style="position:relative;">
-        <input type="text" class="cr-input" placeholder="Buscar por nombre o código de cuenta..." wire:model.live.debounce.400ms="cuenta_search">
-        @if($this->cuentasFiltradas->count() > 0 && !$account_id)
-            <div style="position:absolute;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:.6rem;width:100%;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);">
-                @foreach($this->cuentasFiltradas as $c)
-                    <div class="cr-tercero-item" wire:click="seleccionarCuenta({{ $c->id }})">{{ $c->codigo }} — {{ $c->nombre }}</div>
-                @endforeach
-            </div>
-        @endif
-    </div>
-    @if($account_id)
-        <div style="margin-top:8px;display:inline-flex;align-items:center;gap:8px;background:{{ $colorBg }};border:1px solid {{ $colorBorder }};border-radius:99px;padding:5px 14px;font-size:12.5px;font-weight:700;color:{{ $colorPrincipal }};">
-            ✓ {{ \App\Models\AccountingAccount::find($account_id)?->codigo }} — {{ \App\Models\AccountingAccount::find($account_id)?->nombre }}
-            <span style="cursor:pointer;color:#94a3b8;" wire:click="$set('account_id', null); $set('cuenta_search', '')">✕</span>
+    <span class="cr-label">3. Partidas ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto(s)/cuenta(s) se aplica' }}) — puedes agregar varias</span>
+
+    @foreach($partidas as $i => $partida)
+    <div style="border:1px solid #e2e8f0;border-radius:.75rem;padding:14px;margin-bottom:10px;background:#f8fafc;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:.05em;">PARTIDA {{ $i + 1 }}</span>
+            @if(count($partidas) > 1)
+            <span style="cursor:pointer;color:#dc2626;font-size:12px;font-weight:700;" wire:click="quitarPartida({{ $i }})">✕ Quitar</span>
+            @endif
         </div>
-    @endif
+
+        <div style="position:relative;margin-bottom:10px;">
+            <input type="text" class="cr-input" placeholder="Buscar cuenta por nombre o código..."
+                wire:model.live.debounce.400ms="partidas.{{ $i }}.search">
+            @if(!empty($partida['search']) && mb_strlen($partida['search']) >= 2 && empty($partida['account_id']))
+                @php $opcionesCuenta = $this->cuentasFiltradasPara($partida['search']); @endphp
+                @if($opcionesCuenta->count() > 0)
+                <div style="position:absolute;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:.6rem;width:100%;margin-top:4px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);">
+                    @foreach($opcionesCuenta as $c)
+                        <div class="cr-tercero-item" wire:click="seleccionarCuentaPartida({{ $i }}, {{ $c->id }})">{{ $c->codigo }} — {{ $c->nombre }}</div>
+                    @endforeach
+                </div>
+                @endif
+            @endif
+        </div>
+
+        @if(!empty($partida['account_id']))
+        <div style="margin-bottom:10px;display:inline-flex;align-items:center;gap:8px;background:{{ $colorBg }};border:1px solid {{ $colorBorder }};border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;color:{{ $colorPrincipal }};">
+            ✓ {{ $partida['label'] }}
+            <span style="cursor:pointer;color:#94a3b8;" wire:click="$set('partidas.{{ $i }}.account_id', null); $set('partidas.{{ $i }}.label', '')">✕</span>
+        </div>
+        @endif
+
+        <div class="cr-grid">
+            <div>
+                <span class="cr-label">Valor de esta partida ($)</span>
+                <input type="number" class="cr-input" wire:model="partidas.{{ $i }}.monto" placeholder="0">
+            </div>
+            <div>
+                <span class="cr-label">Descripción (opcional)</span>
+                <input type="text" class="cr-input" wire:model="partidas.{{ $i }}.descripcion" placeholder="Detalle de esta partida...">
+            </div>
+        </div>
+    </div>
+    @endforeach
+
+    <button type="button" wire:click="agregarPartida"
+        style="background:#fff;border:1.5px dashed #cbd5e1;border-radius:.6rem;padding:10px 16px;font-size:12.5px;font-weight:700;color:#475569;cursor:pointer;width:100%;">
+        + Agregar otra partida
+    </button>
+
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12.5px;font-weight:700;color:#64748b;">Total de todas las partidas</span>
+        <span style="font-size:19px;font-weight:900;color:{{ $colorPrincipal }};">${{ number_format($this->montoTotalPartidas, 0, ',', '.') }}</span>
+    </div>
 </div>
 @endif
 
@@ -120,8 +158,12 @@
             </select>
         </div>
         <div>
-            <span class="cr-label">Monto ($)</span>
-            <input type="number" class="cr-input" wire:model="monto" placeholder="0" @if($obligacion) title="Precargado del pendiente seleccionado — puedes ajustarlo" @endif>
+            <span class="cr-label">Monto ($) {{ $aplicacion === 'otro' ? '— suma de las partidas' : '' }}</span>
+            @if($aplicacion === 'otro')
+                <input type="text" class="cr-input" value="${{ number_format($this->montoTotalPartidas, 0, ',', '.') }}" disabled style="background:#f1f5f9;font-weight:800;color:{{ $colorPrincipal }};">
+            @else
+                <input type="number" class="cr-input" wire:model="monto" placeholder="0" @if($obligacion) title="Precargado del pendiente seleccionado — puedes ajustarlo" @endif>
+            @endif
         </div>
         <div>
             <span class="cr-label">Fecha</span>

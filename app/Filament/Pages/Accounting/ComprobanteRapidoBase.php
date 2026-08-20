@@ -30,11 +30,58 @@ abstract class ComprobanteRapidoBase extends Page
     public string $fecha = '';
     public ?string $concepto = null;
     public ?string $referencia = null;
-    public ?int $account_id = null;
+
+    /** @var array<int, array{account_id: ?int, label: string, monto: ?float, descripcion: ?string, search: string}> */
+    public array $partidas = [];
 
     public function mount(): void
     {
         $this->fecha = now()->toDateString();
+        $this->partidas = [$this->partidaVacia()];
+    }
+
+    private function partidaVacia(): array
+    {
+        return ['account_id' => null, 'label' => '', 'monto' => null, 'descripcion' => '', 'search' => ''];
+    }
+
+    public function agregarPartida(): void
+    {
+        $this->partidas[] = $this->partidaVacia();
+    }
+
+    public function quitarPartida(int $index): void
+    {
+        if (count($this->partidas) <= 1) return;
+        unset($this->partidas[$index]);
+        $this->partidas = array_values($this->partidas);
+    }
+
+    public function cuentasFiltradasPara(string $term)
+    {
+        if (mb_strlen($term) < 2) {
+            return collect();
+        }
+        return AccountingAccount::where('acepta_movimiento', true)->where('estado', 'activo')
+            ->where(function ($q) use ($term) {
+                $q->where('nombre', 'like', "%{$term}%")
+                    ->orWhere('codigo', 'like', "%{$term}%");
+            })
+            ->orderBy('codigo')->limit(20)->get();
+    }
+
+    public function seleccionarCuentaPartida(int $index, int $accountId): void
+    {
+        $cuenta = AccountingAccount::find($accountId);
+        if (!$cuenta || !isset($this->partidas[$index])) return;
+        $this->partidas[$index]['account_id'] = $cuenta->id;
+        $this->partidas[$index]['label']      = "{$cuenta->codigo} — {$cuenta->nombre}";
+        $this->partidas[$index]['search']     = '';
+    }
+
+    public function getMontoTotalPartidasProperty(): float
+    {
+        return round(array_sum(array_map(fn ($p) => (float) ($p['monto'] ?? 0), $this->partidas)), 2);
     }
 
     public function getEsIngresoProperty(): bool
@@ -68,28 +115,6 @@ abstract class ComprobanteRapidoBase extends Page
             ->orderBy('codigo')->get();
     }
 
-    public string $cuenta_search = '';
-
-    public function getCuentasFiltradasProperty()
-    {
-        if (mb_strlen($this->cuenta_search) < 2) {
-            return collect();
-        }
-        return AccountingAccount::where('acepta_movimiento', true)->where('estado', 'activo')
-            ->where(function ($q) {
-                $q->where('nombre', 'like', "%{$this->cuenta_search}%")
-                    ->orWhere('codigo', 'like', "%{$this->cuenta_search}%");
-            })
-            ->orderBy('codigo')->limit(20)->get();
-    }
-
-    public function seleccionarCuenta(int $id): void
-    {
-        $this->account_id = $id;
-        $cuenta = AccountingAccount::find($id);
-        $this->cuenta_search = $cuenta ? "{$cuenta->codigo} — {$cuenta->nombre}" : '';
-    }
-
     public function updatedThirdId(): void
     {
         $this->obligacion = null;
@@ -100,6 +125,7 @@ abstract class ComprobanteRapidoBase extends Page
     {
         $this->obligacion = null;
         $this->monto = null;
+        $this->partidas = [$this->partidaVacia()];
     }
 
     public function updatedObligacion(): void
@@ -147,11 +173,16 @@ abstract class ComprobanteRapidoBase extends Page
 
     public function guardar(): void
     {
-        $this->validate([
+        $reglas = [
             'bank_id' => 'required',
-            'monto' => 'required|numeric|min:1',
             'fecha' => 'required|date',
-        ]);
+        ];
+        // Con "otro" el monto no se digita directo — sale de sumar las
+        // partidas, así que se valida más abajo en aplicarOtro().
+        if ($this->aplicacion !== 'otro') {
+            $reglas['monto'] = 'required|numeric|min:1';
+        }
+        $this->validate($reglas);
 
         $bank = Bank::find($this->bank_id);
         $formaPago = $bank->tipo_cuenta === 'caja' ? 'efectivo' : 'transferencia';
@@ -237,15 +268,29 @@ abstract class ComprobanteRapidoBase extends Page
     private function aplicarOtro(Bank $bank): void
     {
         $this->validate([
-            'account_id' => 'required',
             'concepto' => 'required',
+            'partidas' => 'required|array|min:1',
+            'partidas.*.account_id' => 'required',
+            'partidas.*.monto' => 'required|numeric|min:1',
+        ], [], [
+            'partidas.*.account_id' => 'cuenta de la partida',
+            'partidas.*.monto' => 'valor de la partida',
         ]);
+
+        $partidas = collect($this->partidas)
+            ->map(fn ($p) => [
+                'account_id'  => $p['account_id'],
+                'monto'       => (float) $p['monto'],
+                'descripcion' => $p['descripcion'] ?: $this->concepto,
+                'third_id'    => $this->third_id,
+            ])->values()->all();
+
+        $this->monto = round(array_sum(array_column($partidas, 'monto')), 2);
 
         ContabilidadService::generarComprobanteRapido(
             tipo: $this->tipo(),
             bank: $bank,
-            cuentaContrariaId: $this->account_id,
-            monto: $this->monto,
+            partidas: $partidas,
             concepto: $this->concepto,
             thirdId: $this->third_id,
             fecha: $this->fecha,
