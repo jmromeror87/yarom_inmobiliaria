@@ -83,63 +83,79 @@
 </div>
 @endif
 
-{{-- Paso 4 (otro concepto): varias partidas --}}
+{{-- Paso 4 (otro concepto): varias partidas — estilo tabla contable --}}
 @if($aplicacion === 'otro')
-<div class="cr-card">
-    <span class="cr-label">3. Partidas ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto(s)/cuenta(s) se aplica' }}) — puedes agregar varias</span>
-
-    @foreach($partidas as $i => $partida)
-    <div style="border:1px solid #e2e8f0;border-radius:.75rem;padding:14px;margin-bottom:10px;background:#f8fafc;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:.05em;">PARTIDA {{ $i + 1 }}</span>
-            @if(count($partidas) > 1)
-            <span style="cursor:pointer;color:#dc2626;font-size:12px;font-weight:700;" wire:click="quitarPartida({{ $i }})">✕ Quitar</span>
-            @endif
-        </div>
-
-        <div style="position:relative;margin-bottom:10px;">
-            <input type="text" class="cr-input" placeholder="Buscar cuenta por nombre o código..."
-                wire:model.live.debounce.400ms="partidas.{{ $i }}.search">
-            @if(!empty($partida['search']) && mb_strlen($partida['search']) >= 2 && empty($partida['account_id']))
-                @php $opcionesCuenta = $this->cuentasFiltradasPara($partida['search']); @endphp
-                @if($opcionesCuenta->count() > 0)
-                <div style="position:absolute;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:.6rem;width:100%;margin-top:4px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);">
-                    @foreach($opcionesCuenta as $c)
-                        <div class="cr-tercero-item" wire:click="seleccionarCuentaPartida({{ $i }}, {{ $c->id }})">{{ $c->codigo }} — {{ $c->nombre }}</div>
-                    @endforeach
-                </div>
-                @endif
-            @endif
-        </div>
-
-        @if(!empty($partida['account_id']))
-        <div style="margin-bottom:10px;display:inline-flex;align-items:center;gap:8px;background:{{ $colorBg }};border:1px solid {{ $colorBorder }};border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;color:{{ $colorPrincipal }};">
-            ✓ {{ $partida['label'] }}
-            <span style="cursor:pointer;color:#94a3b8;" wire:click="$set('partidas.{{ $i }}.account_id', null); $set('partidas.{{ $i }}.label', '')">✕</span>
-        </div>
-        @endif
-
-        <div class="cr-grid">
-            <div>
-                <span class="cr-label">Valor de esta partida ($)</span>
-                <input type="number" class="cr-input" wire:model="partidas.{{ $i }}.monto" placeholder="0">
-            </div>
-            <div>
-                <span class="cr-label">Descripción (opcional)</span>
-                <input type="text" class="cr-input" wire:model="partidas.{{ $i }}.descripcion" placeholder="Detalle de esta partida...">
-            </div>
-        </div>
+<div class="cr-card" style="padding:0;overflow:hidden;">
+    <div style="padding:18px 24px 4px;">
+        <span class="cr-label" style="margin-bottom:0;">3. Partidas ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto(s)/cuenta(s) se aplica' }})</span>
     </div>
-    @endforeach
 
-    <button type="button" wire:click="agregarPartida"
-        style="background:#fff;border:1.5px dashed #cbd5e1;border-radius:.6rem;padding:10px 16px;font-size:12.5px;font-weight:700;color:#475569;cursor:pointer;width:100%;">
-        + Agregar otra partida
-    </button>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+            <tr style="background:#f8fafc;border-top:1px solid #e2e8f0;border-bottom:1.5px solid #e2e8f0;">
+                <th style="text-align:left;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;width:34%;">Cuenta</th>
+                <th style="text-align:left;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Descripción</th>
+                <th style="text-align:right;padding:9px 10px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em;width:16%;">Valor</th>
+                <th style="width:34px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach($partidas as $i => $partida)
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:8px 10px;vertical-align:top;">
+                    @if(!empty($partida['account_id']))
+                        <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:#0f172a;font-size:12.5px;">
+                            <span style="color:{{ $colorPrincipal }};">●</span>
+                            <span>{{ $partida['label'] }}</span>
+                            <span style="cursor:pointer;color:#cbd5e1;margin-left:auto;" wire:click="$set('partidas.{{ $i }}.account_id', null); $set('partidas.{{ $i }}.label', '')">✕</span>
+                        </div>
+                    @else
+                        <div style="position:relative;">
+                            <input type="text" class="cr-input" style="padding:7px 10px;font-size:12.5px;" placeholder="Buscar cuenta..."
+                                wire:model.live.debounce.400ms="partidas.{{ $i }}.search">
+                            @if(!empty($partida['search']) && mb_strlen($partida['search']) >= 2)
+                                @php $opcionesCuenta = $this->cuentasFiltradasPara($partida['search']); @endphp
+                                @if($opcionesCuenta->count() > 0)
+                                <div style="position:absolute;z-index:20;background:#fff;border:1px solid #e2e8f0;border-radius:.6rem;width:max-content;min-width:100%;margin-top:4px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.1);">
+                                    @foreach($opcionesCuenta as $c)
+                                        <div class="cr-tercero-item" wire:click="seleccionarCuentaPartida({{ $i }}, {{ $c->id }})">{{ $c->codigo }} — {{ $c->nombre }}</div>
+                                    @endforeach
+                                </div>
+                                @endif
+                            @endif
+                        </div>
+                    @endif
+                </td>
+                <td style="padding:8px 10px;vertical-align:top;">
+                    <input type="text" class="cr-input" style="padding:7px 10px;font-size:12.5px;" wire:model="partidas.{{ $i }}.descripcion" placeholder="Detalle (opcional)...">
+                </td>
+                <td style="padding:8px 10px;vertical-align:top;">
+                    <input type="number" class="cr-input" style="padding:7px 10px;font-size:12.5px;text-align:right;font-weight:700;" wire:model="partidas.{{ $i }}.monto" placeholder="0">
+                </td>
+                <td style="padding:8px 6px;vertical-align:top;text-align:center;">
+                    @if(count($partidas) > 1)
+                    <span style="cursor:pointer;color:#dc2626;font-size:15px;" wire:click="quitarPartida({{ $i }})" title="Quitar partida">✕</span>
+                    @endif
+                </td>
+            </tr>
+        @endforeach
+        </tbody>
+        <tfoot>
+            <tr style="background:{{ $colorBg }};border-top:1.5px solid {{ $colorBorder }};">
+                <td colspan="2" style="padding:12px 10px;text-align:right;font-size:12px;font-weight:800;color:#64748b;letter-spacing:.03em;">TOTAL PARTIDAS</td>
+                <td style="padding:12px 10px;text-align:right;font-size:16px;font-weight:900;color:{{ $colorPrincipal }};">${{ number_format($this->montoTotalPartidas, 0, ',', '.') }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
 
-    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:12.5px;font-weight:700;color:#64748b;">Total de todas las partidas</span>
-        <span style="font-size:19px;font-weight:900;color:{{ $colorPrincipal }};">${{ number_format($this->montoTotalPartidas, 0, ',', '.') }}</span>
+    <div style="padding:12px 24px 18px;">
+        <button type="button" wire:click="agregarPartida"
+            style="background:#fff;border:1.5px dashed #cbd5e1;border-radius:.6rem;padding:9px 16px;font-size:12.5px;font-weight:700;color:#475569;cursor:pointer;width:100%;">
+            + Agregar otra partida
+        </button>
     </div>
 </div>
 @endif

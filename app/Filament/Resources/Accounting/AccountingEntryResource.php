@@ -161,7 +161,7 @@ class AccountingEntryResource extends Resource
                         ->defaultItems(2)
                         ->addActionLabel('+ Agregar línea')
                         ->reorderable('orden')
-                        ->collapsible()
+                        ->compact()
                         ->itemLabel(function (array $state): string {
                             $account = $state['account_id']
                                 ? AccountingAccount::find($state['account_id'])
@@ -209,7 +209,7 @@ class AccountingEntryResource extends Resource
             . '  </div>'
             . '</div>'
             . '<div style="display:flex;align-items:center;gap:10px;">'
-            . '  <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;">Estado:</span>'
+            . '  <span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;">Sumas iguales:</span>'
             . $badge
             . '</div>'
             . '</div>'
