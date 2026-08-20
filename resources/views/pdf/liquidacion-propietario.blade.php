@@ -54,6 +54,12 @@
 
 @php
     $money = fn ($v) => number_format((float) $v, 0, ',', '.');
+    $bill = $liquidation->bills->first();
+    // canon_cobrado ya trae el redondeo del seguro (a favor del propietario)
+    // sumado por dentro — se desglosa aparte solo para que el PDF sea
+    // transparente y la suma se pueda verificar a simple vista.
+    $canonPuro = $bill ? (float) $bill->canon_base : (float) $liquidation->canon_cobrado;
+    $redondeo  = $bill ? round((float) $liquidation->canon_cobrado - $canonPuro, 2) : 0;
     $periodoTexto = $liquidation->periodoLabel;
     $periodoArriendo = ($liquidation->periodo_inicio && $liquidation->periodo_fin)
         ? 'arriendo del mes ' . \Carbon\Carbon::parse($liquidation->periodo_inicio)->format('Y-m-d') . ' al ' . \Carbon\Carbon::parse($liquidation->periodo_fin)->format('Y-m-d')
@@ -138,11 +144,17 @@
     <tbody>
         <tr>
             <td>
-                CANON DE ARRIENDO COBRADO
+                CANON DE ARRIENDO
                 <span class="desc-sub"><br>PERIODO: {{ $periodoTexto }}</span>
             </td>
-            <td class="val">{{ $money($liquidation->canon_cobrado) }}</td>
+            <td class="val">{{ $money($canonPuro) }}</td>
         </tr>
+        @if($redondeo != 0)
+        <tr>
+            <td>(+) REDONDEO DEL SEGURO (a favor del propietario)</td>
+            <td class="val">{{ $money($redondeo) }}</td>
+        </tr>
+        @endif
         <tr class="deduccion">
             <td>(-) COMISION DE ADMINISTRACION ({{ rtrim(rtrim(number_format($liquidation->comision_porcentaje, 2), '0'), '.') }}%)</td>
             <td class="val">-{{ $money($liquidation->comision_valor) }}</td>
@@ -160,9 +172,9 @@
         </tr>
         @endif
         @if($liquidation->seguro_sura_deducido > 0)
-        <tr class="deduccion">
-            <td>(-) SEGURO SURA</td>
-            <td class="val">-{{ $money($liquidation->seguro_sura_deducido) }}</td>
+        <tr>
+            <td class="desc-sub">Nota: el inquilino también pagó ${{ $money($liquidation->seguro_sura_deducido) }} de seguro SURA, que se gira directo a la aseguradora — no forma parte de este cálculo ni afecta el neto del propietario.</td>
+            <td class="val"></td>
         </tr>
         @endif
         @if($liquidation->otros_descuentos > 0)
