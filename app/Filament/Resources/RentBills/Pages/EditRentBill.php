@@ -98,32 +98,28 @@ class EditRentBill extends EditRecord
                             $saldoArrastrado = (float) ($get('saldo_anterior_arrastrado') ?? 0);
                             $fechaLimite = $get('fecha_limite_pago') ? \Carbon\Carbon::parse($get('fecha_limite_pago')) : $record->fecha_limite_pago;
 
-                            $capital = round((float) $record->total_factura + $saldoArrastrado - (float) $record->total_pagado, 2);
-
                             if (! $aplicaMora) {
+                                $capital = round((float) $record->total_factura + $saldoArrastrado - (float) $record->total_pagado, 2);
                                 $mora = 0;
                                 $dias = 0;
                                 $saldo = max(0, $capital);
                                 $motivo = 'Mora desactivada para esta factura.';
                             } else {
-                                $finGracia = $fechaLimite->copy()->addDays($record->dias_gracia)->endOfDay();
+                                $preview = clone $record;
+                                $preview->fecha_limite_pago = $fechaLimite;
+                                $preview->saldo_anterior_arrastrado = $saldoArrastrado;
+                                $preview->aplicar_mora = true;
 
-                                if (now()->lte($finGracia)) {
-                                    $mora = 0;
-                                    $dias = 0;
-                                    $saldo = max(0, $capital);
-                                    $motivo = 'Todavía dentro de los ' . $record->dias_gracia . ' días de gracia (vence el ' . $finGracia->format('d/m/Y') . ').';
-                                } else {
-                                    $dias = (int) $fechaLimite->copy()->startOfDay()->diffInDays(now()->startOfDay());
-                                    $baseParaMora = $capital;
-                                    if ($record->rentalContract?->mora_solo_sobre_canon && $record->canon_base > 0) {
-                                        $proporcionCanon = $record->canon_base / max($record->total_factura, 1);
-                                        $baseParaMora = round($capital * $proporcionCanon, 2);
-                                    }
-                                    $mora = round($baseParaMora * ($record->tasa_mora_diaria / 100) * $dias, 2);
-                                    $saldo = max(0, round($capital + $mora, 2));
-                                    $motivo = $dias . ' día' . ($dias == 1 ? '' : 's') . ' de mora · tasa ' . $record->tasa_mora_diaria . '%/día.';
-                                }
+                                $r = \App\Models\RentBill::recalcularMoraDesdeHistorial($preview);
+                                $capital = $r['capital'];
+                                $mora    = $r['mora'];
+                                $dias    = $r['dias_mora'];
+                                $saldo   = max(0, round($capital + $mora, 2));
+
+                                $finGracia = $fechaLimite->copy()->addDays($record->dias_gracia)->endOfDay();
+                                $motivo = $dias <= 0
+                                    ? 'Todavía dentro de los ' . $record->dias_gracia . ' días de gracia (vence el ' . $finGracia->format('d/m/Y') . ').'
+                                    : $dias . ' día' . ($dias == 1 ? '' : 's') . ' de mora (desde el último abono que saldó interés) · tasa ' . $record->tasa_mora_diaria . '%/día.';
                             }
 
                             $color = $mora > 0 ? '#dc2626' : '#059669';

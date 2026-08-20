@@ -41,38 +41,17 @@ class RentPayment extends Model
 
             $totalPagado = $bill->payments()->sum('total_pagado');
 
-            // La mora hay que recalcularla sobre el capital YA neto de este
-            // abono — si no, se queda "congelada" con el valor de antes del
-            // pago (calculado sobre la factura completa) hasta que corra
-            // VerificarMoraJob al día siguiente, mostrando de más mientras
-            // tanto. Misma fórmula que VerificarMoraJob/RentBill::booted().
-            $capital = round(
-                (float) $bill->total_factura + (float) $bill->saldo_anterior_arrastrado - $totalPagado,
-                2
-            );
-
-            $mora = 0.0;
-            $diasMora = $bill->dias_mora;
-
-            if ($bill->aplicar_mora && $capital > 0 && $bill->fecha_limite_pago) {
-                $finGracia = $bill->fecha_limite_pago->copy()->addDays($bill->dias_gracia)->endOfDay();
-
-                if (now()->gt($finGracia)) {
-                    $diasMora = (int) $bill->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
-
-                    $baseParaMora = $capital;
-                    if ($bill->rentalContract?->mora_solo_sobre_canon && $bill->canon_base > 0) {
-                        $proporcionCanon = $bill->canon_base / max($bill->total_factura, 1);
-                        $baseParaMora    = round($capital * $proporcionCanon, 2);
-                    }
-
-                    $mora = round($baseParaMora * ($bill->tasa_mora_diaria / 100) * $diasMora, 2);
-                } else {
-                    $diasMora = 0;
-                }
-            } else {
-                $diasMora = 0;
-            }
+            // La mora se recalcula reproduciendo TODO el historial de pagos
+            // con "interés primero" (RentBill::recalcularMoraDesdeHistorial):
+            // cada abono salda el interés ya causado antes de tocar el
+            // capital, así que después de un abono suficiente el interés
+            // queda en $0 y solo vuelve a correr sobre el capital reducido
+            // desde la fecha de ESE abono — nunca se re-cobra sobre el
+            // capital nuevo el interés de días ya cubiertos.
+            $r = RentBill::recalcularMoraDesdeHistorial($bill);
+            $capital  = $r['capital'];
+            $mora     = $r['mora'];
+            $diasMora = $r['dias_mora'];
 
             $saldo  = max(0, round($capital + $mora, 2));
             $estado = $saldo <= 0 ? 'pagada' : ($totalPagado > 0 ? 'parcial' : $bill->estado);

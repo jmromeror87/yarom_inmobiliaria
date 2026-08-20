@@ -42,29 +42,16 @@ class VerificarMoraJob implements ShouldQueue
         $actualizadas = 0;
 
         foreach ($bills as $bill) {
-            // El período de gracia es solo el "colchón" antes de que la mora
-            // empiece a aplicar (por eso el filtro de arriba exige que ya se
-            // haya superado fecha_limite + dias_gracia). Pero una vez se
-            // supera, la mora se cobra completa desde la fecha límite
-            // ORIGINAL — no se descuentan los días de gracia del conteo.
-            $diasMora = (int) $bill->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
-
-            // La mora se calcula sobre el CAPITAL (factura + saldo arrastrado - pagado),
-            // nunca sobre saldo_pendiente: ese campo puede incluir mora de días
-            // anteriores (no se resincroniza salvo al registrar un pago), y usarlo
-            // como base generaría interés sobre interés silenciosamente.
-            $capital = round(
-                (float) $bill->total_factura + (float) $bill->saldo_anterior_arrastrado - (float) $bill->total_pagado,
-                2
-            );
-
-            $baseParaMora = $capital;
-            if ($bill->rentalContract?->mora_solo_sobre_canon && $bill->canon_base > 0) {
-                $proporcionCanon = $bill->canon_base / max($bill->total_factura, 1);
-                $baseParaMora    = round($capital * $proporcionCanon, 2);
-            }
-
-            $mora = round($baseParaMora * ($bill->tasa_mora_diaria / 100) * $diasMora, 2);
+            // Cálculo canónico (RentBill::recalcularMoraDesdeHistorial): reproduce
+            // el historial de pagos con "interés primero" — cada abono salda el
+            // interés causado antes de tocar capital, y solo entonces el ancla de
+            // cómputo se mueve a la fecha de ese abono. Nunca se cobra interés
+            // sobre interés ni se recalcula sobre el capital nuevo los días ya
+            // saldados por un abono anterior.
+            $r = RentBill::recalcularMoraDesdeHistorial($bill);
+            $capital  = $r['capital'];
+            $mora     = $r['mora'];
+            $diasMora = $r['dias_mora'];
 
             $bill->update([
                 'estado'            => 'en_mora',

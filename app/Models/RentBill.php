@@ -99,12 +99,8 @@ class RentBill extends Model
         static::updating(function (RentBill $b) {
             if (!$b->isDirty(['aplicar_mora', 'fecha_limite_pago', 'periodo_inicio', 'periodo_fin', 'saldo_anterior_arrastrado'])) return;
 
-            $capital = round(
-                (float) $b->total_factura + (float) $b->saldo_anterior_arrastrado - (float) $b->total_pagado,
-                2
-            );
-
             if (!$b->aplicar_mora) {
+                $capital = round((float) $b->total_factura + (float) $b->saldo_anterior_arrastrado - (float) $b->total_pagado, 2);
                 $b->mora_acumulada    = 0;
                 $b->dias_mora         = 0;
                 $b->fecha_inicio_mora = null;
@@ -115,34 +111,22 @@ class RentBill extends Model
                 return;
             }
 
-            $finGracia = $b->fecha_limite_pago->copy()->addDays($b->dias_gracia)->endOfDay();
-            if (now()->lte($finGracia)) {
-                // Aún en gracia con la fecha corregida — la mora vieja (calculada
-                // con la fecha anterior) ya no aplica, hay que limpiarla en vez
-                // de dejarla pegada.
+            $r = static::recalcularMoraDesdeHistorial($b);
+
+            if ($r['dias_mora'] <= 0 || $r['mora'] <= 0) {
                 $b->mora_acumulada    = 0;
                 $b->dias_mora         = 0;
                 $b->fecha_inicio_mora = null;
-                $b->saldo_pendiente   = max(0, $capital);
+                $b->saldo_pendiente   = max(0, $r['capital']);
                 if ($b->estado === 'en_mora') {
                     $b->estado = ((float) $b->total_pagado > 0) ? 'parcial' : 'pendiente';
                 }
                 return;
             }
 
-            $diasMora = (int) $b->fecha_limite_pago->copy()->startOfDay()->diffInDays(now()->startOfDay());
-
-            $baseParaMora = $capital;
-            if ($b->rentalContract?->mora_solo_sobre_canon && $b->canon_base > 0) {
-                $proporcionCanon = $b->canon_base / max($b->total_factura, 1);
-                $baseParaMora    = round($capital * $proporcionCanon, 2);
-            }
-
-            $mora = round($baseParaMora * ($b->tasa_mora_diaria / 100) * $diasMora, 2);
-
-            $b->dias_mora         = $diasMora;
-            $b->mora_acumulada    = $mora;
-            $b->saldo_pendiente   = max(0, round($capital + $mora, 2));
+            $b->dias_mora         = $r['dias_mora'];
+            $b->mora_acumulada    = $r['mora'];
+            $b->saldo_pendiente   = max(0, round($r['capital'] + $r['mora'], 2));
             $b->fecha_inicio_mora = $b->fecha_inicio_mora ?? $b->fecha_limite_pago->toDateString();
             if ($b->estado !== 'pagada') {
                 $b->estado = 'en_mora';
@@ -179,11 +163,94 @@ class RentBill extends Model
     }
 
     // ── Helpers ──────────────────────────────────────────
-    public function calcularMora(): float
+
+    /**
+     * Cálculo canónico de mora: reproduce el historial completo de pagos en
+     * orden cronológico aplicando "interés primero" — cada abono primero
+     * salda el interés ya causado a esa fecha y solo el remanente reduce el
+     * capital. Cuando un abono salda el interés por completo, el ancla de
+     * cómputo ("desde cuándo corre el interés") se mueve a la fecha de ese
+     * abono, así que el interés vuelve a $0 y solo empieza a correr de
+     * nuevo sobre el capital YA reducido — nunca sobre el capital viejo.
+     *
+     * Si un abono NO alcanza a cubrir todo el interés causado, el capital
+     * NO se toca (no se capitaliza interés / anatocismo) y el ancla no se
+     * mueve: el interés sigue corriendo desde el mismo punto sobre el
+     * mismo capital hasta que un abono sí alcance a cubrirlo.
+     *
+     * Es la ÚNICA función que debe calcular mora en todo el sistema —
+     * RentPayment::created(), VerificarMoraJob y RentBill::updating() la
+     * usan en vez de reimplementar la fórmula (evita que se desincronicen).
+     *
+     * @return array{capital: float, mora: float, dias_mora: int, ancla: ?\Carbon\Carbon}
+     */
+    public static function recalcularMoraDesdeHistorial(self $bill, ?\Carbon\Carbon $hasta = null): array
     {
-        if (!$this->fecha_inicio_mora) return 0;
-        $dias = now()->diffInDays($this->fecha_inicio_mora);
-        return round($this->saldo_pendiente * ($this->tasa_mora_diaria / 100) * $dias, 2);
+        $hasta = ($hasta ?? now())->copy();
+        $capital = round((float) $bill->total_factura + (float) $bill->saldo_anterior_arrastrado, 2);
+        $ancla = $bill->fecha_limite_pago?->copy();
+
+        if (!$bill->aplicar_mora || !$ancla) {
+            $totalPagado = (float) $bill->payments()->where('fecha_pago', '<=', $hasta)->sum('total_pagado');
+            return ['capital' => max(0, round($capital - $totalPagado, 2)), 'mora' => 0.0, 'dias_mora' => 0, 'ancla' => $ancla];
+        }
+
+        $finGracia = $ancla->copy()->addDays($bill->dias_gracia)->endOfDay();
+
+        $baseParaMora = function (float $capital) use ($bill): float {
+            if ($bill->rentalContract?->mora_solo_sobre_canon && $bill->canon_base > 0) {
+                $proporcion = $bill->canon_base / max((float) $bill->total_factura, 1);
+                return round($capital * $proporcion, 2);
+            }
+            return $capital;
+        };
+
+        $pagos = $bill->payments()
+            ->where('fecha_pago', '<=', $hasta)
+            ->orderBy('fecha_pago')->orderBy('id')->get();
+
+        // Interés ya cubierto por abonos parciales que no alcanzaron a saldar
+        // por completo el interés causado desde el ancla vigente — se le da
+        // crédito a ese dinero (nunca se pierde), pero sin tocar capital ni
+        // mover el ancla hasta que el interés quede saldado por completo.
+        $interesPagadoAcumulado = 0.0;
+
+        foreach ($pagos as $pago) {
+            $fechaPago = \Carbon\Carbon::parse($pago->fecha_pago);
+
+            $interesCausado = 0.0;
+            if ($capital > 0 && $fechaPago->gt($finGracia)) {
+                $diasMora = $ancla->copy()->startOfDay()->diffInDays($fechaPago->copy()->startOfDay());
+                $interesCausado = round($baseParaMora($capital) * ($bill->tasa_mora_diaria / 100) * $diasMora, 2);
+            }
+
+            $interesNetoAdeudado = max(0, round($interesCausado - $interesPagadoAcumulado, 2));
+            $montoPago = (float) $pago->total_pagado;
+            $interesPagadoEnEstePago = min($montoPago, $interesNetoAdeudado);
+            $interesPagadoAcumulado = round($interesPagadoAcumulado + $interesPagadoEnEstePago, 2);
+            $remanente = round($montoPago - $interesPagadoEnEstePago, 2);
+
+            if ($interesPagadoAcumulado >= $interesCausado - 0.01) {
+                // Interés saldado por completo (en este pago o acumulando con los anteriores):
+                // mueve el ancla y reduce el capital con el remanente. Reinicia el acumulador
+                // porque el interés desde el nuevo ancla arranca en $0.
+                $capital = max(0, round($capital - $remanente, 2));
+                $ancla = $fechaPago->copy();
+                $interesPagadoAcumulado = 0.0;
+            }
+            // Si no alcanzó a cubrir el interés, ni el capital ni el ancla se tocan —
+            // el crédito parcial queda guardado en $interesPagadoAcumulado para el próximo pago.
+        }
+
+        $diasMora = 0;
+        $mora = 0.0;
+        if ($capital > 0 && $hasta->gt($finGracia)) {
+            $diasMora = $ancla->copy()->startOfDay()->diffInDays($hasta->copy()->startOfDay());
+            $interesCausadoHoy = round($baseParaMora($capital) * ($bill->tasa_mora_diaria / 100) * $diasMora, 2);
+            $mora = max(0, round($interesCausadoHoy - $interesPagadoAcumulado, 2));
+        }
+
+        return ['capital' => $capital, 'mora' => $mora, 'dias_mora' => $diasMora, 'ancla' => $ancla];
     }
 
     public function estaEnMora(): bool
