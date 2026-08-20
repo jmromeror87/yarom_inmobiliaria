@@ -46,10 +46,11 @@
     </div>
 </div>
 
-{{-- Paso 2: tercero (si aplica) --}}
-@if($aplicacion !== 'otro' || true)
+{{-- Paso 2: tercero (solo aplica cuando se está cancelando una obligación de un tercero puntual;
+     en "otro" el tercero se elige por partida más abajo, así que este paso sobra) --}}
+@if($aplicacion !== 'otro')
 <div class="cr-card">
-    <span class="cr-label">2. {{ $esIngreso ? '¿Quién paga?' : '¿A quién se le paga?' }} @if($aplicacion === 'otro') (opcional) @endif</span>
+    <span class="cr-label">2. {{ $esIngreso ? '¿Quién paga?' : '¿A quién se le paga?' }}</span>
     <div style="position:relative;">
         <input type="text" class="cr-input" placeholder="Buscar por nombre o documento..." wire:model.live.debounce.400ms="tercero_search">
         @if($this->terceros->count() > 0 && !$third_id)
@@ -87,7 +88,7 @@
 @if($aplicacion === 'otro')
 <div class="cr-card" style="padding:0;overflow:hidden;">
     <div style="padding:18px 24px 4px;">
-        <span class="cr-label" style="margin-bottom:0;">3. Partidas ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto(s)/cuenta(s) se aplica' }})</span>
+        <span class="cr-label" style="margin-bottom:0;">2. Partidas ({{ $esIngreso ? 'de dónde viene el ingreso' : 'a qué gasto(s)/cuenta(s) se aplica' }})</span>
     </div>
 
     <div style="overflow-x:auto;">
@@ -186,7 +187,7 @@
 
 {{-- Paso final: banco, monto, fecha, concepto --}}
 <div class="cr-card">
-    <span class="cr-label">{{ $aplicacion === 'otro' ? '4' : '4' }}. Datos del {{ $esIngreso ? 'recaudo' : 'pago' }}</span>
+    <span class="cr-label">{{ $aplicacion === 'otro' ? '3' : '4' }}. Datos del {{ $esIngreso ? 'recaudo' : 'pago' }}</span>
     <div class="cr-grid" style="margin-bottom:14px;">
         <div>
             <span class="cr-label">Cuenta de caja/banco</span>
