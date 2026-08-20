@@ -68,6 +68,15 @@ class GenerarFacturasMensuales implements ShouldQueue
             $canonBase = (float)$contrato->canon_mensual;
             $admin     = (float)($contrato->cuota_administracion ?? 0);
 
+            // Blindaje: un canon en $0/vacío casi siempre es un dato mal migrado
+            // o un contrato incompleto — generar la factura igual produciría un
+            // cobro de $0 silencioso (y una comisión/liquidación de $0 detrás).
+            // Mejor no facturar y dejar rastro claro para que alguien lo revise.
+            if ($canonBase <= 0) {
+                Log::warning("Contrato {$contrato->numero_contrato} tiene canon_mensual en \$0 o vacío — NO se generó factura de {$mes}/{$anio}. Revisar el contrato.");
+                continue;
+            }
+
             // El ciclo de facturación se ancla SIEMPRE a la última factura real
             // del contrato (nunca al calendario de forma independiente) — así
             // no importa en qué orden o lote se generen los meses, el período
@@ -119,6 +128,13 @@ class GenerarFacturasMensuales implements ShouldQueue
             } else {
                 $total          = $totalExacto;
                 $redondeoSeguro = 0;
+                // Blindaje: si el inmueble tiene seguro SURA activado pero nunca
+                // se configuró "canon cobrado al inquilino" (o quedó por debajo
+                // del total exacto), el redondeo a favor del propietario se
+                // pierde en silencio — se deja advertencia para revisarlo.
+                if ($tieneSeguroSura && $canonInquilino > 0 && $canonInquilino < $totalExacto) {
+                    Log::warning("Inmueble {$contrato->property?->codigo} (contrato {$contrato->numero_contrato}): 'canon cobrado al inquilino' (\$" . $canonInquilino . ") es menor al total exacto con seguro (\$" . $totalExacto . "). Revisar la calculadora SURA del inmueble.");
+                }
             }
 
             // Si el arrendatario es persona jurídica y agente retenedor,
