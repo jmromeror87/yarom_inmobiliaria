@@ -230,16 +230,27 @@ class RentBill extends Model
             $interesPagadoAcumulado = round($interesPagadoAcumulado + $interesPagadoEnEstePago, 2);
             $remanente = round($montoPago - $interesPagadoEnEstePago, 2);
 
-            if ($interesPagadoAcumulado >= $interesCausado - 0.01) {
-                // Interés saldado por completo (en este pago o acumulando con los anteriores):
-                // mueve el ancla y reduce el capital con el remanente. Reinicia el acumulador
-                // porque el interés desde el nuevo ancla arranca en $0.
+            if ($fechaPago->lte($finGracia)) {
+                // Pago hecho DENTRO del período de gracia: todavía no existía
+                // mora que saldar, así que el ancla NUNCA se mueve por esto —
+                // si la mora llega a activarse más adelante, se sigue contando
+                // completa desde la fecha límite ORIGINAL (regla de negocio
+                // confirmada: el período de gracia no recorre el ancla, solo
+                // pospone cuándo empieza a cobrar). Solo se reduce el capital.
+                $capital = max(0, round($capital - $remanente, 2));
+            } elseif ($interesPagadoAcumulado >= $interesCausado - 0.01) {
+                // Ya en mora, y este pago (solo o sumado a los anteriores)
+                // saldó el interés causado por completo: ahí sí se mueve el
+                // ancla a la fecha de este pago y se reduce el capital con el
+                // remanente. Reinicia el acumulador porque el interés desde
+                // el nuevo ancla arranca en $0.
                 $capital = max(0, round($capital - $remanente, 2));
                 $ancla = $fechaPago->copy();
                 $interesPagadoAcumulado = 0.0;
             }
-            // Si no alcanzó a cubrir el interés, ni el capital ni el ancla se tocan —
-            // el crédito parcial queda guardado en $interesPagadoAcumulado para el próximo pago.
+            // Si no alcanzó a cubrir el interés ya causado en mora, ni el
+            // capital ni el ancla se tocan — el crédito parcial queda
+            // guardado en $interesPagadoAcumulado para el próximo pago.
         }
 
         $diasMora = 0;
