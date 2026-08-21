@@ -236,7 +236,15 @@ class AccountingEntryResource extends Resource
 
                 TextColumn::make('period.nombre')->label('Período'),
 
-                TextColumn::make('descripcion')->label('Descripción')->limit(40),
+                TextColumn::make('descripcion')->label('Descripción')->limit(40)
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->where('descripcion', 'like', "%{$search}%")
+                            ->orWhereHas('third', function ($q) use ($search) {
+                                $q->where('nombre_completo', 'like', "%{$search}%")
+                                    ->orWhere('razon_social', 'like', "%{$search}%")
+                                    ->orWhere('nombre_comercial', 'like', "%{$search}%");
+                            });
+                    }),
 
                 TextColumn::make('total_debitos')->label('Débitos')
                     ->money('COP')->sortable()->alignEnd(),
