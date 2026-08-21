@@ -103,6 +103,20 @@ class RentalContract extends Model
         }
     });
 
+    static::updated(function (self $c) {
+        // Si se corrige el canon, la cuota de administración o quién la
+        // cobra/paga, las facturas del inquilino y las liquidaciones al
+        // propietario que aún NO se han pagado se resincronizan con los
+        // valores nuevos del contrato — nunca las ya pagadas ni anuladas
+        // (esas quedan como historia; corregirlas exige un ajuste
+        // explícito, no una edición silenciosa del contrato).
+        $camposFacturables = ['canon_mensual', 'cuota_administracion', 'admin_cobrada_por', 'admin_pagada_inmobiliaria_valor'];
+        if ($c->wasChanged($camposFacturables)) {
+            RentBill::sincronizarPendientesDesdeContrato($c->fresh(['property']));
+            OwnerLiquidation::sincronizarPendientesDesdeContrato($c->fresh(['property.propietario', 'administrationContract']));
+        }
+    });
+
     static::saved(function (self $c) {
         // Crear cuenta por cobrar por depósito si corresponde
         if (

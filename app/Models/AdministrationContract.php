@@ -139,6 +139,19 @@ class AdministrationContract extends Model
                 }
             }
         });
+
+        // Si se corrige la comisión pactada con el propietario, las
+        // liquidaciones YA generadas para este inmueble que aún no se han
+        // pagado se resincronizan con el % nuevo — nunca las ya pagadas ni
+        // las anuladas (esas quedan como historia; corregirlas exige un
+        // ajuste explícito, no una edición silenciosa del contrato).
+        static::updated(function (AdministrationContract $c) {
+            if (! $c->wasChanged('comision_porcentaje')) return;
+
+            RentalContract::where('property_id', $c->property_id)
+                ->get()
+                ->each(fn (RentalContract $rc) => OwnerLiquidation::sincronizarPendientesDesdeContrato($rc));
+        });
     }
 
     // ── Helpers ──────────────────────────────────────────────

@@ -147,6 +147,86 @@ class RentBill extends Model
         });
     }
 
+    /**
+     * Calcula los componentes de la factura (canon, administración, seguro
+     * SURA, retención, IVA, total) a partir de los datos VIGENTES del
+     * contrato — única fórmula fuente, usada tanto por
+     * GenerarFacturasMensuales (factura nueva) como por
+     * sincronizarPendientesDesdeContrato (facturas ya generadas que aún no
+     * se han pagado, cuando se corrige el contrato).
+     */
+    public static function componentesDesdeContrato(RentalContract $contrato): ?array
+    {
+        $canonBase = (float) $contrato->canon_mensual;
+        $admin     = (float) ($contrato->cuota_administracion ?? 0);
+
+        // Mismo blindaje que GenerarFacturasMensuales: un canon en $0 casi
+        // siempre es un dato mal cargado, nunca se factura/resincroniza en silencio.
+        if ($canonBase <= 0) return null;
+
+        $tieneSeguroSura = (bool) ($contrato->property?->tiene_seguro_sura);
+        $valorSeguroSura = $tieneSeguroSura ? (float) ($contrato->property?->valor_seguro_sura ?? 0) : 0;
+        $ivaSeguroSura   = $tieneSeguroSura ? (float) ($contrato->property?->iva_seguro_sura ?? 0) : 0;
+
+        $totalExacto    = $canonBase + $admin + $valorSeguroSura + $ivaSeguroSura;
+        $canonInquilino = (float) ($contrato->property?->canon_cobrado_inquilino ?? 0);
+        if ($tieneSeguroSura && $canonInquilino > $totalExacto) {
+            $total          = $canonInquilino;
+            $redondeoSeguro = round($canonInquilino - $totalExacto, 2);
+        } else {
+            $total          = $totalExacto;
+            $redondeoSeguro = 0;
+        }
+
+        $retencion       = ContabilidadService::calcularRetencionArrendamiento($contrato, $canonBase);
+        $ivaArriendo     = ContabilidadService::calcularIvaArrendamiento($contrato, $canonBase);
+        $reteIvaArriendo = ContabilidadService::calcularReteIvaArrendamiento($contrato, $ivaArriendo);
+
+        return [
+            'canon_base'           => $canonBase,
+            'cuota_administracion' => $admin,
+            'valor_seguro_sura'    => $valorSeguroSura,
+            'iva_seguro_sura'      => $ivaSeguroSura,
+            'redondeo_seguro'      => $redondeoSeguro,
+            'retencion_practicada' => $retencion,
+            'iva_practicado'       => $ivaArriendo,
+            'reteiva_practicada'   => $reteIvaArriendo,
+            'total_factura'        => round($total + $ivaArriendo - $retencion - $reteIvaArriendo, 2),
+        ];
+    }
+
+    /**
+     * Al editar un contrato de arrendamiento (canon, cuota de
+     * administración, etc.) se resincronizan TODAS las facturas del
+     * inquilino que sigan pendientes, parciales o en mora — nunca las ya
+     * pagadas ni las anuladas, esas son historia y solo se corrigen con un
+     * ajuste explícito. Preserva lo ya abonado y la mora ya causada; solo
+     * recalcula el capital de la factura con los valores nuevos del contrato.
+     */
+    public static function sincronizarPendientesDesdeContrato(RentalContract $contrato): void
+    {
+        $c = static::componentesDesdeContrato($contrato);
+        if (!$c) {
+            Log::warning("Contrato {$contrato->numero_contrato}: canon_mensual en \$0 tras editar — no se resincronizaron sus facturas pendientes.");
+            return;
+        }
+
+        static::where('rental_contract_id', $contrato->id)
+            ->whereNotIn('estado', ['pagada', 'anulada'])
+            ->get()
+            ->each(function (self $bill) use ($c) {
+                $totalPagado  = (float) $bill->total_pagado;
+                $nuevoCapital = max(0, round($c['total_factura'] + (float) $bill->saldo_anterior_arrastrado - $totalPagado, 2));
+
+                $bill->fill($c);
+                $bill->saldo_pendiente = round($nuevoCapital + (float) $bill->mora_acumulada, 2);
+                $bill->estado = $bill->saldo_pendiente <= 0
+                    ? 'pagada'
+                    : ($totalPagado > 0 ? 'parcial' : ($bill->dias_mora > 0 ? 'en_mora' : 'pendiente'));
+                $bill->save();
+            });
+    }
+
     // ── Payment token ────────────────────────────────────
     public function generatePaymentToken(): string
     {

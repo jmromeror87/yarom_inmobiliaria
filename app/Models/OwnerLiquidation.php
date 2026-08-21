@@ -100,17 +100,15 @@ class OwnerLiquidation extends Model
         // Contabilización manejada exclusivamente por OwnerLiquidationObserver — no duplicar aquí
     }
 
-    public static function generarDesdeFact(RentBill $bill): static|null
+    /**
+     * Calcula todos los componentes económicos de la liquidación a partir de
+     * la factura del inquilino y el contrato — única fórmula fuente, usada
+     * tanto para generar la liquidación nueva (generarDesdeFact) como para
+     * resincronizar liquidaciones pendientes cuando se edita el contrato de
+     * administración o de arrendamiento (sincronizarPendientesDesdeContrato).
+     */
+    public static function calcularComponentes(RentBill $bill, RentalContract $contrato): array
     {
-        // Permitir re-liquidar si la anterior fue anulada
-        $existeActiva = static::where('rental_contract_id', $bill->rental_contract_id)
-            ->where('mes', $bill->mes)->where('anio', $bill->anio)
-            ->whereNotIn('estado', ['anulada'])->exists();
-        if ($existeActiva) return null;
-
-        $contrato = $bill->rentalContract()->with(['property.propietario', 'arrendatario', 'administrationContract'])->first();
-        if (!$contrato || !$contrato->property) return null;
-
         $company  = Company::first();
 
         $comisionPct = $contrato->administrationContract?->comision_porcentaje
@@ -159,6 +157,33 @@ class OwnerLiquidation extends Model
             ? 'Administración pagada por la inmobiliaria al edificio'
             : null;
 
+        return [
+            'canon_cobrado'          => $canonMostrado,
+            'comision_porcentaje'    => $comisionPct,
+            'comision_valor'         => $comisionValor,
+            'iva_comision'           => $ivaComision,
+            'aplica_retefuente'      => $aplicaRete,
+            'retefuente_valor'       => $retefuente,
+            'seguro_sura_deducido'   => $seguroSura,
+            'otros_descuentos'       => $adminPagadaInmobiliaria,
+            'descripcion_descuentos' => $descripcionDescuentos,
+            'total_giro'             => max(0, $canonMostrado - $comisionValor - $ivaComision - $retefuente - $adminPagadaInmobiliaria),
+        ];
+    }
+
+    public static function generarDesdeFact(RentBill $bill): static|null
+    {
+        // Permitir re-liquidar si la anterior fue anulada
+        $existeActiva = static::where('rental_contract_id', $bill->rental_contract_id)
+            ->where('mes', $bill->mes)->where('anio', $bill->anio)
+            ->whereNotIn('estado', ['anulada'])->exists();
+        if ($existeActiva) return null;
+
+        $contrato = $bill->rentalContract()->with(['property.propietario', 'arrendatario', 'administrationContract'])->first();
+        if (!$contrato || !$contrato->property) return null;
+
+        $c = static::calcularComponentes($bill, $contrato);
+
         $liq = static::create([
             'rental_contract_id'  => $bill->rental_contract_id,
             'property_id'         => $bill->property_id,
@@ -167,21 +192,40 @@ class OwnerLiquidation extends Model
             'anio'                => $bill->anio,
             'periodo_inicio'      => $bill->periodo_inicio,
             'periodo_fin'         => $bill->periodo_fin,
-            'canon_cobrado'       => $canonMostrado,
-            'comision_porcentaje' => $comisionPct,
-            'comision_valor'      => $comisionValor,
-            'iva_comision'        => $ivaComision,
-            'aplica_retefuente'   => $aplicaRete,
-            'retefuente_valor'    => $retefuente,
-            'seguro_sura_deducido'=> $seguroSura,
-            'otros_descuentos'    => $adminPagadaInmobiliaria,
-            'descripcion_descuentos' => $descripcionDescuentos,
-            'total_giro'          => max(0, $canonMostrado - $comisionValor - $ivaComision - $retefuente - $adminPagadaInmobiliaria),
+            ...$c,
             'estado'              => 'pendiente',
         ]);
 
         $bill->update(['owner_liquidation_id' => $liq->id]);
         return $liq;
+    }
+
+    /**
+     * Al editar un contrato de administración (comisión) o de arrendamiento
+     * (canon, cuota admin, quién cobra/paga la administración) se
+     * resincronizan TODAS las liquidaciones al propietario que sigan
+     * pendientes o aprobadas (nunca las pagadas ni las anuladas — esas son
+     * historia y solo se corrigen con un ajuste explícito, nunca en
+     * silencio). El bill vinculado no cambia, solo se recalculan los
+     * componentes económicos de la liquidación con los datos nuevos del
+     * contrato.
+     */
+    public static function sincronizarPendientesDesdeContrato(RentalContract $contrato): void
+    {
+        $contrato->loadMissing(['property.propietario', 'administrationContract']);
+        if (!$contrato->property) return;
+
+        static::where('rental_contract_id', $contrato->id)
+            ->whereNotIn('estado', ['pagada', 'anulada'])
+            ->get()
+            ->each(function (self $liq) use ($contrato) {
+                $bill = $liq->bills()->first();
+                if (!$bill) return;
+
+                $c = static::calcularComponentes($bill, $contrato);
+                $liq->fill($c);
+                $liq->save();
+            });
     }
 
     /**
