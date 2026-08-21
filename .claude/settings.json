@@ -16,7 +16,30 @@
       "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"cat /var/www/yarom-inmobiliaria/vendor/symfony/html-sanitizer/composer.json | grep -E 'version|php|require' | head -20\")",
       "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 ' *)",
       "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"php8.4 -v && ls /etc/php/8.4/fpm/pool.d/\")",
-      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"grep -E '^MAIL_' /var/www/yarom-inmobiliaria/.env\")"
+      "Bash(ssh -i ~/Downloads/LightsailDefaultKey-us-east-1.pem -o StrictHostKeyChecking=no ubuntu@3.238.148.36 \"grep -E '^MAIL_' /var/www/yarom-inmobiliaria/.env\")",
+      "Bash(php probar_recibos.php)",
+      "Bash(php probar_recibos2.php)",
+      "Bash(python3 -c ' *)",
+      "Bash(php ver_recibo_ejemplo.php)",
+      "Bash(nohup php scrape_recibos.php)",
+      "Bash(php -r ' *)",
+      "Bash(sed 's/siinmob_recibos_listado\\\\.json/siinmob_recibos_muestra.json/; s/siinmob_recibos_detalle\\\\.json/siinmob_recibos_detalle_muestra.json/' scrape_detalle_recibos.php)",
+      "Bash(php scrape_detalle_recibos_muestra.php)",
+      "Bash(nohup php scrape_detalle_recibos.php)",
+      "Bash(kill 21186)",
+      "Bash(php diagnostico_recibo.php)",
+      "Bash(sed 's/\\\\$cuentas = .*/\\\\$cuentas = [\"11050501\"];/; s/2026-07-18/2025-01-31/' scrape_recibos_completo.php)",
+      "Bash(php scrape_recibos_prueba.php)",
+      "Bash(nohup php scrape_recibos_completo.php)",
+      "Bash(php -d memory_limit=1G artisan siinmob:integrar-contabilidad --dry-run)",
+      "Bash(php -d memory_limit=1G artisan siinmob:integrar-contabilidad)",
+      "Bash(php verificar_cuenta_bancolombia.php)",
+      "Bash(php verificar_mes_generico.php)",
+      "Bash(php verificar_mayo.php)",
+      "Bash(php verificar_mayo2.php)",
+      "Bash(php verificar_mayo3.php)",
+      "Bash(php verificar_conteo_mayo.php)",
+      "Bash(php verificar_conteo_mayo2.php)"
     ]
   }
 }

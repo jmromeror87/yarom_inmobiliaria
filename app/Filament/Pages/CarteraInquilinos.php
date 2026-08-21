@@ -71,7 +71,9 @@ class CarteraInquilinos extends Page
                 ];
             }
 
-            $valor = (float) ($bill->saldo_pendiente + $bill->mora_acumulada + $bill->saldo_anterior_arrastrado);
+            // saldo_pendiente ya incluye capital + saldo arrastrado + mora —
+            // sumarlos de nuevo aquí duplicaba la mora en el total mostrado.
+            $valor = (float) $bill->saldo_pendiente;
             $dias = (int) $bill->dias_mora;
 
             $porInquilino[$id]['cantidad']++;

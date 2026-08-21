@@ -50,7 +50,23 @@ abstract class ComprobanteRapidoBase extends Page
 
     public function agregarPartida(): void
     {
-        $this->partidas[] = $this->partidaVacia();
+        $nueva = $this->partidaVacia();
+        $nueva['descripcion'] = $this->partidas[0]['descripcion'] ?? '';
+        $this->partidas[] = $nueva;
+    }
+
+    public function updatedPartidas($value, string $key): void
+    {
+        // Al escribir la descripción de la primera partida, se replica a las
+        // demás que aún estén vacías (como en el sistema viejo), sin pisar
+        // las que el usuario ya haya personalizado.
+        if ($key === '0.descripcion') {
+            foreach ($this->partidas as $i => $partida) {
+                if ($i !== 0 && empty($partida['descripcion'])) {
+                    $this->partidas[$i]['descripcion'] = $value;
+                }
+            }
+        }
     }
 
     public function quitarPartida(int $index): void

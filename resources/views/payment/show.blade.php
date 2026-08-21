@@ -179,18 +179,41 @@
 
             {{-- Abono personalizado --}}
             <form action="{{ route('payment.abono', ['token' => $token]) }}" method="POST"
-                  style="display:flex; gap:8px;">
+                  style="display:flex; flex-direction:column; gap:8px;">
                 @csrf
-                <div style="flex:1; position:relative;">
-                    <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-weight:700;">$</span>
-                    <input type="number" name="monto" min="1000" max="{{ (int) $totalGeneral }}" step="1000"
-                           placeholder="{{ number_format($totalGeneral, 0, ',', '.') }}"
-                           style="width:100%; padding:14px 14px 14px 28px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:15px; font-weight:700; color:#0f172a;">
+
+                @if($pendientes->count() > 1)
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:700; color:#64748b; margin-bottom:6px;">
+                        ¿A qué mes quieres abonar?
+                    </label>
+                    <select name="rent_bill_id"
+                            style="width:100%; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:14px; font-weight:600; color:#0f172a; background:#fff;">
+                        <option value="">Empezar por el mes más antiguo (recomendado)</option>
+                        @foreach($pendientes as $p)
+                        <option value="{{ $p->id }}">
+                            {{ ucfirst($p->periodo_inicio->translatedFormat('F Y')) }} ({{ $p->numero }}) — debe ${{ number_format($p->saldo_pendiente, 0, ',', '.') }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:5px;">
+                        Si el abono es mayor a lo que debe ese mes, el resto se aplica automáticamente a los demás meses pendientes.
+                    </div>
                 </div>
-                <button type="submit"
-                        style="background:#0f172a; color:#fff; border:none; border-radius:12px; padding:0 20px; font-weight:800; font-size:14px; cursor:pointer;">
-                    Abonar
-                </button>
+                @endif
+
+                <div style="display:flex; gap:8px;">
+                    <div style="flex:1; position:relative;">
+                        <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-weight:700;">$</span>
+                        <input type="number" name="monto" min="1000" max="{{ (int) $totalGeneral }}" step="1000"
+                               placeholder="{{ number_format($totalGeneral, 0, ',', '.') }}"
+                               style="width:100%; padding:14px 14px 14px 28px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:15px; font-weight:700; color:#0f172a;">
+                    </div>
+                    <button type="submit"
+                            style="background:#0f172a; color:#fff; border:none; border-radius:12px; padding:0 20px; font-weight:800; font-size:14px; cursor:pointer;">
+                        Abonar
+                    </button>
+                </div>
             </form>
 
             <div class="divider">o paga en oficina</div>

@@ -82,7 +82,17 @@ class PaymentController extends Controller
         $monto = (float) $request->input('monto', 0);
         $monto = max(1000, min($monto, $totalGeneral));
 
-        $wompiUrl = app(WompiService::class)->checkoutUrl($pendientes->first(), $monto);
+        // El inquilino puede elegir a qué mes específico va el abono (p.ej.
+        // si debe 3 meses y solo puede pagar uno) — si no elige nada, se
+        // aplica al más antiguo primero, como antes. El webhook igual
+        // reparte en cascada cualquier sobrante a los demás meses pendientes.
+        $rentBillId = $request->input('rent_bill_id');
+        $anclaFactura = $rentBillId
+            ? $pendientes->firstWhere('id', (int) $rentBillId)
+            : null;
+        $anclaFactura ??= $pendientes->first();
+
+        $wompiUrl = app(WompiService::class)->checkoutUrl($anclaFactura, $monto);
 
         return redirect()->away($wompiUrl);
     }

@@ -8,6 +8,7 @@ use App\Jobs\GenerarLiquidacionesAutomaticasJob;
 use App\Jobs\GenerarObligacionesDianJob;
 use App\Jobs\ReintentarFEJob;
 use App\Jobs\RenovarContratosJob;
+use App\Jobs\SnapshotSeguimientoDiarioJob;
 use App\Jobs\VerificarMoraJob;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -29,6 +30,15 @@ Schedule::job(new VerificarMoraJob)
     ->name('verificar-mora')
     ->withoutOverlapping()
     ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job VerificarMoraJob falló'));
+
+// ── 2a. Guardar la planilla diaria de seguimiento — diario a las 8:15am ─
+// Corre después de VerificarMoraJob (8am) para que la mora del día ya
+// esté actualizada antes de congelar el snapshot.
+Schedule::job(new SnapshotSeguimientoDiarioJob)
+    ->dailyAt('08:15')
+    ->name('snapshot-seguimiento-diario')
+    ->withoutOverlapping()
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('Job SnapshotSeguimientoDiarioJob falló'));
 
 // ── 2b. Girar a propietarios en su día fijo — diario a las 8:30am ───────
 // Política de la inmobiliaria: se gira al propietario en su día, pague o

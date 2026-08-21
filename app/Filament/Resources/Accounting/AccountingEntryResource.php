@@ -252,7 +252,7 @@ class AccountingEntryResource extends Resource
                         'contabilizado'=>'Contabilizado','borrador'=>'Borrador','anulado'=>'Anulado',default=>$state
                     }),
             ])
-            ->defaultSort('fecha', 'desc')
+            ->defaultSort('created_at', 'desc')
             ->striped()
             ->filters([
                 SelectFilter::make('tipo')->label('Tipo')->options([
